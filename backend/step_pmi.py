@@ -1002,6 +1002,107 @@ def _fmt_num(v: float) -> str:
     return f"{v:g}"
 
 
+def _face_surface_geom(entities: dict[int, Entity], face_ref: int):
+    """面(ADVANCED_FACE)の曲面の幾何: ("plane", 点, 法線) / ("cyl", 軸上の点, 軸方向, 半径) / None。"""
+    import math
+    if face_ref not in entities:
+        return None
+    geom_ref = None
+    for kw, args in entities[face_ref].parts:
+        if kw in ("ADVANCED_FACE", "FACE_SURFACE"):
+            f = _split_top_level_args(args)
+            if len(f) >= 3:
+                geom_ref = _ref(f[2])
+    if geom_ref is None or geom_ref not in entities:
+        return None
+
+    def vec(rid, kind):
+        for k, a in entities.get(rid, Entity(0)).parts:
+            if k == kind:
+                v = _parse_floats(_split_top_level_args(a)[1])
+                return v if len(v) >= 3 else None
+        return None
+
+    def placement(rid):
+        for k, a in entities.get(rid, Entity(0)).parts:
+            if k == "AXIS2_PLACEMENT_3D":
+                f = _split_top_level_args(a)
+                loc = vec(_ref(f[1]), "CARTESIAN_POINT") if len(f) > 1 else None
+                ax = vec(_ref(f[2]), "DIRECTION") if len(f) > 2 else (0.0, 0.0, 1.0)
+                if loc is None:
+                    return None
+                n = math.sqrt(sum(x * x for x in (ax or (0, 0, 1)))) or 1.0
+                return tuple(loc[:3]), tuple(x / n for x in (ax or (0, 0, 1))[:3])
+        return None
+
+    for k, a in entities[geom_ref].parts:
+        f = _split_top_level_args(a)
+        if k == "PLANE" and len(f) >= 2:
+            pl = placement(_ref(f[1]))
+            if pl:
+                return ("plane", pl[0], pl[1])
+        if k == "CYLINDRICAL_SURFACE" and len(f) >= 3:
+            pl = placement(_ref(f[1]))
+            rad = _parse_floats(f[2])
+            if pl and rad:
+                return ("cyl", pl[0], pl[1], rad[0])
+    return None
+
+
+def _derive_dimension_value(entities, kw, kind_name, aspect_refs, rel_map, usage_map):
+    """寸法の公称値が STEP に(DIMENSIONAL_CHARACTERISTIC_REPRESENTATION として)書かれていないとき、
+    対象の面の形状から求める(直径・半径・平行な 2 面の距離・形体間の距離)。単位はファイルの単位のまま。"""
+    import math
+
+    def geoms_of(aspect):
+        out = []
+        for fid in _resolve_shape_aspect_faces(aspect, rel_map, usage_map):
+            g = _face_surface_geom(entities, fid)
+            if g:
+                out.append(g)
+        return out
+
+    def dot(a, b):
+        return sum(x * y for x, y in zip(a, b))
+
+    def sub(a, b):
+        return tuple(x - y for x, y in zip(a, b))
+
+    kn = (kind_name or "").lower()
+    if kw == "DIMENSIONAL_SIZE" and aspect_refs and aspect_refs[0] is not None:
+        gs = geoms_of(aspect_refs[0])
+        cyls = [g for g in gs if g[0] == "cyl"]
+        if "diameter" in kn and cyls:
+            return 2.0 * sum(g[3] for g in cyls) / len(cyls)
+        if "radius" in kn and cyls:
+            return sum(g[3] for g in cyls) / len(cyls)
+        planes = [g for g in gs if g[0] == "plane"]
+        for i in range(len(planes)):                       # 向かい合う平行な 2 面の距離
+            for j in range(i + 1, len(planes)):
+                if abs(dot(planes[i][2], planes[j][2])) > 0.999:
+                    d = abs(dot(sub(planes[j][1], planes[i][1]), planes[i][2]))
+                    if d > 1e-9:
+                        return d
+        return None
+    if kw == "DIMENSIONAL_LOCATION" and len(aspect_refs) >= 2 and None not in aspect_refs[:2]:
+        ga, gb = geoms_of(aspect_refs[0]), geoms_of(aspect_refs[1])
+        if not ga or not gb:
+            return None
+        a, b = ga[0], gb[0]
+        if a[0] == "plane" and b[0] == "plane" and abs(dot(a[2], b[2])) > 0.999:
+            return abs(dot(sub(b[1], a[1]), a[2]))
+        if a[0] == "cyl" and b[0] == "cyl" and abs(dot(a[2], b[2])) > 0.999:          # 平行な軸どうしの距離
+            d = sub(b[1], a[1])
+            along = dot(d, a[2])
+            perp = tuple(x - along * y for x, y in zip(d, a[2]))
+            return math.sqrt(dot(perp, perp))
+        for pl, cy in ((a, b), (b, a)):                                               # 平面と円筒の軸
+            if pl[0] == "plane" and cy[0] == "cyl" and abs(dot(pl[2], cy[2])) < 0.01:
+                return abs(dot(sub(cy[1], pl[1]), pl[2]))
+        return None
+    return None
+
+
 def extract_dimensions(entities: dict[int, Entity], unit_factor: float = 1.0) -> list[dict]:
     """DIMENSIONAL_SIZE / DIMENSIONAL_LOCATION (サイズ寸法・位置寸法) を、幾何公差と同じ形式で返す。
     公称値は DIMENSIONAL_CHARACTERISTIC_REPRESENTATION -> SHAPE_DIMENSION_REPRESENTATION の測定値、
@@ -1088,6 +1189,13 @@ def extract_dimensions(entities: dict[int, Entity], unit_factor: float = 1.0) ->
             face_refs = sorted(set(face_refs))
 
             val = nominal.get(eid)
+            derived = False
+            if val is None:        # 公称値が書かれていない寸法は、面の形状から求める
+                try:
+                    val = _derive_dimension_value(entities, kw, kind_name, aspect_refs, rel_map, usage_map)
+                    derived = val is not None
+                except Exception:
+                    val = None
             val_mm = round(val * unit_factor, 6) if val is not None else None
             kn = kind_name.lower()
             if "diameter" in kn:
@@ -1118,6 +1226,7 @@ def extract_dimensions(entities: dict[int, Entity], unit_factor: float = 1.0) ->
                 "modifiers": "",
                 "zone_form": "",
                 "shape_aspect_ref": aspect_refs[0] if aspect_refs else None,
+                "derived_value": derived,
                 "face_refs": face_refs,
                 # 表示用(pmi_display はこれらが既に在ればそのまま使う)
                 "layer": layer,
@@ -1379,6 +1488,40 @@ def extract_annotation_targets(entities: dict[int, Entity], known_names: set[str
     return out
 
 
+SURFACE_JA = {
+    "PLANE": "平面", "CYLINDRICAL_SURFACE": "円筒面", "CONICAL_SURFACE": "円すい面",
+    "SPHERICAL_SURFACE": "球面", "TOROIDAL_SURFACE": "トーラス面",
+    "SURFACE_OF_REVOLUTION": "回転面", "SURFACE_OF_LINEAR_EXTRUSION": "押出し面",
+}
+
+
+def extract_face_infos(entities: dict[int, Entity], unit_factor: float = 1.0) -> list[dict]:
+    """ADVANCED_FACE ごとに STEP の ID・名前・曲面の種類と、境界頂点座標(メッシュの面との対応付け用)を返す。"""
+    out = []
+    for eid, ent in entities.items():
+        for kw, args in ent.parts:
+            if kw not in ("ADVANCED_FACE", "FACE_SURFACE"):
+                continue
+            f = _split_top_level_args(args)
+            if len(f) < 3:
+                continue
+            geom_ref = _ref(f[2])
+            surf_kw = ""
+            if geom_ref is not None and geom_ref in entities:
+                for k2, _a2 in entities[geom_ref].parts:
+                    surf_kw = k2
+                    break
+            surface = SURFACE_JA.get(surf_kw)
+            if surface is None and surf_kw.startswith(("B_SPLINE_SURFACE", "RATIONAL_B_SPLINE")):
+                surface = "自由曲面"
+            pts = _get_face_anchor_points(entities, eid)
+            out.append({
+                "id": eid, "name": _unquote(f[0]), "surface_kw": surf_kw, "surface": surface or surf_kw or "不明",
+                "anchor_points": [[p[0] * unit_factor, p[1] * unit_factor, p[2] * unit_factor] for p in pts],
+            })
+    return out
+
+
 def extract_saved_views(entities: dict[int, Entity]) -> list[dict]:
     """CAMERA_MODEL_D3 (保存ビュー/カメラ) を取り出す。
     AP242/AP214 では、カメラは配置(AXIS2_PLACEMENT_3D)の -Z 方向を向き、
@@ -1508,6 +1651,7 @@ def extract_pmi(step_text: str) -> dict:
     return {
         "geometric_tolerances": tolerances,
         "annotations": annotations,
+        "face_infos": extract_face_infos(entities, unit_factor),
         "datums": datums,
         "tessellated": extract_tessellated_pmi(entities),
         "saved_views": extract_saved_views(entities),

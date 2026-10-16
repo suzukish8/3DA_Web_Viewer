@@ -66,6 +66,9 @@
   .fcf svg { width: 22px; height: 22px; stroke: var(--text); fill: none; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
   .fcf-count { font-size: 11px; }
   .dimlabel { font-size: 13px; }
+  /* 半径は理論的に正確な寸法(TED): 四角で囲む */
+  .dimlabel.ted { display: inline-flex; align-items: center; border: 1.2px solid currentColor; padding: 1px 4px;
+    font-size: 11px; line-height: 1.2; background: #fff; }
   .dbox { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 5px;
     border: 1.2px solid var(--text); font-weight: 700; font-size: 12px; background: #fff; }
   .dside { display: inline-flex; align-items: center; margin-left: auto; }
@@ -148,6 +151,9 @@
   .bm-core .dimlabel { line-height: 1.2; }
   .bm-frames { line-height: 0; }
   .bm-row + .bm-row .fcf { margin-top: -1.2px; }       /* 罫線(1.2px)をちょうど重ねて、隙間なくくっつける */       /* 同じ形体の枠はくっつける(罫線を共有) */
+  /* R1 など(TED の四角)と公差記入枠の間には、公差記入枠の高さの 1/10 の隙間をあける(22px の 1/10 = 2.2px) */
+  .bm-row.has-ted + .bm-row, .bm-row + .bm-row.has-ted { margin-top: calc(var(--fh, 22px) * 0.1); }
+  .bm-row.has-ted + .bm-row .fcf { margin-top: 0; }
   .bm-row.cur { color: #0077ff; }
   .bm-row.cur .fcf, .bm-row.cur .fcf > span { border-color: #0077ff !important; }
   .bm-label .des { min-width: 22px; text-align: right; }
@@ -209,6 +215,69 @@
   .cv-row { display: flex; justify-content: flex-end; }
   .cv-win button { padding: 4px 12px; border: 1px solid var(--panel-border); border-radius: 4px; background: #f4f5f7; cursor: pointer; font-size: 12px; }
   .cv-win button:hover { background: #e3e6ec; }
+  #expBackdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 95; align-items: center; justify-content: center; }
+  #expDialog { background: #fff; border: 1px solid var(--panel-border); border-radius: 6px; box-shadow: 0 8px 28px rgba(0,0,0,.3);
+    width: min(940px, 94vw); max-height: 92vh; display: flex; flex-direction: column; font-size: 13px; }
+  .exp-body { display: flex; gap: 14px; padding: 12px; min-height: 0; overflow: auto; }
+  .exp-preview-col { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  #expView, #expHl { padding: 2px 4px; width: 100%; }
+  .exp-ms { position: relative; }
+  .exp-ms-btn { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 3px 6px; border: 1px solid #767676;
+    border-radius: 3px; background: #fff; font-size: 13px; cursor: pointer; }
+  .exp-ms-pop { position: absolute; left: 0; right: 0; top: 100%; z-index: 20; background: #fff; border: 1px solid var(--panel-border);
+    box-shadow: 0 4px 12px rgba(0,0,0,.2); padding: 4px 6px; display: flex; flex-direction: column; gap: 4px; }
+  .exp-ms-pop label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  #expView {}
+  #expSavedRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0; }
+  #expSavedSel { padding: 2px 4px; min-width: 150px; max-width: 170px; }
+  #expSavedRow.disabled { color: #9aa0aa; }
+  #expCustom { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+  #expCustom .cvl { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  #expCustom input[type=number] { width: 84px; padding: 2px 4px; }
+  #expCustom textarea { width: 100%; resize: none; font-size: 12px; font-family: inherit; }
+  #expCustom button { padding: 4px 12px; border: 1px solid var(--panel-border); border-radius: 4px; background: #f4f5f7; cursor: pointer; font-size: 12px; }
+  #expCustom button:hover { background: #e3e6ec; }
+  #expCustom.disabled { color: #9aa0aa; }
+  #expCustom input:disabled, #expCustom textarea:disabled { background: #eceef2; color: #9aa0aa; cursor: not-allowed; }
+  #expCustom button:disabled { background: #eceef2; color: #b0b5be; cursor: not-allowed; }
+  .exp-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--panel-border); }
+  .exp-tab { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border: 1px solid transparent; border-bottom: none;
+    border-radius: 5px 5px 0 0; cursor: pointer; user-select: none; background: #f4f5f7; color: var(--text-dim); position: relative; top: 1px; }
+  .exp-tab:hover { background: #e9eef6; }
+  .exp-tab.active { background: #fff; color: var(--text); border-color: var(--panel-border); font-weight: 600; }
+  .exp-tab.active { border-bottom: 1px solid #fff; }
+  #expPreviews { display: flex; gap: 10px; flex-wrap: wrap; }
+  .exp-prev { flex: 1 1 100%; min-width: 240px; border: 1px solid var(--panel-border); background: #fff; position: relative; }
+  #expPrevWrap { display: flex; flex-direction: column; }
+  #expOriginBox { margin-top: 6px; align-self: flex-start; display: flex; align-items: center; gap: 12px; font-size: 12px; }
+  .exp-origin-title { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+  .exp-origin-row { display: flex; align-items: center; gap: 8px; }
+  .exp-origin-row label { display: inline-flex; align-items: center; gap: 4px; }
+  .exp-origin-row input { width: 62px; padding: 1px 3px; font-size: 12px; }
+  #expOriginFit { padding: 1px 12px; border: 1px solid var(--panel-border); border-radius: 4px; background: #f4f5f7; cursor: pointer; font-size: 12px; }
+  #expOriginFit:hover:not(:disabled) { background: #e3e6ec; }
+  #expOriginFit:disabled { color: #9aa0aa; cursor: not-allowed; }
+  .exp-origin-row input:disabled { background: #eceef2; color: #9aa0aa; cursor: not-allowed; }
+  #expPreviews { cursor: grab; }
+  #expPreviews.dragging { cursor: grabbing; }
+  .exp-prev .exp-prev-title { position: absolute; top: 2px; left: 6px; font-size: 11px; color: var(--text-dim); }
+  .exp-prev svg { display: block; width: 100%; height: 400px; background: #e4e7ec; }
+  .exp-prev .exp-wait { height: 400px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); }
+  .exp-opt-col { flex: 0 0 300px; display: flex; flex-direction: column; gap: 8px; }
+  .exp-opt-col fieldset { border: 1px solid var(--panel-border); border-radius: 4px; margin: 0; padding: 6px 10px; display: flex;
+    flex-direction: column; gap: 4px; }
+  .exp-opt-col legend { padding: 0 4px; font-weight: 600; }
+  .exp-opt-col label { display: flex; align-items: center; gap: 6px; }
+  #expStyleBox { display: flex; flex-direction: column; gap: 4px; padding-left: 20px; }
+  .exp-foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--panel-border); }
+  .exp-foot #expMsg { margin-right: auto; color: var(--text-dim); }
+  .exp-foot button { padding: 4px 16px; border: 1px solid var(--panel-border); border-radius: 4px; background: #f4f5f7; cursor: pointer; }
+  .exp-foot button:hover { background: #e3e6ec; }
+  .exp-rows { display: flex; flex-direction: column; gap: 8px; }
+  .exp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .exp-row label { display: inline-flex; align-items: center; gap: 4px; }
+  .exp-row input[type=number] { width: 80px; padding: 2px 4px; }
+  .exp-row select { padding: 2px 4px; min-width: 140px; }
   .menu-sep { height: 1px; background: var(--panel-border); margin: 3px 0; }
 
   header { padding: 10px 14px; background: var(--panel); border-bottom: 1px solid var(--panel-border);
@@ -278,12 +347,79 @@
     <div class="cv-row"><button id="cvClose2">Close</button></div>
   </div>
 </div>
+<div id="expBackdrop" style="display:none">
+  <div id="expDialog">
+    <div class="cv-title"><span>Export 2D View</span><button id="expClose" title="Close" aria-label="Close">&times;</button></div>
+    <div class="exp-body">
+      <div class="exp-preview-col">
+        <div class="exp-tabs" id="expTabs">
+          <div class="exp-tab" data-style="original"><input type="checkbox" id="expStyleOriginal"><span>Graphic PMI</span></div>
+          <div class="exp-tab" data-style="balloon"><input type="checkbox" id="expStyleBalloon"><span>Balloon &amp; Mirror</span></div>
+        </div>
+        <div id="expPrevWrap">
+          <div id="expPreviews" title="Drag: move the drawing on the sheet / Wheel: change drawing scale / Double-click: center / Mouse Rotation View: rotate with the CAD Mouse Scheme buttons"></div>
+          <div id="expOriginBox">
+            <div class="exp-origin-title">3D Model Origin Position</div>
+            <div class="exp-origin-row">
+              <label>X <input type="number" id="expOriginX" step="0.1"></label>
+              <label>Y <input type="number" id="expOriginY" step="0.1"></label>
+              <span>mm</span>
+              <button type="button" id="expOriginFit" title="Fit the model to the sheet (center it)">Fit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="exp-opt-col">
+        <fieldset><legend>View</legend>
+          <select id="expView"><option value="current">Current View</option><option value="saved">Saved View</option><option value="custom">Custom View</option><option value="mouse">Mouse Rotation View</option></select>
+          <label class="cvl" id="expSavedRow">Saved view:<select id="expSavedSel"></select></label>
+          <div id="expCustom">
+            <label class="cvl">X Axis Rotation (&deg;):<input type="number" id="expCvX" min="-360" max="360" step="5"></label>
+            <label class="cvl">Y Axis Rotation (&deg;):<input type="number" id="expCvY" min="-360" max="360" step="5"></label>
+            <label class="cvl">Z Axis Rotation (&deg;):<input type="number" id="expCvZ" min="-360" max="360" step="5"></label>
+            <label class="cvl" style="display:none">Camera Zoom (%):<input type="number" id="expCvZoom" min="10" max="1000" step="10"></label>
+            <div class="cvp">Paste a copied condition here:</div>
+            <textarea id="expCvPaste" rows="2" placeholder="Camera Rotation (X,Y,Z): 0.0, 0.0, 0.0 deg&#10;Camera Zoom (%): 100.0"></textarea>
+            <div class="cv-row"><button id="expCvApply">Apply</button></div>
+          </div>
+        </fieldset>
+        <fieldset><legend>Files</legend>
+          <div class="exp-ms" id="expFiles">
+            <button type="button" id="expFilesBtn" class="exp-ms-btn"><span id="expFilesText">DXF, SVG, PDF, PNG</span><span class="exp-caret">&#9662;</span></button>
+            <div class="exp-ms-pop" id="expFilesPop" style="display:none">
+              <label><input type="checkbox" id="expFmtDxf" checked> DXF</label>
+              <label><input type="checkbox" id="expFmtSvg" checked> SVG</label>
+              <label><input type="checkbox" id="expFmtPdf" checked> PDF</label>
+              <label><input type="checkbox" id="expFmtPng" checked> PNG</label>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset><legend>Hidden Lines</legend>
+          <select id="expHl">
+            <option value="off">Show all edges (no hidden-line processing)</option>
+            <option value="dashed" selected>Dashed hidden lines (かくれ線)</option>
+            <option value="remove">Remove hidden lines (陰線消去)</option>
+          </select>
+        </fieldset>
+        <fieldset><legend>Output</legend>
+          <div class="exp-row" id="expPaperRow"><span>PDF paper size:</span><select id="expPaper"></select></div>
+          <div class="exp-row" id="expScaleRow"><span>PDF drawing scale:</span><select id="expScale"></select></div>
+          <div class="exp-row"><span>3D model line width (mm):</span><input type="number" id="expLwModel" min="0.05" max="2" step="0.05"></div>
+          <div class="exp-row"><span>Other line width (mm):</span><input type="number" id="expLwOther" min="0.05" max="2" step="0.05"></div>
+        </fieldset>
+      </div>
+    </div>
+    <div class="exp-foot"><span id="expMsg"></span><button id="expOk">Export</button><button id="expCancel">Cancel</button></div>
+  </div>
+</div>
 <div id="errBackdrop"><div id="errBox"><h3>エラー</h3><pre id="errMsg"></pre><button id="errOk">OK</button></div></div>
 <div id="menubar">
   <div class="menu" id="menuFile">
     <div class="menu-title"><u>F</u>ile</div>
     <div class="menu-items">
       <div class="menu-item" id="miOpen">Open...</div>
+      <div class="menu-sep"></div>
+      <div class="menu-item" id="miExpView">Export 2D View...</div>
     </div>
   </div>
   <div class="menu" id="menuView">
@@ -306,32 +442,44 @@
         </div>
       </div>
       <div class="menu-sep"></div>
-      <div class="menu-item has-sub">Show Characteristics Panel
+      <div class="menu-item has-sub">Show/No Show
         <div class="submenu">
-          <div class="menu-item checkable checked" id="miPanel">Visible</div>
-          <div class="menu-sep"></div>
-          <div class="menu-item has-sub">Characteristics Sort
-            <div class="submenu" id="sortMenu">
-              <div class="menu-item radio" data-sort="type">By Type</div>
-              <div class="menu-item radio checked" data-sort="designator">By Designator (Default)</div>
+          <div class="menu-item has-sub">Characteristics Panel
+            <div class="submenu">
+              <div class="menu-item checkable checked" id="miPanel">Visible</div>
+              <div class="menu-sep"></div>
+              <div class="menu-item has-sub">Characteristics Sort
+                <div class="submenu" id="sortMenu">
+                  <div class="menu-item radio" data-sort="type">By Type</div>
+                  <div class="menu-item radio checked" data-sort="designator">By Designator (Default)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="menu-item checkable" id="miDesignators">Designators</div>
+          <div class="menu-item checkable checked" id="miViewsPanel">Saved Views Panel</div>
+          <div class="menu-item checkable" id="miAxes">Origin Axes</div>
+        </div>
+      </div>
+      <div class="menu-item has-sub">View
+        <div class="submenu">
+          <div class="menu-item" id="miFit">Fit to View</div>
+          <div class="menu-item" id="miCustomView">Custom View...</div>
+          <div class="menu-item has-sub">Saved Views
+            <div class="submenu" id="savedViewsMenu">
+              <div class="menu-item" id="miSaveView">Save Current View...</div>
+              <div class="menu-sep"></div>
             </div>
           </div>
         </div>
       </div>
-      <div class="menu-item checkable" id="miDesignators">Show Designators</div>
-      <div class="menu-item checkable checked" id="miViewsPanel">Show Saved Views Panel</div>
-      <div class="menu-item checkable" id="miAxes">Show Origin Axes</div>
+    </div>
+  </div>
+  <div class="menu" id="menuDebug">
+    <div class="menu-title"><u>D</u>ebug</div>
+    <div class="menu-items">
       <div class="menu-item checkable" id="miDbgAnchors">Show Annotation Anchors</div>
       <div class="menu-item checkable" id="miDbgDimEnds">Show Dimension Line Ends</div>
-      <div class="menu-sep"></div>
-      <div class="menu-item" id="miFit">Fit to View</div>
-      <div class="menu-item" id="miCustomView">Custom View...</div>
-      <div class="menu-item has-sub">Saved Views
-        <div class="submenu" id="savedViewsMenu">
-          <div class="menu-item" id="miSaveView">Save Current View...</div>
-          <div class="menu-sep"></div>
-        </div>
-      </div>
     </div>
   </div>
   <div class="menu" id="menuOption">
@@ -488,11 +636,12 @@ const REVERSED_WHEEL = ["creo", "solidworks"];
 let nav = { lb: false, mb: false, rb: false, shift: false, ctrl: false, action: null, last: null,
             catiaZoomArmed: false, chordMoved: true, chordStart: null, pointerId: null };
 
-function classifyNav() {
-  const { lb, mb, rb, shift, ctrl } = nav;
+function classifyNav(st) {
+  st = st || nav;
+  const { lb, mb, rb, shift, ctrl } = st;
   if (navScheme === "catia") {
     if (!mb) return null;
-    if (nav.catiaZoomArmed || ctrl) return "zoom";
+    if (st.catiaZoomArmed || ctrl) return "zoom";
     if (lb || rb) return "rotate";
     return "pan";
   }
@@ -1087,7 +1236,7 @@ function bmSetup(pmi) {
     for (const i of g.members) {
       const t = tols[i];
       const row = document.createElement("div");
-      row.className = "bm-row" + (t.symbol_kind === "dimension" ? " dim" : "");
+      row.className = "bm-row" + (t.symbol_kind === "dimension" ? " dim" : "") + (t.symbol_kind === "dimension" && t.layer === "Radius" ? " has-ted" : "");
       row.innerHTML = `<span class="des">${escapeHtml(t.designator || "--")}</span><span class="bm-core">${fcfHtml(t)}</span>`;
       row.addEventListener("click", (e) => { e.stopPropagation(); selectTolerance(i, tols); });
       frames.appendChild(row);
@@ -1130,7 +1279,8 @@ function bmSetup(pmi) {
   bmDirty = true;
 }
 function bmMeasureItem(it) {
-  const firstFcf = it.el.querySelector(".bm-core .fcf");
+  { const f0 = it.el.querySelector(".bm-core .fcf"); it.el.style.setProperty("--fh", (f0 ? f0.offsetHeight : 22) + "px"); }   // 公差記入枠の高さ(隙間 = その 1/10)
+  const firstFcf = it.el.querySelector(".bm-core .fcf, .bm-core .ted");
   const oneH = firstFcf ? firstFcf.offsetHeight : 22;           // 公差枠の高さ = データム四角の一辺(正方形)
   it.el.querySelectorAll(".bm-datums .dbox").forEach(n => { n.style.width = oneH + "px"; n.style.height = oneH + "px"; });
   const frames = it.el.querySelector(".bm-frames");
@@ -1140,8 +1290,10 @@ function bmMeasureItem(it) {
   // 公差記入枠(罫線)の左端・右端: ラベル左端からの距離(自然サイズ)。引出線の水平線は枠の端に直接つなぐ。
   const lr = it.el.getBoundingClientRect(), kk = it.k || 1;
   // 引出線は寸法値ではなく公差記入枠(罫線の枠)につなぐ。枠が無い塊(寸法のみ)は寸法値につなぐ。
+  // R1/R2 など(四角で囲んだ TED)にはつながず、その下の公差記入枠につなぐ(他の幾何公差と同じ: 枠の高さの中央)。
   let sel = ".bm-core .fcf";
-  if (!Array.from(it.el.querySelectorAll(sel)).some(n => n.offsetParent !== null)) sel = ".bm-core .dimlabel";
+  const visible = (q) => Array.from(it.el.querySelectorAll(q)).some(n => n.offsetParent !== null);
+  if (!visible(sel)) sel = visible(".bm-core .ted") ? ".bm-core .ted" : ".bm-core .dimlabel";
   let fl = Infinity, fr = -Infinity;
   let topCy = null, topY = Infinity;
   it.el.querySelectorAll(sel).forEach(n => {
@@ -1725,6 +1877,16 @@ function bmPlaceMirrorMarker(g) {
   m.position.copy(b.c).addScaledVector(b.right, b.halfU - side * 0.75).addScaledVector(b.up, b.halfV - side * 0.75);
   m.updateMatrixWorld(true);
 }
+// ×マークは、モデルに遮蔽されて見えないときは非表示にする(クリックの対象からも外す)
+const bmNoTris = new Set();
+function bmUpdateMirrorMarkerVisibility(g, viewDir) {
+  const m = g.userData.marker;
+  if (!m || !bmPos) return;
+  const wp = new THREE.Vector3();
+  m.getWorldPosition(wp);
+  const blocked = bmBlocked(null, wp, viewDir.clone().negate(), bmNoTris);
+  m.visible = !blocked;
+}
 // 選択中の鏡のハイライト(枠を青、面に青い薄い色)
 function bmApplyMirrorSelection() {
   for (const ax of Object.keys(bmMirrors)) {
@@ -1741,6 +1903,7 @@ function bmUpdateMirrors(viewDir) {
     if (!bmMirrors[axis] || bmMirrors[axis].sign !== sign) buildMirror(axis, sign);
     bmMirrors[axis].group.visible = !bmMirrorHidden[axis];
     bmPlaceMirrorMarker(bmMirrors[axis].group);
+    bmUpdateMirrorMarkerVisibility(bmMirrors[axis].group, viewDir);
     bmApplyMirrorSelection();
   }
 }
@@ -2073,10 +2236,8 @@ function bmLayout() {
           bmDrawDimEnd(a, [-dx, -dy], stub, col, sw, headPx);
           bmDrawDimEnd(b, [dx, dy], stub, col, sw, headPx);
         } else {
-          const c0 = toScr(it.dim.center), e = v.ends[0].s;      // 半径: 中心から縁へ向かう方向の外側に 1 本
-          let dx = e[0] - c0[0], dy = e[1] - c0[1];
-          if (Math.hypot(dx, dy) < 2) { dx = 1; dy = 0; }
-          bmDrawDimEnd(e, [dx, dy], stub, col, sw, headPx);
+          // 半径(R1, R2 ...)は理論的に正確な寸法: 寸法線も端末記号(矢印・同軸線)も描かず、引出線と黒丸だけにする
+          bmSvg.appendChild(bmSvgEl("circle", { cx: v.scr[0], cy: v.scr[1], r: Math.max(1.5, dotPx / 2) * (sel ? 1.3 : 1), fill: col }));
         }
       } else {
         bmSvg.appendChild(bmSvgEl("circle", { cx: v.scr[0], cy: v.scr[1], r: Math.max(1.5, dotPx / 2) * (sel ? 1.3 : 1), fill: col }));
@@ -2535,7 +2696,8 @@ function bmPickMirrorClose(clientX, clientY) {
   for (const ax of Object.keys(bmMirrors)) {
     if (bmMirrorHidden[Number(ax)]) continue;
     const q = bmMirrors[ax].group.userData.closeQuad;
-    if (q) quads.push(q);
+    const mk = bmMirrors[ax].group.userData.marker;
+    if (q && (!mk || mk.visible)) quads.push(q);          // 遮蔽されて非表示の × はクリックできない
   }
   bmMirrorGroup.updateMatrixWorld(true);
   const hit = mirrorRay.intersectObjects(quads, false)[0];
@@ -2599,7 +2761,8 @@ cv.addEventListener("pointermove", (e) => {
   if (e.buttons === 0 && annotationStyle === "balloon") {
     const rr = cv.getBoundingClientRect();
     const overDbg = (dbgAnchorsOn || dbgDimEndsOn || selectedTolIndex !== null) && dbgPickHandle(e.clientX - rr.left, e.clientY - rr.top);
-    cv.style.cursor = (overDbg || bmPickMirror(e.clientX, e.clientY) !== null) ? "grab" : "";
+    if (bmPickMirrorClose(e.clientX, e.clientY) !== null) cv.style.cursor = "default";    // 鏡の角の × の上は矢印(クリックで鏡を消す)
+    else cv.style.cursor = (overDbg || bmPickMirror(e.clientX, e.clientY) !== null) ? "grab" : "";
   }
 }, true);
 function bmEndMirrorDrag(e) {
@@ -2742,6 +2905,966 @@ document.getElementById("miCustomView").addEventListener("click", cvOpen);
   });
 })();
 
+// ======================================================================
+// File > Export 2D View (DXF / SVG / PDF)  -- 3DA B&M Viewer からの移植
+//  現在の画面(カメラの向き)で、モデルの B-rep 稜線と、表示中の注記を 2D(mm, Y 上向き)に平らにして書き出す。
+//  ファイルへの書き出しは、3DA B&M Viewer と同じ geometry/dxf_export・svg_export・pdf_export をサーバー側で使う。
+//   - 実寸(1 model mm = 1 mm)。PDF は用紙(A4..A0 縦横/図形に合わせる)と作図尺度(x0.2〜x10)を選べる。
+//   - 線の太さ: 3D モデルの線 / それ以外 (既定 0.5 / 0.25 mm)。
+//   - 陰線処理: 全稜線を実線 / かくれ線(破線, MODEL_HIDDEN レイヤー) / 陰線消去。
+//   - 図の原点: モデルの世界原点が (0,0) に来る。
+// ======================================================================
+const EXP_PAGE_SIZES = ["A4 Portrait", "A4 Landscape", "A3 Portrait", "A3 Landscape", "A2 Portrait", "A2 Landscape",
+                        "A1 Portrait", "A1 Landscape", "A0 Portrait", "A0 Landscape", "Fit to drawing"];
+const EXP_SCALES = ["x0.2", "x0.5", "x1", "x2", "x5", "x10"];
+const expStore = {
+  get(k, d) { try { const v = localStorage.getItem("exp_" + k); return v === null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("exp_" + k, String(v)); } catch (e) {} },
+};
+let expHiddenLine = expStore.get("hidden", "dashed");
+if (!["off", "dashed", "remove"].includes(expHiddenLine)) expHiddenLine = "dashed";
+
+const expSleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// ---- 図形(IR): {polylines:[{layer,rgb,points}], circles:[{layer,rgb,c,r}], solids:[{layer,rgb,points}], labels:[{layer,rgb,p,text,h}]} ----
+function expEmptyIR() { return { polylines: [], circles: [], solids: [], labels: [] }; }
+const EXP_BLACK = [0, 0, 0];
+
+// SVG の path(M L H V Z A のみ・絶対座標)を折れ線にする
+function expArcPoints(x0, y0, rx, ry, large, sweep, x1, y1) {
+  if (rx === 0 || ry === 0) return [[x1, y1]];
+  const dx2 = (x0 - x1) / 2, dy2 = (y0 - y1) / 2;
+  let lam = (dx2 * dx2) / (rx * rx) + (dy2 * dy2) / (ry * ry);
+  if (lam > 1) { const sq = Math.sqrt(lam); rx *= sq; ry *= sq; }
+  const sign = (large === sweep) ? -1 : 1;
+  const num = rx * rx * ry * ry - rx * rx * dy2 * dy2 - ry * ry * dx2 * dx2;
+  const den = rx * rx * dy2 * dy2 + ry * ry * dx2 * dx2;
+  const co = sign * Math.sqrt(Math.max(0, num / den));
+  const cxp = co * (rx * dy2) / ry, cyp = -co * (ry * dx2) / rx;
+  const cx = cxp + (x0 + x1) / 2, cy = cyp + (y0 + y1) / 2;
+  const a0 = Math.atan2((dy2 - cyp) / ry, (dx2 - cxp) / rx);
+  let da = Math.atan2((-dy2 - cyp) / ry, (-dx2 - cxp) / rx) - a0;
+  if (!sweep && da > 0) da -= 2 * Math.PI;
+  if (sweep && da < 0) da += 2 * Math.PI;
+  const n = Math.max(6, Math.ceil(Math.abs(da) / (Math.PI / 12)));
+  const out = [];
+  for (let i = 1; i <= n; i++) { const a = a0 + da * i / n; out.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]); }
+  return out;
+}
+function expPathToPolylines(d) {
+  const tok = d.match(/[MLHVZAmlhvza]|-?[0-9]*[.]?[0-9]+(?:e-?[0-9]+)?/g) || [];
+  const polys = []; let cur = null, cx = 0, cy = 0, sx = 0, sy = 0, i = 0, cmd = "";
+  const num = () => parseFloat(tok[i++]);
+  while (i < tok.length) {
+    if (/[A-Za-z]/.test(tok[i])) cmd = tok[i++];
+    if (cmd === "M") { cx = num(); cy = num(); sx = cx; sy = cy; cur = [[cx, cy]]; polys.push(cur); cmd = "L"; }
+    else if (cmd === "L") { cx = num(); cy = num(); cur.push([cx, cy]); }
+    else if (cmd === "H") { cx = num(); cur.push([cx, cy]); }
+    else if (cmd === "V") { cy = num(); cur.push([cx, cy]); }
+    else if (cmd === "A") {
+      const rx = num(), ry = num(); num(); const large = num(), sweep = num(), x = num(), y = num();
+      for (const q of expArcPoints(cx, cy, rx, ry, large, sweep, x, y)) cur.push(q);
+      cx = x; cy = y;
+    } else if (cmd === "Z") { if (cur) { cur.push([sx, sy]); cx = sx; cy = sy; } cmd = ""; }
+    else i++;
+  }
+  return polys.filter(p => p.length >= 2);
+}
+
+// ---- 画面(px) -> 図面(mm) ----
+function expMapper() {
+  const W = viewerEl.clientWidth, H = viewerEl.clientHeight;
+  const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0);
+  const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1);
+  const pxPerUnit = H / (frustumSize / camera.zoom);
+  const t = controls.target;
+  const tx = t.dot(right), ty = t.dot(up), u2mm = bmUnitToMm || 1;
+  const vr = viewerEl.getBoundingClientRect();
+  const M = {
+    W, H, right, up, pxPerUnit, u2mm,
+    world: (p) => [p.dot(right) * u2mm, p.dot(up) * u2mm],
+    px: (x, y) => [(tx + (x - W / 2) / pxPerUnit) * u2mm, (ty - (y - H / 2) / pxPerUnit) * u2mm],
+    cpx: (x, y) => M.px(x - vr.left, y - vr.top),     // ブラウザ画面(client)座標 -> 図面 mm。3D 画面の左上を原点にそろえてから変換する
+    pxLen: (l) => (l / pxPerUnit) * u2mm,
+  };
+  return M;
+}
+
+// ---- モデルの稜線(陰線処理つき) ----
+async function expModelEdges(ir, M, onProgress) {
+  if (!currentMeshData) return;
+  // 図面には B-rep の稜線をすべて出す(画面表示では省いている、接する面どうしの境界線も含める)
+  const eg = faceBoundaryGeometry(currentMeshData, true);
+  const pos = eg.getAttribute("position");
+  eg.dispose();
+  if (!pos) return;
+  const A = pos.array, nSeg = Math.floor(A.length / 6);
+  const b = currentMeshData.bbox;
+  bmDiagCache = Math.hypot(b.max[0] - b.min[0], b.max[1] - b.min[1], b.max[2] - b.min[2]) || 1;
+  if (!bmPos) bmBuildFaces();
+  const toCam = bmViewDir().negate();
+  const seen = new Set();
+  const key = (i) => `${Math.round(A[i] * 1e4)},${Math.round(A[i + 1] * 1e4)},${Math.round(A[i + 2] * 1e4)}`;
+  const vis = (x, y, z) => !bmBlocked(null, new THREE.Vector3(x, y, z), toCam, bmNoTris);
+  const pushRun = (layer, pts) => { if (pts.length >= 2) ir.polylines.push({ layer, rgb: EXP_BLACK, points: pts }); };
+  let run = null;          // {layer, pts, last:[x,y,z]}
+  const flush = () => { if (run) { pushRun(run.layer, run.pts); run = null; } };
+  const add = (layer, p0, p1) => {
+    const a2 = M.world(new THREE.Vector3(p0[0], p0[1], p0[2])), b2 = M.world(new THREE.Vector3(p1[0], p1[1], p1[2]));
+    if (run && run.layer === layer && Math.hypot(run.last[0] - p0[0], run.last[1] - p0[1], run.last[2] - p0[2]) < 1e-7) {
+      run.pts.push(b2); run.last = p1;
+    } else { flush(); run = { layer, pts: [a2, b2], last: p1 }; }
+  };
+  for (let s = 0; s < nSeg; s++) {
+    const i0 = s * 6, i1 = s * 6 + 3;
+    const k0 = key(i0), k1 = key(i1), kk = k0 < k1 ? k0 + "|" + k1 : k1 + "|" + k0;
+    if (seen.has(kk)) continue;                         // 隣り合う 2 面が同じ稜線を持つので重複を除く
+    seen.add(kk);
+    const p0 = [A[i0], A[i0 + 1], A[i0 + 2]], p1 = [A[i1], A[i1 + 1], A[i1 + 2]];
+    if (expHiddenLine === "off") { add("MODEL", p0, p1); }
+    else {
+      const at = (t) => [p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t, p0[2] + (p1[2] - p0[2]) * t];
+      const samples = [0.25, 0.5, 0.75].map(t => { const q = at(t); return vis(q[0], q[1], q[2]); });
+      if (samples.every(v => v === samples[0])) {
+        if (samples[0]) add("MODEL", p0, p1); else if (expHiddenLine === "dashed") add("MODEL_HIDDEN", p0, p1);
+      } else {                                           // 見える/隠れるが混在: 8 分割して判定
+        const N = 8;
+        for (let k = 0; k < N; k++) {
+          const q0 = at(k / N), q1 = at((k + 1) / N), qm = at((k + 0.5) / N);
+          if (vis(qm[0], qm[1], qm[2])) add("MODEL", q0, q1); else if (expHiddenLine === "dashed") add("MODEL_HIDDEN", q0, q1);
+        }
+      }
+    }
+    if (s % 200 === 0) { onProgress && onProgress(s / nSeg); await expSleep(0); }
+  }
+  flush();
+}
+
+// ---- テキスト: ⌀・丸付き文字は図形で描く(フォントに依存しない) ----
+const EXP_SPECIAL = { "\u2300": "dia", "\u2205": "dia", "\u24C2": "M", "\u24C1": "L", "\u24BB": "F", "\u24C9": "T", "\u24C5": "P" };
+function expText(ir, M, node, k, layer) {
+  const text = node.textContent;
+  if (!text || !text.trim()) return;
+  const cs = getComputedStyle(node.parentElement);
+  const fontPx = parseFloat(cs.fontSize) * k;
+  const h = M.pxLen(fontPx) * 0.8;
+  const range = document.createRange();
+  let runStart = -1, runText = "", runRect = null;
+  const flushRun = () => {
+    if (runStart >= 0 && runText.trim()) {
+      const bl = M.cpx(runRect.left, runRect.bottom - fontPx * 0.2);
+      ir.labels.push({ layer, rgb: EXP_BLACK, p: bl, text: runText, h });
+    }
+    runStart = -1; runText = ""; runRect = null;
+  };
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    range.setStart(node, i); range.setEnd(node, i + 1);
+    const r = range.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) continue;
+    const sp = EXP_SPECIAL[ch];
+    if (sp) {
+      flushRun();
+      const c = M.cpx((r.left + r.right) / 2, (r.top + r.bottom) / 2);
+      if (sp === "dia") {
+        const rr = M.pxLen(fontPx) * 0.32;
+        ir.circles.push({ layer, rgb: EXP_BLACK, c, r: rr });
+        ir.polylines.push({ layer, rgb: EXP_BLACK, points: [[c[0] - rr * 1.25, c[1] - rr * 1.25], [c[0] + rr * 1.25, c[1] + rr * 1.25]] });
+      } else {
+        const rr = M.pxLen(fontPx) * 0.46;
+        ir.circles.push({ layer, rgb: EXP_BLACK, c, r: rr });
+        const th = rr * 1.1;
+        ir.labels.push({ layer, rgb: EXP_BLACK, p: [c[0] - th * 0.3, c[1] - th * 0.36], text: sp, h: th });
+      }
+      continue;
+    }
+    if (runStart < 0) { runStart = i; runRect = r; }
+    runText += ch;
+  }
+  flushRun();
+}
+function expTextNodes(el, fn) {
+  const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let n; while ((n = w.nextNode())) { if (n.parentElement && getComputedStyle(n.parentElement).display !== "none") fn(n); }
+}
+function expRect(ir, M, r, layer) {
+  const a = M.cpx(r.left, r.top), b = M.cpx(r.right, r.top), c = M.cpx(r.right, r.bottom), d = M.cpx(r.left, r.bottom);
+  ir.polylines.push({ layer, rgb: EXP_BLACK, points: [a, b, c, d, a] });
+}
+function expSymbol(ir, M, svg, layer) {
+  const r = svg.getBoundingClientRect(), sc = r.width / 24;
+  const toMm = (x, y) => M.cpx(r.left + x * sc, r.top + y * sc);
+  svg.querySelectorAll("path").forEach(pa => {
+    for (const poly of expPathToPolylines(pa.getAttribute("d") || "")) ir.polylines.push({ layer, rgb: EXP_BLACK, points: poly.map(q => toMm(q[0], q[1])) });
+  });
+  svg.querySelectorAll("circle").forEach(ci => {
+    ir.circles.push({ layer, rgb: EXP_BLACK, c: toMm(parseFloat(ci.getAttribute("cx")), parseFloat(ci.getAttribute("cy"))), r: M.pxLen(parseFloat(ci.getAttribute("r")) * sc) });
+  });
+}
+
+// ---- Balloon & Mirror の鏡(Hidden-Side Mirror): 鏡の枠と、鏡に映ったモデルの像(稜線)を図面にする ----
+// 鏡の像は、鏡の面からモデルへ向かって正射影で撮った絵を、鏡の面に貼ったもの。
+// = モデルの稜線のうち、鏡の側から見える部分を、鏡の面へ(軸方向に)つぶした線。画面と同じカメラで投影して図面にする。
+async function expMirrors(ir, M, onProgress) {
+  if (!currentMeshData || !bmMirrorsOn || !bmMirrorGroup.visible) return;
+  const axes = [0, 1, 2].filter(ax => bmMirrors[ax] && bmMirrors[ax].group.visible && !bmMirrorHidden[ax]);
+  if (!axes.length) return;
+  const GREY = [154, 160, 170];
+  const eg = faceBoundaryGeometry(currentMeshData, true);
+  const pos = eg.getAttribute("position");
+  eg.dispose();
+  const A = pos ? pos.array : new Float32Array(0), nSeg = Math.floor(A.length / 6);
+  if (!bmPos) bmBuildFaces();
+  const key = (i) => `${Math.round(A[i] * 1e4)},${Math.round(A[i + 1] * 1e4)},${Math.round(A[i + 2] * 1e4)}`;
+  const segs = [], seen = new Set();
+  for (let sg = 0; sg < nSeg; sg++) {
+    const i0 = sg * 6, i1 = i0 + 3, k0 = key(i0), k1 = key(i1), kk = k0 < k1 ? k0 + "|" + k1 : k1 + "|" + k0;
+    if (seen.has(kk)) continue;
+    seen.add(kk);
+    segs.push([A[i0], A[i0 + 1], A[i0 + 2], A[i1], A[i1 + 1], A[i1 + 2]]);
+  }
+  const v = new THREE.Vector3();
+  for (let ai = 0; ai < axes.length; ai++) {
+    const ax = axes[ai], m = bmMirrors[ax], base = m.group.userData.markerBase;
+    if (!base) continue;
+    const { c, right, up, halfU, halfV } = base;
+    // 枠
+    const corner = (su, sv) => M.world(v.clone().copy(c).addScaledVector(right, su * halfU).addScaledVector(up, sv * halfV));
+    const a0 = corner(-1, -1), a1 = corner(1, -1), a2 = corner(1, 1), a3 = corner(-1, 1);
+    ir.polylines.push({ layer: "MIRROR", rgb: GREY, points: [a0, a1, a2, a3, a0] });
+    // 像: 鏡の側から見える稜線を、鏡の面へ(軸方向に)つぶす
+    const toMirror = new THREE.Vector3(); toMirror.setComponent(ax, m.sign);
+    const planeV = c.getComponent(ax);
+    const visAt = (x, y, z) => !bmBlocked(null, new THREE.Vector3(x, y, z), toMirror, bmNoTris);
+    const flat = (x, y, z) => { v.set(x, y, z); v.setComponent(ax, planeV); return M.world(v); };
+    let run = null;
+    const flush = () => { if (run && run.pts.length >= 2) ir.polylines.push({ layer: "MIRROR_IMAGE", rgb: EXP_BLACK, points: run.pts }); run = null; };
+    const add = (p0, p1) => {
+      const b2 = flat(p1[0], p1[1], p1[2]);
+      if (run && Math.hypot(run.last[0] - p0[0], run.last[1] - p0[1], run.last[2] - p0[2]) < 1e-7) { run.pts.push(b2); run.last = p1; }
+      else { flush(); run = { pts: [flat(p0[0], p0[1], p0[2]), b2], last: p1 }; }
+    };
+    for (let k = 0; k < segs.length; k++) {
+      const q = segs[k], p0 = [q[0], q[1], q[2]], p1 = [q[3], q[4], q[5]];
+      const at = (t) => [p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t, p0[2] + (p1[2] - p0[2]) * t];
+      const samples = [0.25, 0.5, 0.75].map(t => { const w = at(t); return visAt(w[0], w[1], w[2]); });
+      if (samples.every(x => x === samples[0])) { if (samples[0]) add(p0, p1); }
+      else {
+        const N = 8;
+        for (let j = 0; j < N; j++) { const w = at((j + 0.5) / N); if (visAt(w[0], w[1], w[2])) add(at(j / N), at((j + 1) / N)); }
+      }
+      if (k % 200 === 0) { onProgress && onProgress((ai + k / segs.length) / axes.length); await expSleep(0); }
+    }
+    flush();
+  }
+}
+
+// ---- Balloon & Mirror の注記: 画面の DOM / SVG をそのまま図面にする ----
+function expBalloonAnnotations(ir, M) {
+  // 引出線・矢印・同軸線・黒丸(SVG オーバーレイ)
+  for (const el of bmSvg.children) {
+    const tag = el.tagName.toLowerCase();
+    if (el.getAttribute("stroke-dasharray")) continue;       // 鏡経由の目印(点線の円)は図面に出さない
+    if (tag === "polyline") {
+      const pts = el.getAttribute("points").split(" ").map(q => q.split(",").map(Number)).map(q => M.px(q[0], q[1]));
+      ir.polylines.push({ layer: "LEADER", rgb: EXP_BLACK, points: pts });
+    } else if (tag === "line") {
+      ir.polylines.push({ layer: "DIMENSION", rgb: EXP_BLACK, points: [M.px(+el.getAttribute("x1"), +el.getAttribute("y1")), M.px(+el.getAttribute("x2"), +el.getAttribute("y2"))] });
+    } else if (tag === "polygon") {
+      const pts = el.getAttribute("points").split(" ").map(q => q.split(",").map(Number)).map(q => M.px(q[0], q[1]));
+      ir.solids.push({ layer: "DIMENSION", rgb: EXP_BLACK, points: pts });
+    } else if (tag === "circle") {
+      ir.circles.push({ layer: "LEADER", rgb: EXP_BLACK, c: M.px(+el.getAttribute("cx"), +el.getAttribute("cy")), r: M.pxLen(+el.getAttribute("r")) });
+    }
+  }
+  // 公差記入枠・寸法・データム記号(ラベルの DOM)
+  document.querySelectorAll("#bmLabels .bm-label").forEach(lab => {
+    if (lab.style.visibility === "hidden") return;
+    const lr = lab.getBoundingClientRect(), k = lab.offsetWidth ? lr.width / lab.offsetWidth : 1;
+    lab.querySelectorAll(".bm-row").forEach(row => {
+      if (getComputedStyle(row).display === "none") return;
+      const des = row.querySelector(".des");
+      if (des && getComputedStyle(des).display !== "none") expTextNodes(des, n => expText(ir, M, n, k, "ANNOTATION"));
+      row.querySelectorAll(".fcf").forEach(f => {
+        expRect(ir, M, f.getBoundingClientRect(), "ANNOTATION");
+        const fr = f.getBoundingClientRect();
+        f.querySelectorAll(":scope > span").forEach((cell, ci) => {
+          const cr = cell.getBoundingClientRect();
+          if (ci > 0) ir.polylines.push({ layer: "ANNOTATION", rgb: EXP_BLACK, points: [M.cpx(cr.left, fr.top), M.cpx(cr.left, fr.bottom)] });
+          const svg = cell.querySelector("svg");
+          if (svg) expSymbol(ir, M, svg, "ANNOTATION");
+          else expTextNodes(cell, n => expText(ir, M, n, k, "ANNOTATION"));
+        });
+      });
+      row.querySelectorAll(".fcf-count").forEach(c => expTextNodes(c, n => expText(ir, M, n, k, "ANNOTATION")));
+      row.querySelectorAll(".ted").forEach(t => { expRect(ir, M, t.getBoundingClientRect(), "ANNOTATION"); expTextNodes(t, n => expText(ir, M, n, k, "ANNOTATION")); });
+      row.querySelectorAll(".dimlabel:not(.ted)").forEach(t => expTextNodes(t, n => expText(ir, M, n, k, "ANNOTATION")));
+    });
+    // データム記号: 下向き三角 + 短い線 + 四角に入った文字
+    lab.querySelectorAll(".bm-dtri").forEach(t => {
+      const r = t.getBoundingClientRect(), cx = (r.left + r.right) / 2;
+      ir.solids.push({ layer: "DATUM", rgb: EXP_BLACK, points: [M.cpx(r.left, r.top), M.cpx(r.right, r.top), M.cpx(cx, r.bottom)] });
+    });
+    lab.querySelectorAll(".bm-dstem").forEach(t => {
+      const r = t.getBoundingClientRect(), cx = (r.left + r.right) / 2;
+      ir.polylines.push({ layer: "DATUM", rgb: EXP_BLACK, points: [M.cpx(cx, r.top), M.cpx(cx, r.bottom)] });
+    });
+    lab.querySelectorAll(".bm-datums .dbox").forEach(t => { expRect(ir, M, t.getBoundingClientRect(), "DATUM"); expTextNodes(t, n => expText(ir, M, n, k, "DATUM")); });
+  });
+}
+
+// ---- Graphic PMI スタイル: 3D 上の注記の線と文字(三角形)をそのまま投影する ----
+function expGraphicAnnotations(ir, M) {
+  const hide = new Set(generalNoteNames);
+  const tols = (lastPmi && lastPmi.geometric_tolerances) || [];
+  hiddenTol.forEach(i => { if (tols[i]) hide.add(tols[i].name); });
+  const v = new THREE.Vector3();
+  const pr = (a) => M.world(v.set(a[0], a[1], a[2]));
+  for (const g of currentTessellatedGroups) {
+    if (hide.has(g.name)) continue;
+    for (const pl of g.polylines) {
+      if (pl.length >= 2) ir.polylines.push({ layer: "ANNOTATION", rgb: EXP_BLACK, points: pl.map(pr) });
+    }
+    if (g.glyph) {
+      const P = g.glyph.positions, I = g.glyph.indices;
+      for (let t = 0; t < I.length; t += 3) {
+        const pts = [0, 1, 2].map(q => { const i = I[t + q] * 3; return M.world(v.set(P[i], P[i + 1], P[i + 2])); });
+        ir.solids.push({ layer: "ANNOTATION", rgb: EXP_BLACK, points: pts });
+      }
+    }
+  }
+}
+
+// 一般注記(General tolerance): 画面右下の文字を、そのまま図面に置く
+function expGeneralNotes(ir, M) {
+  if (getComputedStyle(generalNotesEl).display === "none" || generalNotesEl.classList.contains("collapsed")) return;
+  generalNotesEl.querySelectorAll(".gnote").forEach(n => {
+    const lr = n.getBoundingClientRect(), k = 1;
+    expTextNodes(n, node => {
+      // 複数行の本文は、行ごとの矩形から文字単位でたどる(expText は 1 行ぶんの実行長を扱う)
+      const text = node.textContent, range = document.createRange(), fontPx = parseFloat(getComputedStyle(node.parentElement).fontSize);
+      let lineStart = 0, lastTop = null;
+      const flushLine = (end, rect) => {
+        const t = text.slice(lineStart, end);
+        if (t.trim()) ir.labels.push({ layer: "ANNOTATION", rgb: EXP_BLACK, p: M.cpx(rect.left, rect.bottom - fontPx * 0.2), text: t.replace(/_/g, " "), h: M.pxLen(fontPx) * 0.8 });
+      };
+      let firstRect = null;
+      for (let i = 0; i < text.length; i++) {
+        range.setStart(node, i); range.setEnd(node, i + 1);
+        const r = range.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) { continue; }
+        if (lastTop !== null && Math.abs(r.top - lastTop) > fontPx * 0.5) { flushLine(i, firstRect); lineStart = i; firstRect = r; }
+        if (firstRect === null) firstRect = r;
+        lastTop = r.top;
+      }
+      if (firstRect) flushLine(text.length, firstRect);
+    });
+  });
+}
+
+// 書き出し用のビュー設定: Current View(いまの画面) / Custom View(X・Y・Z 軸まわりの回転 + ズーム。画面右下の Custom View と同じ)
+function expSavedViews() { return [...fileViews, ...userViews]; }
+function expViewSpec() {
+  const g = (id) => document.getElementById(id);
+  const mode = g("expView").value;
+  if (mode === "saved") {
+    const v = expSavedViews()[parseInt(g("expSavedSel").value, 10)];
+    return v ? { mode: "saved", view: v } : { mode: "current" };
+  }
+  if (mode !== "custom" && mode !== "mouse") return { mode: "current" };
+  return { mode: "custom", x: parseFloat(g("expCvX").value) || 0, y: parseFloat(g("expCvY").value) || 0,
+           z: parseFloat(g("expCvZ").value) || 0, zoom: Math.max(10, Math.min(1000, parseFloat(g("expCvZoom").value) || 100)) };
+}
+function expSaveCamera() { return { pos: camera.position.clone(), quat: camera.quaternion.clone(), up: camera.up.clone(), zoom: camera.zoom, target: controls.target.clone() }; }
+function expRestoreCamera(saved) {
+  camera.position.copy(saved.pos); camera.quaternion.copy(saved.quat); camera.up.copy(saved.up);
+  camera.zoom = saved.zoom; controls.target.copy(saved.target);
+  camera.updateProjectionMatrix(); camera.updateMatrix(); camera.updateMatrixWorld(true);
+  bmDirty = true; bmLastSig = "";
+}
+async function expBuildIRForView(onProgress) {
+  const v = expViewSpec();
+  if (v.mode === "current") return expBuildIR(onProgress);
+  // いまのカメラを控え、選んだビューに切り替えて図形を作り、終わったら戻す(画面の見え方は変えない)
+  const saved = expSaveCamera();
+  try {
+    if (v.mode === "saved") applySavedView(v.view); else cvApply(v.x, v.y, v.z, v.zoom);
+    bmDirty = true; bmLastSig = "";
+    await expSleep(60);
+    return await expBuildIR(onProgress);
+  } finally {
+    expRestoreCamera(saved);
+  }
+}
+
+async function expBuildIR(onProgress) {
+  camera.updateMatrixWorld(true);
+  const M = expMapper();
+  const ir = expEmptyIR();
+  await expModelEdges(ir, M, onProgress);
+  if (annotationStyle === "balloon") {
+    bmDirty = true; bmLastSig = ""; bmLayout();
+    for (let k = 0; k < 40 && bmAnimActive; k++) await expSleep(75);     // 並べ替えの滑らかな移動が終わるまで待つ
+    await expMirrors(ir, M, onProgress);
+    expBalloonAnnotations(ir, M);
+  } else if (annotationStyle === "original") {
+    expGraphicAnnotations(ir, M);
+  }
+  // General tolerance の本文は、画面での表示/縮小に関係なく、書き出し時に用紙の右下へ置く(expWithGeneral)
+  // 3D モデルの原点の座標軸(画面の「Show Origin Axes」と同じ長さ = 外接矩形の対角の 25%)を、この図の向きで投影した 2D ベクトル(mm)
+  const bb2 = currentMeshData.bbox, ext = Math.hypot(bb2.max[0] - bb2.min[0], bb2.max[1] - bb2.min[1], bb2.max[2] - bb2.min[2]) || 1;
+  const Lax = ext * 0.25;
+  ir.axes = [new THREE.Vector3(Lax, 0, 0), new THREE.Vector3(0, Lax, 0), new THREE.Vector3(0, 0, Lax)].map(v => M.world(v));
+  ir.general = [];
+  generalNotesEl.querySelectorAll(".gnote").forEach(n => { const t = n.textContent; if (t && t.trim()) ir.general.push(t); });
+  return ir;
+}
+
+// General tolerance を、用紙の右下に印字する(無条件)。
+// 用紙 = プレビューと同じ(選んだ用紙を、図形の中心に合わせて置く)。「Fit to drawing」のときは、図形の右下の外側へ続けて置く。
+// 文字の大きさ・余白は用紙上の寸法(尺度に依らず一定)。
+const EXP_NOTE_TEXT_MM = 2.6, EXP_NOTE_MARGIN_MM = 8;
+function expBBoxOf(ir) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const ext = (x, y) => { if (x < x0) x0 = x; if (y < y0) y0 = y; if (x > x1) x1 = x; if (y > y1) y1 = y; };
+  for (const p of ir.polylines) for (const q of p.points) ext(q[0], q[1]);
+  for (const c of ir.circles) { ext(c.c[0] - c.r, c.c[1] - c.r); ext(c.c[0] + c.r, c.c[1] + c.r); }
+  for (const t of ir.solids) for (const q of t.points) ext(q[0], q[1]);
+  for (const t of ir.labels) { ext(t.p[0], t.p[1]); ext(t.p[0] + t.h * 0.6 * t.text.length, t.p[1] + t.h); }
+  return isFinite(x0) ? { x0, y0, x1, y1 } : null;
+}
+// 用紙上での図形の位置(プレビューのドラッグで動かす)。単位 mm(用紙上)、Y は上向き。
+let expOffset = { x: 0, y: 0 };
+function expIsFit(opts) { return !opts.paper || opts.paper.toLowerCase().startsWith("fit"); }
+function expWithGeneral(ir, opts) {
+  const bb = expBBoxOf(ir);
+  const out = Object.assign({}, ir, { labels: ir.labels.slice() });
+  if (!bb) return out;
+  const scale = expScaleValue(opts.scale), fit = expIsFit(opts);
+  const cx = (bb.x0 + bb.x1) / 2, cy = (bb.y0 + bb.y1) / 2;
+  // 用紙の中心に来る図面上の点 P。ドラッグで図形を (dx, dy) mm 動かしたときは、P = 図形の中心 - (dx, dy)/尺度
+  const P = fit ? [cx, cy] : [cx - expOffset.x / scale, cy - expOffset.y / scale];
+  out.center = P;
+  out.rawCenter = [cx, cy];               // 図形そのものの外接矩形の中心(原点位置の入力から、動かし量を逆算するのに使う)
+  const notes = ir.general || [];
+  if (!notes.length) return out;
+  const h = EXP_NOTE_TEXT_MM / scale, pitch = h * 1.55, margin = EXP_NOTE_MARGIN_MM / scale;       // 図面(モデル)座標に換算
+  const lines = [];
+  for (const note of notes) {
+    for (const ln of note.split(String.fromCharCode(10))) lines.push(ln);
+    lines.push("");                                       // 注記どうしの間を 1 行あける
+  }
+  while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+  const widest = Math.max(...lines.map(l => l.length)) * h * 0.58;
+  const [SW, SH] = expSheetMm(opts.paper, bb.x1 - bb.x0, bb.y1 - bb.y0, scale);
+  let right, bottom;
+  if (fit) {                                              // 図形の右下の外側
+    right = bb.x1; bottom = bb.y0 - margin - lines.length * pitch;
+  } else {                                                // 用紙の右下(図形を動かしても、用紙の角に残る)
+    right = P[0] + (SW / 2) / scale - margin; bottom = P[1] - (SH / 2) / scale + margin;
+  }
+  const n = lines.length;
+  lines.forEach((ln, i) => {
+    if (!ln.trim()) return;
+    out.labels.push({ layer: "ANNOTATION", rgb: EXP_BLACK, p: [right - widest, bottom + (n - 1 - i) * pitch], text: ln, h });
+  });
+  return out;
+}
+// PDF は「全図形の外接矩形の中心」を用紙の中心に置くので、P を中心にした左右対称の見えない目印を足して、P を用紙の中心にする
+function expPinCenter(ir) {
+  const P = ir.center;
+  if (!P) return ir;
+  const bb = expBBoxOf(ir);
+  if (!bb) return ir;
+  const R = Math.max(P[0] - bb.x0, bb.x1 - P[0], P[1] - bb.y0, bb.y1 - P[1]) * 1.001 + 1e-6;
+  const out = Object.assign({}, ir, { polylines: ir.polylines.slice() });
+  out.polylines.push({ layer: "PAGE_ANCHOR", rgb: EXP_BLACK, points: [[P[0] + R, P[1] + R], [P[0] + R, P[1] + R]] });
+  out.polylines.push({ layer: "PAGE_ANCHOR", rgb: EXP_BLACK, points: [[P[0] - R, P[1] - R], [P[0] - R, P[1] - R]] });
+  return out;
+}
+
+// ---- サーバーで書き出して保存 ----
+async function expSend(fmt, ir0, opts, filename) {
+  if (fmt === "png") {
+    const blob = await expPngBlob(ir0, opts);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = filename + ".png";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    return;
+  }
+  let ir = expWithGeneral(ir0, opts);
+  if (fmt === "pdf" && !expIsFit(opts)) ir = expPinCenter(ir);       // 図形の用紙上の位置(プレビューでドラッグした位置)を PDF に反映
+  const body = { polylines: ir.polylines, circles: ir.circles, solids: ir.solids, labels: ir.labels,
+                 line_widths: [opts.lwModel, opts.lwOther], page_size: opts.paper, scale: opts.scale, filename };
+  const res = await fetch(API_BASE + "/api/export/" + fmt, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) {
+    let detail = "";
+    try { detail = (await res.json()).detail || ""; } catch (e) {}
+    throw new Error(detail || `サーバーエラー (${res.status})`);
+  }
+  const blob = await res.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = filename + "." + fmt;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function expBaseName() {
+  const f = (statusSummary || "").split(":")[0] || "view";
+  return f.replace(/[.][A-Za-z0-9]+$/, "") || "view";
+}
+
+// ---- プレビュー付きダイアログ ----
+const expBackdrop = document.getElementById("expBackdrop");
+const expEls = { paper: document.getElementById("expPaper"), scale: document.getElementById("expScale"),
+                 lwModel: document.getElementById("expLwModel"), lwOther: document.getElementById("expLwOther"),
+                 sOrig: document.getElementById("expStyleOriginal"), sBal: document.getElementById("expStyleBalloon"),
+                 fDxf: document.getElementById("expFmtDxf"), fSvg: document.getElementById("expFmtSvg"), fPdf: document.getElementById("expFmtPdf"), fPng: document.getElementById("expFmtPng"),
+                 previews: document.getElementById("expPreviews"), msg: document.getElementById("expMsg") };
+EXP_PAGE_SIZES.forEach(n => expEls.paper.add(new Option(n, n)));
+EXP_SCALES.forEach(n => expEls.scale.add(new Option(n, n)));
+const expStyleLabel = { original: "Graphic PMI", balloon: "Balloon & Mirror" };
+const expStyleTag = { original: "GraphicPMI", balloon: "BalloonMirror" };
+let expBusy = false, expToken = 0, expIRs = {};      // expIRs: スタイル -> 図形(プレビューで作ったものを書き出しにも使う)
+
+// 用紙(mm)。A シリーズ: (短辺, 長辺)
+const EXP_A_MM = { A0: [841, 1189], A1: [594, 841], A2: [420, 594], A3: [297, 420], A4: [210, 297] };
+function expSheetMm(name, w, h, scale) {
+  if (!name || name.toLowerCase().startsWith("fit")) {              // 図形に合わせる: 図形(尺度適用後) + 余白 5%
+    const m = Math.max(w, h) * scale * 0.05;
+    return [w * scale + 2 * m, h * scale + 2 * m];
+  }
+  const parts = name.split(" ");
+  const d = EXP_A_MM[parts[0].toUpperCase()] || EXP_A_MM.A4;
+  const land = parts[1] && parts[1].toLowerCase().startsWith("land");
+  return land ? [d[1], d[0]] : [d[0], d[1]];
+}
+function expScaleValue(name) { const v = parseFloat(String(name).replace(/^[xX*×]/, "")); return v > 0 ? v : 1; }
+
+let expLast = null;     // 直近のプレビューの用紙・原点位置の情報
+// IR -> プレビュー用の SVG 文字列(用紙・作図尺度・線の太さを反映。PDF に書き出される用紙のイメージ)
+function expSheetSizeFor(ir, opts) {     // 書き出す用紙の大きさ(mm)。expIRtoSVG と同じ決め方
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const ext = (x, y) => { if (x < x0) x0 = x; if (y < y0) y0 = y; if (x > x1) x1 = x; if (y > y1) y1 = y; };
+  for (const p of ir.polylines) for (const q of p.points) ext(q[0], q[1]);
+  for (const c of ir.circles) { ext(c.c[0] - c.r, c.c[1] - c.r); ext(c.c[0] + c.r, c.c[1] + c.r); }
+  for (const t of ir.solids) for (const q of t.points) ext(q[0], q[1]);
+  for (const t of ir.labels) { ext(t.p[0], t.p[1]); ext(t.p[0] + t.h * 0.6 * t.text.length, t.p[1] + t.h); }
+  if (!isFinite(x0)) return [210, 297];
+  return expSheetMm(opts.paper, Math.max(x1 - x0, 1e-6), Math.max(y1 - y0, 1e-6), expScaleValue(opts.scale));
+}
+async function expPngBlob(ir0, opts) {
+  const ir = expWithGeneral(ir0, opts);
+  const [SW, SH] = expSheetSizeFor(ir, opts);
+  const ppm = Math.min(200 / 25.4, 6000 / Math.max(SW, SH));       // 200 dpi(ただし長辺 6000 画素まで)
+  const w = Math.max(1, Math.round(SW * ppm)), h = Math.max(1, Math.round(SH * ppm));
+  const svg = expIRtoSVG(ir, opts, { w, h });
+  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+  try {
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error("画像の生成に失敗しました")); img.src = url; });
+    const cv2 = document.createElement("canvas"); cv2.width = w; cv2.height = h;
+    const g = cv2.getContext("2d");
+    g.fillStyle = "#fff"; g.fillRect(0, 0, w, h);
+    g.drawImage(img, 0, 0, w, h);
+    return await new Promise((res, rej) => cv2.toBlob(b => b ? res(b) : rej(new Error("PNG の生成に失敗しました")), "image/png"));
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+function expIRtoSVG(ir, opts, forExport) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const ext = (x, y) => { if (x < x0) x0 = x; if (y < y0) y0 = y; if (x > x1) x1 = x; if (y > y1) y1 = y; };
+  for (const p of ir.polylines) for (const q of p.points) ext(q[0], q[1]);
+  for (const c of ir.circles) { ext(c.c[0] - c.r, c.c[1] - c.r); ext(c.c[0] + c.r, c.c[1] + c.r); }
+  for (const t of ir.solids) for (const q of t.points) ext(q[0], q[1]);
+  for (const t of ir.labels) { ext(t.p[0], t.p[1]); ext(t.p[0] + t.h * 0.6 * t.text.length, t.p[1] + t.h); }
+  if (!isFinite(x0)) return "";
+  const scale = expScaleValue(opts.scale);
+  const [SW, SH] = expSheetMm(opts.paper, Math.max(x1 - x0, 1e-6), Math.max(y1 - y0, 1e-6), scale);
+  let cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  if (ir.center) { cx = ir.center[0]; cy = ir.center[1]; }          // 用紙の中心に来る点(ドラッグで動かした位置を含む)
+  const f = (n) => n.toFixed(3);
+  const pad = forExport ? 0 : Math.max(SW, SH) * 0.03;
+  const lwM = opts.lwModel / scale, lwO = opts.lwOther / scale;       // 線の太さは用紙上で一定(尺度に依らない)
+  const dash = 1.2 / scale, gap = 0.8 / scale;
+  // 3D モデルの原点(世界座標の原点を投影した点 = 図面座標の (0,0))が、用紙上のどこに来るか(用紙の左下を原点、Y 上向き、mm)
+  if (!forExport) expLast = { SW, SH, scale, ox: SW / 2 + (0 - cx) * scale, oy: SH / 2 + (0 - cy) * scale, raw: ir.rawCenter || [cx, cy] };
+  const sizeAttr = forExport ? ` width="${forExport.w}" height="${forExport.h}"` : "";
+  const parts = [`<svg xmlns="http://www.w3.org/2000/svg"${sizeAttr} viewBox="${f(-pad)} ${f(-pad)} ${f(SW + 2 * pad)} ${f(SH + 2 * pad)}" preserveAspectRatio="xMidYMid meet">`,
+    `<defs><clipPath id="expSheetClip"><rect x="0" y="0" width="${f(SW)}" height="${f(SH)}"/></clipPath></defs>`,
+    `<rect x="0" y="0" width="${f(SW)}" height="${f(SH)}" fill="#fff"${forExport ? "" : ` stroke="#888" stroke-width="${f(Math.max(SW, SH) * 0.002)}"`}/>`,
+    `<g clip-path="url(#expSheetClip)"><g transform="translate(${f(SW / 2)},${f(SH / 2)}) scale(${scale},${-scale}) translate(${f(-cx)},${f(-cy)})">`];
+  for (const p of ir.polylines) {
+    const hid = p.layer === "MODEL_HIDDEN", w = p.layer === "MODEL" || hid ? lwM : lwO;
+    const d = hid ? ` stroke-dasharray="${f(dash)},${f(gap)}"` : "";
+    parts.push(`<polyline points="${p.points.map(q => f(q[0]) + "," + f(q[1])).join(" ")}" fill="none" stroke="#000" stroke-width="${f(w)}"${d}/>`);
+  }
+  for (const c of ir.circles) parts.push(`<circle cx="${f(c.c[0])}" cy="${f(c.c[1])}" r="${f(c.r)}" fill="none" stroke="#000" stroke-width="${f(lwO)}"/>`);
+  for (const t of ir.solids) parts.push(`<polygon points="${t.points.map(q => f(q[0]) + "," + f(q[1])).join(" ")}" fill="#000"/>`);
+  for (const t of ir.labels) {
+    const esc = t.text.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    // 文字は Y 反転した座標系の中なので、その場で反転し直して正立させる
+    parts.push(`<text transform="translate(${f(t.p[0])},${f(t.p[1])}) scale(1,-1)" font-size="${f(t.h)}" font-family="sans-serif">${esc}</text>`);
+  }
+  parts.push("</g></g>");
+  if (forExport) { parts.push("</svg>"); return parts.join(""); }          // 書き出す画像には原点マーク・矢印を含めない
+  // 3D モデルの原点: プレビューに描いたモデルの原点の位置に、RGB の X/Y/Z 軸を描く(プレビュー専用。書き出しには含めない)。
+  // 用紙の外にあっても見えるよう、用紙の切り抜きの外側に描く。表示範囲の外にあるときは、その方向の縁に三角の印を出す。
+  const ox = expLast.ox, oy = SH - expLast.oy;                       // SVG 座標(Y 下向き)
+  const vx0 = -pad, vy0 = -pad, vx1 = SW + pad, vy1 = SH + pad;
+  const r = Math.max(SW, SH) * 0.008;
+  if (ox >= vx0 && ox <= vx1 && oy >= vy0 && oy <= vy1) {
+    // 原点の X(赤)・Y(緑)・Z(青)軸。長さは 3D 画面の原点軸と同じ(外接矩形の対角の 25%)で、用紙上では作図尺度を掛けた長さ
+    const cols = ["#e00000", "#00a000", "#0000e0"], names = ["X", "Y", "Z"];
+    const aw = Math.max(SW, SH) * 0.0035;
+    (ir.axes || []).forEach((v, k) => {
+      const ex = ox + v[0] * scale, ey = oy - v[1] * scale;
+      if (Math.hypot(ex - ox, ey - oy) < 1e-6) return;
+      parts.push(`<line x1="${f(ox)}" y1="${f(oy)}" x2="${f(ex)}" y2="${f(ey)}" stroke="${cols[k]}" stroke-width="${f(aw)}" stroke-linecap="round"/>`);
+      const ang = Math.atan2(ey - oy, ex - ox), hl = r * 2.2;
+      parts.push(`<polygon points="${f(ex)},${f(ey)} ${f(ex - Math.cos(ang - 0.4) * hl)},${f(ey - Math.sin(ang - 0.4) * hl)} ${f(ex - Math.cos(ang + 0.4) * hl)},${f(ey - Math.sin(ang + 0.4) * hl)}" fill="${cols[k]}"/>`);
+      parts.push(`<text x="${f(ex + Math.cos(ang) * r * 2)}" y="${f(ey + Math.sin(ang) * r * 2 + r)}" font-size="${f(r * 2.6)}" font-family="sans-serif" fill="${cols[k]}" text-anchor="middle">${names[k]}</text>`);
+    });
+  } else {
+    const mx = Math.min(Math.max(ox, vx0 + r * 2), vx1 - r * 2), my = Math.min(Math.max(oy, vy0 + r * 2), vy1 - r * 2);
+    const ang = Math.atan2(oy - my, ox - mx);
+    const tip = [mx + Math.cos(ang) * r * 1.6, my + Math.sin(ang) * r * 1.6];
+    const l1 = [mx + Math.cos(ang + 2.5) * r * 1.4, my + Math.sin(ang + 2.5) * r * 1.4], l2 = [mx + Math.cos(ang - 2.5) * r * 1.4, my + Math.sin(ang - 2.5) * r * 1.4];
+    parts.push(`<polygon points="${f(tip[0])},${f(tip[1])} ${f(l1[0])},${f(l1[1])} ${f(l2[0])},${f(l2[1])}" fill="#e00000"/>`);
+  }
+  parts.push("</svg>");
+  return parts.join("");
+}
+
+// ---- タブ(Graphic PMI / Balloon & Mirror): チェックボックスで「書き出すスタイル」、タブで「プレビューするスタイル」 ----
+const expStyleKeys = ["original", "balloon"];
+const expStyleChecks = { original: expEls.sOrig, balloon: expEls.sBal };
+let expActive = "balloon";
+function expSelectedStyles() { return expStyleKeys.filter(k => expStyleChecks[k].checked); }
+function expOptions() {
+  return { paper: expEls.paper.value, scale: expEls.scale.value,
+           lwModel: Math.max(0.05, parseFloat(expEls.lwModel.value) || 0.5), lwOther: Math.max(0.05, parseFloat(expEls.lwOther.value) || 0.25) };
+}
+function expSyncVisibility() {
+  const pdf = expEls.fPdf.checked || expEls.fPng.checked;           // 用紙・尺度は PDF と PNG に効く
+  document.getElementById("expPaperRow").style.display = pdf ? "" : "none";
+  document.getElementById("expScaleRow").style.display = pdf ? "" : "none";
+}
+function expSyncTabs() {
+  document.querySelectorAll("#expTabs .exp-tab").forEach(t => t.classList.toggle("active", t.dataset.style === expActive));
+}
+
+// プレビューの描き直し(図形は style ごとにキャッシュ。陰線処理を変えたら作り直す。用紙・尺度・線幅は描画だけやり直す)
+function expSyncOriginBox() {
+  const ix = document.getElementById("expOriginX"), iy = document.getElementById("expOriginY");
+  const fit = expIsFit(expOptions());
+  ix.disabled = iy.disabled = fit || !expLast;
+  document.getElementById("expOriginFit").disabled = fit || !expLast;                      // 「Fit to drawing」では用紙が図形に合うので入力不可
+  if (!expLast) return;
+  if (document.activeElement !== ix) ix.value = expLast.ox.toFixed(2);
+  if (document.activeElement !== iy) iy.value = expLast.oy.toFixed(2);
+}
+function expRenderPreview() {
+  const ir = expIRs[expActive];
+  if (!ir) return;
+  const o = expOptions();
+  expEls.previews.innerHTML = `<div class="exp-prev">${expIRtoSVG(expWithGeneral(ir, o), o)}</div>`;
+  expSyncOriginBox();
+}
+let expRefreshTimer = null;
+function expRefreshPreview(rebuild) {
+  clearTimeout(expRefreshTimer);
+  expRefreshTimer = setTimeout(() => expDoRefresh(rebuild), 80);
+}
+function expFillSavedList() {
+  const sel = document.getElementById("expSavedSel");
+  const list = expSavedViews();
+  sel.innerHTML = "";
+  list.forEach((v, i) => sel.add(new Option(v.name + (v.source === "step" ? " [STEP]" : v.source === "qif" ? " [QIF]" : ""), String(i))));
+  if (!list.length) sel.add(new Option("(No saved views)", "-1"));
+  document.querySelector('#expView option[value=saved]').disabled = !list.length;      // 保存ビューが無いときは選べない
+}
+async function expDoRefresh(rebuild) {
+  if (expBusy) { expRefreshPreview(rebuild); return; }
+  if (rebuild) expIRs = {};
+  if (expIRs[expActive]) { expRenderPreview(); return; }
+  expBusy = true;
+  const token = ++expToken;
+  const startStyle = annotationStyle;
+  const st = expActive;
+  expEls.previews.innerHTML = `<div class="exp-prev"><div class="exp-wait">Generating preview...</div></div>`;
+  try {
+    if (st !== annotationStyle) { setAnnotationStyle(st); await expSleep(120); }
+    const ir = await expBuildIRForView(null);
+    if (token === expToken) { expIRs[st] = ir; }
+  } catch (e) {
+    expEls.msg.textContent = "プレビューの作成に失敗しました: " + (e.message || e);
+  } finally {
+    if (annotationStyle !== startStyle) setAnnotationStyle(startStyle);
+    expBusy = false;
+  }
+  if (token === expToken) expRenderPreview();
+}
+
+function expOpen() {
+  if (!lastPmi || !currentMeshData) { showError("先にファイルを開いてください。"); return; }
+  expEls.paper.value = expStore.get("paper", "A4 Portrait");
+  if (!EXP_PAGE_SIZES.includes(expEls.paper.value)) expEls.paper.value = "A4 Portrait";
+  expEls.scale.value = expStore.get("scale", "x1");
+  if (!EXP_SCALES.includes(expEls.scale.value)) expEls.scale.value = "x1";
+  expEls.lwModel.value = expStore.get("lwModel", "0.5");
+  expEls.lwOther.value = expStore.get("lwOther", "0.25");
+  expEls.fDxf.checked = expStore.get("fDxf", "1") === "1";
+  expEls.fSvg.checked = expStore.get("fSvg", "1") === "1";
+  expEls.fPdf.checked = expStore.get("fPdf", "1") === "1";
+  expEls.fPng.checked = expStore.get("fPng", "1") === "1";
+  expStyleKeys.forEach(k => { expStyleChecks[k].checked = false; });
+  expActive = annotationStyle === "original" ? "original" : "balloon";
+  expStyleChecks[expActive].checked = true;               // 初期は、いま表示しているスタイルだけを書き出す
+  expSyncTabs();
+  document.getElementById("expHl").value = expHiddenLine;
+  expSyncFilesText();
+  expEls.msg.textContent = "";
+  expFillSavedList();
+  expOffset = { x: 0, y: 0 };
+  document.getElementById("expView").value = "current";        // 既定は Current View expPrevViewMode = "current";
+  expSyncViewFields(true);
+  expSyncVisibility();
+  expBackdrop.style.display = "flex";
+  expRefreshPreview(true);
+}
+function expClose() { expToken++; expBackdrop.style.display = "none"; }
+
+async function expRun() {
+  const fmts = [["dxf", expEls.fDxf], ["svg", expEls.fSvg], ["pdf", expEls.fPdf], ["png", expEls.fPng]].filter(x => x[1].checked).map(x => x[0]);
+  const styles = expSelectedStyles();
+  if (!fmts.length) { expEls.msg.textContent = "ファイル形式を 1 つ以上選んでください。"; return; }
+  if (!styles.length) { expEls.msg.textContent = "スタイルを 1 つ以上選んでください。"; return; }
+  const opts = expOptions();
+  expStore.set("paper", opts.paper); expStore.set("scale", opts.scale); expStore.set("lwModel", opts.lwModel); expStore.set("lwOther", opts.lwOther);
+  expStore.set("fPng", expEls.fPng.checked ? "1" : "0");
+  expStore.set("fDxf", expEls.fDxf.checked ? "1" : "0"); expStore.set("fSvg", expEls.fSvg.checked ? "1" : "0"); expStore.set("fPdf", expEls.fPdf.checked ? "1" : "0");
+  const all = styles.length > 1;                       // 複数のスタイルを選んだときは、ファイル名にスタイル名を付ける
+  const base = expBaseName();
+  const startStyle = annotationStyle;
+  while (expBusy) await expSleep(50);                 // プレビュー作成中なら終わるまで待つ
+  expClose();
+  setProgress(0); loadLabel.textContent = "Exporting..."; setLoading(true);
+  expBusy = true;
+  try {
+    await expSleep(30);
+    let n = 0; const total = styles.length * fmts.length;
+    for (const st of styles) {
+      let ir = expIRs[st];
+      if (!ir) {                                       // プレビューが無い(または古い)ときは作り直す
+        if (st !== annotationStyle) { setAnnotationStyle(st); await expSleep(120); }
+        ir = await expBuildIRForView((f) => setProgress(f * 0.3));
+      }
+      for (const f of fmts) {
+        await expSend(f, ir, opts, all ? `${base}_${expStyleTag[st] || st}` : base);
+        n++; setProgress(0.3 + 0.7 * n / total);
+      }
+    }
+    if (annotationStyle !== startStyle) setAnnotationStyle(startStyle);
+    statusEl.textContent = `書き出しました (${fmts.map(f => f.toUpperCase()).join(" / ")}${all ? "・全スタイル" : ""})`;
+    statusEl.title = "";
+  } catch (e) {
+    if (annotationStyle !== startStyle) setAnnotationStyle(startStyle);
+    showError("書き出しに失敗しました:" + String.fromCharCode(10) + (e.message || e));
+  } finally {
+    expBusy = false;
+    setProgress(1);
+    setTimeout(() => setLoading(false), 200);
+  }
+}
+// プレビューの図面をドラッグして、用紙上の位置を動かす(ダブルクリックで中央に戻す)。PDF に反映される。
+(function () {
+  const host = expEls.previews;
+  let drag = null, raf = 0;
+  const redraw = () => { raf = 0; expRenderPreview(); };
+  host.addEventListener("pointerdown", (e) => {
+    const svg = e.target.closest ? e.target.closest("svg") : null;
+    if (!svg || e.button !== 0 || expIsFit(expOptions())) return;       // 「Fit to drawing」では用紙が図形に合うので、動かさない
+    const vb = (svg.getAttribute("viewBox") || "").split(" ").map(Number);
+    if (vb.length < 4) return;
+    const r = svg.getBoundingClientRect();
+    const pxPerMm = Math.min(r.width / vb[2], r.height / vb[3]);
+    drag = { x: e.clientX, y: e.clientY, ox: expOffset.x, oy: expOffset.y, pxPerMm };
+    host.classList.add("dragging");
+    try { host.setPointerCapture(e.pointerId); } catch (_) {}
+    e.preventDefault();
+  });
+  host.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    expOffset.x = drag.ox + (e.clientX - drag.x) / drag.pxPerMm;
+    expOffset.y = drag.oy - (e.clientY - drag.y) / drag.pxPerMm;       // 画面の下方向 = 用紙の -Y
+    if (!raf) raf = setTimeout(redraw, 16);      // rAF は非表示のタブでは止まるので、タイマーで間引く
+  });
+  const end = () => { if (drag) { drag = null; host.classList.remove("dragging"); } };
+  host.addEventListener("pointerup", end);
+  host.addEventListener("pointercancel", end);
+  host.addEventListener("dblclick", () => { expOffset.x = 0; expOffset.y = 0; expRenderPreview(); });
+})();
+// Mouse Rotation View: CAD Mouse Scheme の割り当てどおり、プレビュー上のマウス操作で X・Y・Z 軸まわりの回転を変える
+// (回転 = 中ボタンなど、パン = 図面を用紙上で動かす)。回した向きでそのまま書き出される。
+(function () {
+  const host = expEls.previews;
+  let st = null, tmr = 0, lastRefresh = 0, ov = null, ln = null;
+  // ドラッグの始点から現在の点まで線を引き、操作が受け付けられていることを示す(画面全体に重ねる。プレビューの再描画の影響を受けない)
+  const showLine = (x0, y0, x1, y1, on) => {
+    if (!ov) {
+      ov = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      ov.style.cssText = "position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:100000";
+      ln = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      ln.setAttribute("stroke", "#e60012"); ln.setAttribute("stroke-width", "2"); ln.setAttribute("stroke-dasharray", "6 4"); ln.setAttribute("stroke-linecap", "round");
+      const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      dot.setAttribute("r", "4"); dot.setAttribute("fill", "#e60012"); dot.setAttribute("id", "expDragDot");
+      ov.appendChild(ln); ov.appendChild(dot);
+    }
+    if (!on) { if (ov.parentNode) ov.parentNode.removeChild(ov); return; }
+    if (!ov.parentNode) document.body.appendChild(ov);
+    ln.setAttribute("x1", x0); ln.setAttribute("y1", y0); ln.setAttribute("x2", x1); ln.setAttribute("y2", y1);
+    const d = ov.querySelector("#expDragDot"); d.setAttribute("cx", x1); d.setAttribute("cy", y1);
+  };
+  const isMouse = () => document.getElementById("expView").value === "mouse";
+  host.addEventListener("contextmenu", (e) => { if (isMouse()) e.preventDefault(); });
+  host.addEventListener("pointerdown", (e) => {
+    if (!isMouse() || e.button === 0) return;
+    const svg = e.target.closest ? e.target.closest("svg") : null;
+    if (!svg) return;
+    const vb = (svg.getAttribute("viewBox") || "").split(" ").map(Number);
+    if (vb.length < 4) return;
+    const r = svg.getBoundingClientRect();
+    st = { sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, w: r.width, h: r.height, pxPerMm: Math.min(r.width / vb[2], r.height / vb[3]) };
+    try { host.setPointerCapture(e.pointerId); } catch (_) {}
+    e.preventDefault();
+  });
+  host.addEventListener("pointermove", (e) => {
+    if (!st) return;
+    const dx = e.clientX - st.x, dy = e.clientY - st.y;
+    st.x = e.clientX; st.y = e.clientY;
+    showLine(st.sx, st.sy, e.clientX, e.clientY, true);
+    const act = classifyNav({ lb: !!(e.buttons & 1), rb: !!(e.buttons & 2), mb: !!(e.buttons & 4), shift: e.shiftKey, ctrl: e.ctrlKey, catiaZoomArmed: false });
+    if (act === "rotate") {
+      const g = (id) => document.getElementById(id);
+      const saved = expSaveCamera();
+      try {
+        cvApply(parseFloat(g("expCvX").value) || 0, parseFloat(g("expCvY").value) || 0, parseFloat(g("expCvZ").value) || 0, 0);
+        cameraRotate(dx * (viewerEl.clientWidth || 1) / (st.w || 1), dy * (viewerEl.clientHeight || 1) / (st.h || 1));
+        const [x, y, z] = cvCurrentAngles();
+        g("expCvX").value = x.toFixed(1); g("expCvY").value = y.toFixed(1); g("expCvZ").value = z.toFixed(1);
+      } finally { expRestoreCamera(saved); }
+      const now = Date.now();
+      if (!tmr) tmr = setTimeout(() => { tmr = 0; lastRefresh = Date.now(); expRefreshPreview(true); }, Math.max(0, 150 - (now - lastRefresh)));
+    } else if (act === "pan" && !expIsFit(expOptions())) {
+      expOffset.x += dx / st.pxPerMm; expOffset.y -= dy / st.pxPerMm;
+      expRenderPreview();
+    }
+  });
+  // 離したら、プレビューが新しい向きで描き直されるまで線を残し、描き終えたら消す
+  const end = () => {
+    if (!st) return;
+    st = null; clearTimeout(tmr); tmr = 0;
+    Promise.resolve(expDoRefresh(true)).finally(() => showLine(0, 0, 0, 0, false));
+  };
+  host.addEventListener("pointerup", end);
+  host.addEventListener("pointercancel", end);
+})();
+// 3D Model Origin Position(用紙上の X, Y)を入力すると、原点がそこに来るように図面を動かす
+["expOriginX", "expOriginY"].forEach(id => document.getElementById(id).addEventListener("input", () => {
+  if (!expLast || expIsFit(expOptions())) return;
+  const sx = parseFloat(document.getElementById("expOriginX").value), sy = parseFloat(document.getElementById("expOriginY").value);
+  if (Number.isNaN(sx) || Number.isNaN(sy)) return;
+  expOffset.x = sx - expLast.SW / 2 + expLast.raw[0] * expLast.scale;
+  expOffset.y = sy - expLast.SH / 2 + expLast.raw[1] * expLast.scale;
+  expRenderPreview();
+}));
+// モデルが用紙から遠くへ行ってしまったとき: 図面を用紙の中央に戻して、プレビューに収める
+document.getElementById("expOriginFit").addEventListener("click", () => { expOffset.x = 0; expOffset.y = 0; expRenderPreview(); });
+document.getElementById("expOk").addEventListener("click", expRun);
+document.getElementById("expCancel").addEventListener("click", expClose);
+window.addEventListener("keydown", (e) => {   // Esc で Export 2D View を閉じる(開いているときだけ)
+  if (e.key === "Escape" && expBackdrop.style.display !== "none") { e.preventDefault(); e.stopPropagation(); expClose(); }
+}, true);
+document.getElementById("expClose").addEventListener("click", expClose);
+document.getElementById("miExpView").addEventListener("click", expOpen);
+// オプションを変えたらプレビューに反映する
+document.getElementById("expHl").addEventListener("change", () => {
+  expHiddenLine = document.getElementById("expHl").value; expStore.set("hidden", expHiddenLine); expRefreshPreview(true);      // 陰線処理は図形そのものが変わる
+});
+// Files: チェックボックス付きのドロップダウン(ボタンで開閉、外側クリックで閉じる)
+function expSyncFilesText() {
+  const names = [["DXF", expEls.fDxf], ["SVG", expEls.fSvg], ["PDF", expEls.fPdf], ["PNG", expEls.fPng]].filter(x => x[1].checked).map(x => x[0]);
+  document.getElementById("expFilesText").textContent = names.length ? names.join(", ") : "(none)";
+}
+document.getElementById("expFilesBtn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const pop = document.getElementById("expFilesPop");
+  pop.style.display = pop.style.display === "none" ? "flex" : "none";
+});
+document.getElementById("expFilesPop").addEventListener("click", (e) => e.stopPropagation());
+document.getElementById("expDialog").addEventListener("click", () => { document.getElementById("expFilesPop").style.display = "none"; });
+[expEls.fDxf, expEls.fSvg, expEls.fPdf, expEls.fPng].forEach(el => el.addEventListener("change", expSyncFilesText));
+
+[expEls.paper, expEls.scale, expEls.lwModel, expEls.lwOther].forEach(el => el.addEventListener("input", () => expRefreshPreview(false)));
+// プレビュー上のマウスホイールで作図尺度を変える(上へ回すと大きく、下へ回すと小さく)
+expEls.previews.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const i = expEls.scale.selectedIndex + (e.deltaY < 0 ? 1 : -1);
+  if (i < 0 || i >= expEls.scale.options.length) return;
+  expEls.scale.selectedIndex = i;
+  expEls.scale.dispatchEvent(new Event("input", { bubbles: true }));
+}, { passive: false });   // 用紙・尺度・線の太さ
+[expEls.fDxf, expEls.fSvg, expEls.fPdf, expEls.fPng].forEach(el => el.addEventListener("change", expSyncVisibility));
+// Current View / Custom View の切り替え。常に同じ欄を表示し(ウィンドウの大きさは変えない)、
+// Current View のときは「いまのカメラの回転・ズーム」を表示して、グレーアウト(変更不可)にする。
+function expSyncViewFields(fromCamera) {
+  const mode = document.getElementById("expView").value, custom = mode === "custom";
+  if (fromCamera) {
+    let x, y, z, zm;
+    if (mode === "saved") {                                  // 保存ビューを一時的に当てて、その向き・ズームを読み取る
+      const v = expSavedViews()[parseInt(document.getElementById("expSavedSel").value, 10)];
+      if (v) {
+        const saved = expSaveCamera();
+        try { applySavedView(v); [x, y, z] = cvCurrentAngles(); zm = cvZoomPercent(); } finally { expRestoreCamera(saved); }
+      }
+    }
+    if (x === undefined) { [x, y, z] = cvCurrentAngles(); zm = cvZoomPercent(); }
+    document.getElementById("expCvX").value = x.toFixed(1); document.getElementById("expCvY").value = y.toFixed(1);
+    document.getElementById("expCvZ").value = z.toFixed(1); document.getElementById("expCvZoom").value = zm.toFixed(1);
+  }
+  ["expCvX", "expCvY", "expCvZ", "expCvZoom", "expCvPaste", "expCvApply"].forEach(id => { document.getElementById(id).disabled = !custom; });
+  document.getElementById("expCustom").classList.toggle("disabled", !custom);
+  document.getElementById("expSavedSel").disabled = mode !== "saved";
+  document.getElementById("expSavedRow").classList.toggle("disabled", mode !== "saved");
+}
+var expPrevViewMode = "current";
+document.getElementById("expView").addEventListener("change", () => {
+  const nowMode = document.getElementById("expView").value;
+  // Custom View に切り替えた時点の値は、いまのカメラの値から始める(Current View に戻したときも、いまのカメラの値を表示する)。
+  // Mouse Rotation View で回した向きから Custom View に切り替えたときは、その向きを引き継ぐ
+  expSyncViewFields(!(expPrevViewMode === "mouse" && nowMode === "custom"));
+  expPrevViewMode = nowMode;
+  expRefreshPreview(true);
+});
+document.getElementById("expSavedSel").addEventListener("change", () => { expSyncViewFields(true); expRefreshPreview(true); });
+document.getElementById("expCvApply").addEventListener("click", () => {
+  const text = document.getElementById("expCvPaste").value;
+  const rm = /Rotation[^:]*:\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)/.exec(text);
+  const zm = /Zoom[^:]*:\s*(-?[\d.]+)/.exec(text);
+  if (!rm || !zm) { expEls.msg.textContent = "Camera Rotation と Camera Zoom の条件が見つかりません。"; return; }
+  expEls.msg.textContent = "";
+  document.getElementById("expCvX").value = rm[1]; document.getElementById("expCvY").value = rm[2];
+  document.getElementById("expCvZ").value = rm[3]; document.getElementById("expCvZoom").value = zm[1];
+  expRefreshPreview(true);
+});
+["expCvX", "expCvY", "expCvZ", "expCvZoom"].forEach(id => document.getElementById(id).addEventListener("input", () => expRefreshPreview(true)));
+document.querySelectorAll("#expTabs .exp-tab").forEach(tab => tab.addEventListener("click", (e) => {
+  if (e.target.tagName === "INPUT") return;            // チェックボックスは「書き出す/書き出さない」だけ
+  expActive = tab.dataset.style; expSyncTabs(); expRefreshPreview(false);
+}));
+
 function setNavScheme(scheme) {
   navScheme = scheme;
   try { localStorage.setItem("navScheme", scheme); } catch (e) {}
@@ -2753,28 +3876,32 @@ document.querySelectorAll("#navSchemeMenu .menu-item").forEach(el =>
   el.addEventListener("click", () => setNavScheme(el.dataset.scheme)));
 setNavScheme(navScheme);
 
-function fitCameraToBBox(min, max) {
+function fitCameraToBBox(min, max, keepRotation) {   // keepRotation: 向き(カメラの回転)は変えず、全体表示になる位置・倍率だけ合わせる
   const center = new THREE.Vector3(
     (min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2
   );
   const size = new THREE.Vector3(max[0]-min[0], max[1]-min[1], max[2]-min[2]);
   const radius = Math.max(size.length() / 2, 1e-3);
   controls.target.copy(center);
-  camera.up.set(0, 1, 0);
+  if (!keepRotation) camera.up.set(0, 1, 0);
   camera.zoom = 1;
   frustumSize = radius * 2.2; // 少し余白を持たせる
   const dist = radius * 3;
   fitDist = dist; // 正投影では距離自体は見た目の大きさに影響しない(near/farが収まればよい)
-  const dir = new THREE.Vector3(1, 0.8, 1).normalize();
+  // 向き: 通常は既定の等角方向。keepRotation のときは、いまのカメラの向き(視線方向)をそのまま使う
+  const dir = keepRotation ? new THREE.Vector3(0, 0, 1).applyQuaternion(camera.quaternion).normalize()
+                           : new THREE.Vector3(1, 0.8, 1).normalize();
   camera.position.copy(center.clone().add(dir.multiplyScalar(dist)));
   camera.near = Math.max(dist / 1000, 1e-4);
   camera.far = dist * 1000;
   resize(); // frustumSize変更をleft/right/top/bottomへ反映
-  controls.update();
+  if (!keepRotation) controls.update();      // update() は lookAt(target) で姿勢(ロール)を作り直すので、回転を保つときは呼ばない
+  else { camera.updateMatrix(); camera.updateMatrixWorld(true); }
+  bmDirty = true;
 }
 
 // 各面の三角形分割のうち、1 つの三角形にしか属さない辺 = 面の境界(外周/穴)だけを取り出す
-function faceBoundaryGeometry(meshData) {
+function faceBoundaryGeometry(meshData, keepTangent) {   // keepTangent: 接する(正接)面の境界線も残す(図面の書き出し用: B-rep の稜線すべて)
   const pos = meshData.positions, idx = meshData.indices;
   const ranges = meshData.faceRanges || [];
   const out = [];
@@ -2819,7 +3946,7 @@ function faceBoundaryGeometry(meshData) {
         if (p[0] * q[0] + p[1] * q[1] + p[2] * q[2] >= TANGENT_COS) { tangent = true; break; }
       }
     }
-    if (tangent) continue;
+    if (tangent && !keepTangent) continue;
     const r = list[0];
     out.push(pos[r.a * 3], pos[r.a * 3 + 1], pos[r.a * 3 + 2], pos[r.b * 3], pos[r.b * 3 + 1], pos[r.b * 3 + 2]);
   }
@@ -3034,6 +4161,20 @@ let selectedAnnExtra = [];       // 同時にハイライトする注記名(同�
 let selectedPlainFace = false;   // 何にも関連づかない面
 let statusSummary = "";          // ファイル読み込み結果の要約(下部ステータス)
 const NO_RELATED_TEXT = "関連づいた形体がありません";
+function describeTolerance(t) {
+  const parts = [];
+  if (t.designator) parts.push(`No.${t.designator}`);
+  const kind = [t.type_ja, t.layer || t.type].filter(Boolean);
+  parts.push(kind.length > 1 && kind[0] !== kind[1] ? `${kind[0]} (${kind[1]})` : (kind[0] || "特性"));
+  const icon = t.symbol_kind === "dimension" && t.dimension_icon ? t.dimension_icon + (t.dimension_icon === "R" ? "" : " ") : "";
+  if (t.value_text) parts.push(`${t.symbol_kind === "dimension" ? "寸法" : "公差値"}: ${t.count > 1 ? t.count + "× " : ""}${icon}${t.value_text}${t.derived_value ? " (STEP に値の記載なし: 形状から算出)" : ""}`);
+  if (t.datum_refs && t.datum_refs.length) parts.push(`データム参照: ${t.datum_refs.join(" | ")}`);
+  if (t.attached_datums && t.attached_datums.length) parts.push(`データム形体: ${t.attached_datums.join(", ")}`);
+  if (t.name) parts.push(`名前: ${t.name}`);
+  const nf = (t.face_triangle_ranges || []).length;
+  parts.push(nf ? `対象面: ${nf} 面` : "対象面: なし");
+  return parts.join("  |  ");
+}
 function restoreStatus() { statusEl.textContent = statusSummary; statusEl.title = ""; }
 function selectTolerance(idx, tolerances) {
   clearHighlights();
@@ -3057,6 +4198,8 @@ function selectTolerance(idx, tolerances) {
   if (card) card.classList.add("selected");
 
   const tol = tolerances[idx];
+  statusEl.textContent = describeTolerance(tol);          // ファイル情報の欄を、この特性の詳細で上書き
+  statusEl.title = statusEl.textContent;
   highlightFace(tol.face_triangle_ranges);
   highlightAnnotation(tol.name);
   if ((tol.points || []).length) {         // 面ではなく点を参照する寸法: モデルを半透明にして点と、その間を結ぶ線を青で示す
@@ -3096,9 +4239,15 @@ function selectDatum(di) {
   highlightFace(ranges);
   highlightAnnotation(selectedAnnExtra);
   highlightTargetGeometry(targets);
-  statusEl.textContent = targets.length
-    ? `データム ${d.letter}  (データムターゲット ${targets.length} 個)`
-    : statusSummary;
+  // 詳細: データム文字、データム形体の面数、データムターゲット、このデータムを参照する特性の件数
+  const refTols = ((lastPmi && lastPmi.geometric_tolerances) || []).filter(t => (t.datum_refs || []).some(r => r.replace(/[^A-Za-z]/g, "").includes(d.letter))).length;
+  const info = [`データム ${d.letter}`];
+  info.push((d.face_triangle_ranges || []).length ? `データム形体: ${(d.face_triangle_ranges || []).length} 面` : "データム形体の面: なし");
+  if (targets.length) info.push(`データムターゲット: ${targets.map(t => t.name).join(", ")} (${targets.length} 個)`);
+  if ((d.names || []).length) info.push(`データム形体記号: ${d.names.join(", ")}`);
+  info.push(`参照している特性: ${refTols} 件`);
+  statusEl.textContent = info.join("  |  ");
+  statusEl.title = statusEl.textContent;
   applyHiddenGraphics();
 }
 
@@ -3187,10 +4336,33 @@ function selectAnnotationItem(name) {
 function selectPlainFace(faceIndex) {
   clearAllSelection();
   const ranges = (currentMeshData && currentMeshData.faceRanges) || [];
-  const r = ranges.find(x => faceIndex >= x[0] && faceIndex < x[1]) || [faceIndex, faceIndex + 1];
+  let ri = ranges.findIndex(x => faceIndex >= x[0] && faceIndex < x[1]);
+  const r = ri >= 0 ? ranges[ri] : [faceIndex, faceIndex + 1];
   selectedPlainFace = true;
   highlightFace([r]);
-  statusEl.textContent = NO_RELATED_TEXT;
+  // 面の情報: STEP/QIF の面 ID・名前・曲面の種類、メッシュ上の面番号、三角形数、面積
+  const info = ri >= 0 && currentMeshData.faceInfo ? currentMeshData.faceInfo[ri] : null;
+  const P = currentMeshData.positions, I = currentMeshData.indices;
+  let area = 0;
+  for (let t = r[0]; t < r[1]; t++) {
+    const i0 = I[t * 3] * 3, i1 = I[t * 3 + 1] * 3, i2 = I[t * 3 + 2] * 3;
+    const ux = P[i1] - P[i0], uy = P[i1 + 1] - P[i0 + 1], uz = P[i1 + 2] - P[i0 + 2];
+    const vx = P[i2] - P[i0], vy = P[i2 + 1] - P[i0 + 1], vz = P[i2 + 2] - P[i0 + 2];
+    area += Math.hypot(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx) / 2;
+  }
+  const parts = [];
+  if (info && info.id !== undefined && info.id !== null) {
+    parts.push(typeof info.id === "number" ? `面 #${info.id}` : `面 ${info.id}`);
+  } else {
+    parts.push(ri >= 0 ? `面 (メッシュ ${ri + 1} 番目)` : "面");
+  }
+  if (info && info.name) parts.push(`名前: ${info.name}`);
+  if (info && info.surface) parts.push(`種類: ${info.surface}${info.surface_kw && info.surface_kw !== info.surface ? " (" + info.surface_kw + ")" : ""}`);
+  parts.push(`面積: ${area.toFixed(area < 10 ? 3 : 1)} mm²`);
+  parts.push(`三角形: ${r[1] - r[0]} 個`);
+  parts.push(NO_RELATED_TEXT);
+  statusEl.textContent = parts.join("  |  ");
+  statusEl.title = statusEl.textContent;
   applyHiddenGraphics();
 }
 
@@ -3274,8 +4446,9 @@ function fcfHtml(t) {
   const val = escapeHtml(t.value_text || "?");
   const count = t.count > 1 ? `${t.count}×` : "";   // 複数のサイズ形体: 「4× ∅3.5 ±0.1」
   if (kind === "dimension") {
-    const icon = t.dimension_icon ? escapeHtml(t.dimension_icon) + " " : "";
-    return `<span class="dimlabel">${count ? count + " " : ""}${icon}${val}</span>`;
+    const icon = t.dimension_icon ? escapeHtml(t.dimension_icon) + (t.dimension_icon === "R" ? "" : " ") : "";   // 「R1」(半径は R と数値の間に空白を入れない)
+    const ted = t.layer === "Radius" ? " ted" : "";          // 半径(R1, R2 ...)は TED -> 四角で囲む
+    return `<span class="dimlabel${ted}">${count ? count + " " : ""}${icon}${val}</span>`;
   }
   const svg = SYMBOL_SVG[kind] || SYMBOL_SVG.generic;
   const datums = (t.datum_refs || []).map(d => `<span>${escapeHtml(d)}</span>`).join("");
@@ -3600,7 +4773,7 @@ document.querySelectorAll("#sortMenu .menu-item").forEach(el => el.addEventListe
   }
 }));
 document.getElementById("miOpen").addEventListener("click", () => fileInput.click());
-document.getElementById("miFit").addEventListener("click", () => { if (lastBBox) fitCameraToBBox(lastBBox.min, lastBBox.max); });
+document.getElementById("miFit").addEventListener("click", () => { if (lastBBox) fitCameraToBBox(lastBBox.min, lastBBox.max, true); });   // Fit to View: カメラの回転は変えない
 document.getElementById("miAbout").addEventListener("click", () => alert("3DA Web Viewer - Graphic PMI / GD&T viewer"));
 
 // ドラッグ&ドロップ対応

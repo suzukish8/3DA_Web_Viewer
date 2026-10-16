@@ -167,6 +167,35 @@ async def upload_step(file: UploadFile = File(...)):
         for tol in pmi.get("geometric_tolerances", []):
             tol["face_triangle_ranges"] = match_face_triangle_ranges(tol.pop("anchor_points", []), face_records)
 
+        # メッシュの各面(OCC の面)に、対応する STEP の面の ID・名前・曲面の種類を付ける(境界頂点の一致で対応付け)
+        point_index: dict = {}
+        for ri, rec in enumerate(face_records):
+            for pt in rec["node_set"]:
+                point_index.setdefault(pt, []).append(ri)
+        face_info = [None] * len(face_records)
+        # 候補(STEP の面, メッシュの面)ごとに「境界頂点が一致した数」を数え、一致率の高い組から一対一で確定する
+        cands = []
+        infos = pmi.pop("face_infos", [])
+        for fi_idx, fi in enumerate(infos):
+            votes: dict = {}
+            n = max(len(fi["anchor_points"]), 1)
+            for p in fi["anchor_points"]:
+                for ri in point_index.get((round(p[0], 6), round(p[1], 6), round(p[2], 6)), ()):
+                    votes[ri] = votes.get(ri, 0) + 1
+            for ri, v in votes.items():
+                cands.append((v / n, v, fi_idx, ri))
+        cands.sort(key=lambda c: (-c[0], -c[1]))
+        used_step: set = set()
+        for frac, v, fi_idx, ri in cands:
+            if fi_idx in used_step or face_info[ri] is not None:
+                continue
+            if v < min(2, max(len(infos[fi_idx]["anchor_points"]), 1)):
+                continue
+            fi = infos[fi_idx]
+            face_info[ri] = {"id": fi["id"], "name": fi["name"], "surface": fi["surface"], "surface_kw": fi["surface_kw"]}
+            used_step.add(fi_idx)
+        mesh["faceInfo"] = face_info
+
         for a in pmi.get("annotations", []):
             a["face_triangle_ranges"] = match_face_triangle_ranges(a.pop("anchor_points", []), face_records)
         for d in pmi.get("datums", []):
@@ -184,6 +213,10 @@ async def upload_step(file: UploadFile = File(...)):
             os.remove(tmp_path)
         except OSError:
             pass
+
+
+from export_api import router as export_router  # noqa: E402
+app.include_router(export_router)
 
 
 @app.get("/api/health")

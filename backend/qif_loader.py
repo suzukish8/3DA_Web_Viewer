@@ -27,6 +27,23 @@ TYPE_JA = {
 }
 
 
+SURFACE_JA_QIF = {
+    "PlaneSurface": "平面", "CylinderSurface": "円筒面", "ConeSurface": "円すい面",
+    "NurbsSurface": "自由曲面(NURBS)", "UnknownSurface": "不明",
+}
+
+
+def _qif_face_info(doc, face_id: str) -> dict:
+    face = doc.faces.get(face_id)
+    surface = doc.surfaces.get(face.surface_id) if face is not None else None
+    kind = type(surface).__name__ if surface is not None else ""
+    label = (face.label if face is not None else "") or ""
+    if label.startswith("#"):          # 元ファイル内部の参照文字列は名前として出さない
+        label = ""
+    return {"id": face_id, "name": label, "surface": SURFACE_JA_QIF.get(kind, kind or "不明"),
+            "surface_kw": kind}
+
+
 def load_qif(path: str) -> tuple[dict, dict]:
     doc = load_qif_document(path)
     mesh, cell_offsets = build_mesh(doc)
@@ -41,6 +58,7 @@ def load_qif(path: str) -> tuple[dict, dict]:
         "bbox": {"min": [bounds[0], bounds[2], bounds[4]], "max": [bounds[1], bounds[3], bounds[5]]},
         "faceCount": int(faces.shape[0]),
         "faceRanges": [[int(a), int(b)] for a, b, _fid in cell_offsets],
+        "faceInfo": [_qif_face_info(doc, fid) for _a, _b, fid in cell_offsets],
     }
 
     ranges_by_face: dict[str, list[list[int]]] = {}
