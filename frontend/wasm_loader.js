@@ -45,6 +45,56 @@
     return pyPromise;
   }
 
+  // QIF は Pyodide 上で qif_viewer のパーサ/テッセレータを実行して読む(numpy のみ使用)
+  let qifPromise = null;
+  function getQif() {
+    if (!qifPromise) qifPromise = (async () => {
+      const py = await getPy();
+      await py.loadPackage("numpy");
+      const mf = await fetch("py/qif_viewer/manifest.json");
+      if (!mf.ok) throw new Error("py/qif_viewer が見つかりません");
+      const files = await mf.json();
+      const dirs = new Set();
+      for (const f of files) {
+        const parts = f.split("/"); let d = "qif_viewer";
+        for (let i = 0; i < parts.length - 1; i++) { d += "/" + parts[i]; dirs.add(d); }
+      }
+      try { py.FS.mkdir("qif_viewer"); } catch (_) {}
+      [...dirs].sort().forEach(d => { try { py.FS.mkdir(d); } catch (_) {} });
+      await Promise.all(files.map(async (f) => {
+        const r = await fetch("py/qif_viewer/" + f);
+        if (!r.ok) throw new Error("py/qif_viewer/" + f + " が見つかりません");
+        py.FS.writeFile("qif_viewer/" + f, await r.text());
+      }));
+      for (const f of ["pyvista.py", "qif_loader.py"]) {
+        const r = await fetch("py/" + f);
+        if (!r.ok) throw new Error("py/" + f + " が見つかりません");
+        py.FS.writeFile(f, await r.text());
+      }
+      py.runPython([
+        "import json, qif_loader",
+        "def _load_qif(path):",
+        "    mesh, pmi = qif_loader.load_qif(path)",
+        "    return json.dumps({'mesh': mesh, 'pmi': pmi})",
+      ].join("\n"));
+      return py;
+    })();
+    return qifPromise;
+  }
+
+  async function loadQif(arrayBuffer, filename, onStatus) {
+    const say = onStatus || (() => {});
+    say("Loading QIF engine...");
+    const py = await getQif();
+    say("Parsing QIF...");
+    await new Promise(r => setTimeout(r, 30));
+    py.FS.writeFile("/tmp/input.qif", new Uint8Array(arrayBuffer));
+    let out;
+    try { out = py.globals.get("_load_qif")("/tmp/input.qif"); }
+    catch (e) { throw new Error("QIFファイルとして読み込めませんでした: " + String(e.message || e).trim().split("\n").pop()); }
+    return { filename, ...JSON.parse(out) };
+  }
+
   // メッシュ(occt-import-js の複数メッシュ)を 1 つにまとめ、面ごとの三角形範囲と照合用の格子を作る
   function buildMesh(res) {
     const positions = [], indices = [], faceRanges = [];
@@ -129,5 +179,5 @@
     return { filename, mesh, pmi };
   }
 
-  window.WasmStepLoader = { load };
+  window.WasmStepLoader = { load, loadQif };
 })();

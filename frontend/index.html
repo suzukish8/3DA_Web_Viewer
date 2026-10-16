@@ -3043,9 +3043,9 @@ async function handleFile(file) {
     if (await hasServer()) {
       data = await uploadWithProgress(form);
     } else {                                        // サーバーなし(GitHub Pages など): ブラウザ内で解析する
-      if (/\.(qif|xml)$/i.test(file.name)) throw new Error("サーバーなしの版では STEP ファイルのみ開けます。");
       startCreep(0.05, 0.85);
-      data = await window.WasmStepLoader.load(await file.arrayBuffer(), file.name, (m) => { loadLabel.textContent = m; });
+      const isQif = /\.(qif|xml)$/i.test(file.name);
+      data = await window.WasmStepLoader[isQif ? "loadQif" : "load"](await file.arrayBuffer(), file.name, (m) => { loadLabel.textContent = m; });
       stopCreep();
     }
     loadLabel.textContent = "Building scene...";

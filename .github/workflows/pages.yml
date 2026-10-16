@@ -21,7 +21,7 @@ jobs:
       - name: Copy PMI parser for in-browser (Pyodide) use
         run: |
           mkdir -p frontend/py
-          cp backend/step_pmi.py backend/pmi_display.py frontend/py/
+          cp backend/step_pmi.py backend/pmi_display.py backend/qif_loader.py frontend/py/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

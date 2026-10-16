@@ -8,4 +8,7 @@ __pycache__/
 *.qif
 
 # frontend/py は backend の step_pmi.py / pmi_display.py のコピー(公開時に自動で作る)
-frontend/py/
+frontend/py/*
+!frontend/py/qif_viewer/
+!frontend/py/pyvista.py
+# qif_viewer/ は sync_qif_web.py で生成してコミットする
