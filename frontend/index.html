@@ -2851,8 +2851,8 @@ function applyHiddenGraphics() {
   showTessellatedPmi(currentTessellatedGroups, names);
 }
 
-function groupHtml(title, body, checkable) {
-  return `<div class="grp"><div class="grp-head"><span class="tri"></span>`
+function groupHtml(title, body, checkable, collapsed) {
+  return `<div class="grp${collapsed ? " collapsed" : ""}"><div class="grp-head"><span class="tri"></span>`
     + (checkable ? `<input type="checkbox" class="gvis" checked>` : "")
     + `<span class="gtitle">${escapeHtml(title)}</span></div><div class="grp-body">${body}</div></div>`;
 }
@@ -2878,7 +2878,7 @@ function renderPmi(pmi) {
   if (datums.length) {
     const order = datums.map((_, i) => i).sort((a, b) => String(datums[a].letter).localeCompare(String(datums[b].letter)));
     const rows = order.map(i => `<div class="row datum-row" data-di="${i}"><span class="dbox">${escapeHtml(datums[i].letter)}</span></div>`).join("");
-    groups.push(groupHtml(`Datums (${datums.length})`, rows, false));
+    groups.push(groupHtml(`Datums (${datums.length})`, rows, false, true));
   }
 
   const idxs = tols.map((_, i) => i);
