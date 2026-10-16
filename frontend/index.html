@@ -3424,6 +3424,7 @@ function setLoading(on, message) {
     loadOverlay.style.display = "flex";
   } else {
     loadOverlay.style.display = "none";
+    stopStage();
     stopCreep();
   }
 }
@@ -3437,6 +3438,25 @@ function startCreep(from, to) {   // サーバー処理中は進捗が分から�
   setProgress(from);
 }
 function stopCreep() { if (loadCreep) { clearInterval(loadCreep); loadCreep = null; } }
+
+// ブラウザ内読み込みの進捗: 件数が分かる段階は実測値、一括処理の段階は経過時間に応じて終端へ漸近させ、経過秒も表示する
+let _stageTimer = null;
+function stopStage() { if (_stageTimer) { clearInterval(_stageTimer); _stageTimer = null; } }
+function stageProgress(bytes) {
+  const totalEst = 6 + (bytes / 1e6) * 3;          // 全体の想定秒数(ファイルサイズから概算)
+  return (label, p, to) => {
+    stopStage();
+    const t0 = performance.now();
+    const show = () => {
+      const sec = (performance.now() - t0) / 1000;
+      if (to != null && to > p) setProgress(p + (to - p) * (1 - Math.exp(-sec / Math.max(0.5, (to - p) * totalEst))));
+      else setProgress(p);
+      loadLabel.textContent = label + (to != null && sec >= 2 ? "  (" + Math.floor(sec) + " s)" : "");
+    };
+    show();
+    if (to != null) _stageTimer = setInterval(show, 200);
+  };
+}
 
 function uploadWithProgress(form) {
   return new Promise((resolve, reject) => {
@@ -3497,13 +3517,12 @@ async function handleFile(file) {
     if (await hasServer()) {
       data = await uploadWithProgress(form);
     } else {                                        // サーバーなし(GitHub Pages など): ブラウザ内で解析する
-      startCreep(0.05, 0.85);
       const isQif = /\.(qif|xml)$/i.test(file.name);
-      data = await window.WasmStepLoader[isQif ? "loadQif" : "load"](await file.arrayBuffer(), file.name, (m) => { loadLabel.textContent = m; });
-      stopCreep();
+      data = await window.WasmStepLoader[isQif ? "loadQif" : "load"](await file.arrayBuffer(), file.name, stageProgress(file.size));
+      stopStage();
     }
     loadLabel.textContent = "Building scene...";
-    setProgress(0.92); await nextFrame();
+    setProgress(0.95); await nextFrame();
     clearHighlights();
     selectedTolIndex = null;
     selectedAnnName = null;
@@ -3511,7 +3530,7 @@ async function handleFile(file) {
     currentMeshData = data.mesh;
     currentTessellatedGroups = data.pmi.tessellated || [];
     showMesh(data.mesh);
-    setProgress(0.96); await nextFrame();
+    setProgress(0.98); await nextFrame();
     renderPmi(data.pmi);
     setupGeneralNotes(data.pmi);
     bmSetup(data.pmi);
