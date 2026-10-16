@@ -964,6 +964,7 @@ const bmLabelsEl = document.getElementById("bmLabels");
 const bmRaycaster = new THREE.Raycaster();
 let bmItems = [];                     // {idx, anchor, normal, color, el, w, h, tris:Set}
 let bmMirrorsOn = true;     // B&M モードでは既定で表示
+var bmMirrorSel = null;                          // クリックで選択(ハイライト)中の鏡。選択中の鏡だけドラッグできる
 var bmMirrorHidden = [false, false, false];   // 角の × で消した鏡(View > Show Hidden-Side Mirrors を入れ直すと戻る)
 let bmDirty = true, bmLastSig = "", bmLastRun = 0;
 const bmMirrors = {};                 // axis -> {sign, group}
@@ -1514,7 +1515,16 @@ function buildMirror(axis, sign) {
   quad.renderOrder = 10;
   g.add(quad);
   const fgeo = new THREE.BufferGeometry().setFromPoints([...pts, pts[0]]);
-  g.add(new THREE.Line(fgeo, new THREE.LineBasicMaterial({ color: 0x9aa0aa })));
+  const frameMat = new THREE.LineBasicMaterial({ color: 0x9aa0aa });
+  g.add(new THREE.Line(fgeo, frameMat));
+  g.userData.frameMat = frameMat;
+  const tgeo = new THREE.BufferGeometry();
+  tgeo.setAttribute("position", new THREE.Float32BufferAttribute(pts.flatMap(p => p.toArray()), 3));
+  tgeo.setIndex([0, 1, 2, 0, 2, 3]);
+  const tint = new THREE.Mesh(tgeo, new THREE.MeshBasicMaterial({ color: 0x0077ff, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthTest: false }));
+  tint.renderOrder = 11; tint.visible = false;
+  g.add(tint);
+  g.userData.tint = tint;
   // 鏡の面上の右上の角に、×(閉じるマーク)を図形として描く。当たり判定用の透明な四角も置く
   // 一辺 = 公差記入枠の高さの正方形と、その中の ×(正方形の 0.8 倍の大きさ)。単位サイズで作り、FCF の高さに合わせて拡縮する
   const marker = new THREE.Group();
@@ -1549,6 +1559,14 @@ function bmPlaceMirrorMarker(g) {
   m.position.copy(b.c).addScaledVector(b.right, b.halfU - side * 0.75).addScaledVector(b.up, b.halfV - side * 0.75);
   m.updateMatrixWorld(true);
 }
+// 選択中の鏡のハイライト(枠を青、面に青い薄い色)
+function bmApplyMirrorSelection() {
+  for (const ax of Object.keys(bmMirrors)) {
+    const g = bmMirrors[ax].group, on = bmMirrorSel === Number(ax);
+    if (g.userData.frameMat) g.userData.frameMat.color.set(on ? 0x0077ff : 0x9aa0aa);
+    if (g.userData.tint) g.userData.tint.visible = on;
+  }
+}
 function bmUpdateMirrors(viewDir) {
   bmMirrorGroup.visible = bmMirrorsOn && annotationStyle === "balloon";
   if (!bmMirrorGroup.visible || !currentMeshData) return;
@@ -1557,6 +1575,7 @@ function bmUpdateMirrors(viewDir) {
     if (!bmMirrors[axis] || bmMirrors[axis].sign !== sign) buildMirror(axis, sign);
     bmMirrors[axis].group.visible = !bmMirrorHidden[axis];
     bmPlaceMirrorMarker(bmMirrors[axis].group);
+    bmApplyMirrorSelection();
   }
 }
 
@@ -1947,6 +1966,7 @@ function bmSyncMirrorMenu() {
 ["miMirrorX", "miMirrorY", "miMirrorZ"].forEach((id, axis) => {
   document.getElementById(id).addEventListener("click", () => {
     bmMirrorHidden[axis] = !bmMirrorHidden[axis];
+    if (bmMirrorHidden[axis] && bmMirrorSel === axis) { bmMirrorSel = null; bmApplyMirrorSelection(); }
     if (bmMirrors[axis]) bmMirrors[axis].group.visible = !bmMirrorHidden[axis];
     bmSyncMirrorMenu();
     bmDirty = true; bmLastSig = "";
@@ -2103,15 +2123,25 @@ cv.addEventListener("pointerdown", (e) => {
     e.stopImmediatePropagation();
     clickStart = null;
     bmMirrorHidden[closeAxis] = true;
+    if (bmMirrorSel === closeAxis) { bmMirrorSel = null; bmApplyMirrorSelection(); }
     if (bmMirrors[closeAxis]) bmMirrors[closeAxis].group.visible = false;
     bmSyncMirrorMenu();
     bmDirty = true; bmLastSig = "";
     return;
   }
   const axis = bmPickMirror(e.clientX, e.clientY);
-  if (axis === null) return;
+  if (axis === null) {                            // 鏡以外をクリック: 選択解除(イベントはそのまま通す)
+    if (bmMirrorSel !== null) { bmMirrorSel = null; bmApplyMirrorSelection(); }
+    return;
+  }
   const m = bmMirrors[axis];
   if (!m) return;
+  if (bmMirrorSel !== axis) {                     // 最初のクリックは選択(ハイライト)だけ。ドラッグは選択後から
+    bmMirrorSel = axis; bmApplyMirrorSelection();
+    e.stopImmediatePropagation();
+    clickStart = null;
+    return;
+  }
   // 画面上で、軸の +方向 1 単位が何 px か
   const c = new THREE.Vector3().fromArray(mirrorPlanePoint(axis, m.sign));
   const unit = new THREE.Vector3(); unit.setComponent(axis, 1);
