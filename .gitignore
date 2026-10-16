@@ -6,3 +6,6 @@ __pycache__/
 *.stp
 *.step
 *.qif
+
+# frontend/py は backend の step_pmi.py / pmi_display.py のコピー(公開時に自動で作る)
+frontend/py/

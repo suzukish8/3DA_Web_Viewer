@@ -5,7 +5,13 @@ STEP AP242 (PMI付き) をブラウザで表示する 3DA ビューア。FastAPI
 - 形状・幾何公差・寸法・データムを表示し、特性リストと 3D 表示を相互にハイライト
 - Balloon & Mirror スタイル(公差記入枠のバルーン配置、Hidden-Side Mirror)
 
-## 起動
+## インストール不要で使う(GitHub Pages)
+
+https://suzukish8.github.io/3DA_Web_Viewer/ をブラウザで開き、STEP ファイルをドラッグ&ドロップします。
+STEP の解析はすべてブラウザ内で行われ、ファイルは外部に送信されません(初回のみ、解析エンジンを CDN から読み込みます)。
+サーバー版と同じ画面ですが、QIF ファイルは開けません。
+
+## サーバー版の起動
 
 ```
 pip install -r backend/requirements.txt

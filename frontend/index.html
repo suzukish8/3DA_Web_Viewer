@@ -387,6 +387,7 @@
   </div>
 </div>
 
+<script src="wasm_loader.js"></script>
 <script type="importmap">
 {
   "imports": {
@@ -1319,7 +1320,10 @@ function bmBuildDim(t) {
     return cyl;
   }
   // 面ごと(範囲ごと)に重心・法線を求め、面積の大きい 2 面を使う
-  const faces = ranges.map(r => bmFaceStats([r])).filter(Boolean).sort((a, b) => b.area - a.area);
+  let faces = ranges.map(r => bmFaceStats([r])).filter(Boolean).sort((a, b) => b.area - a.area);
+  // 同じ位置・向きに重なった重複面(ブラウザ内解析では単精度で区別できない)は 1 つにまとめる
+  faces = faces.filter((f, i) => !faces.slice(0, i).some(g =>
+    g.c.distanceTo(f.c) < bmDiag() * 1e-4 && g.n.dot(f.n) > 0.999 && Math.abs(g.area - f.area) < g.area * 0.05));
   if (faces.length < 2) {
     // 1 つの平面だけが指定された寸法: 反対側の平行な面をモデルから探して幅(2 面間の距離)として扱う
     const opp = bmFindOppositePlane(ranges, faces[0], t.value_mm);
@@ -2982,6 +2986,19 @@ function uploadWithProgress(form) {
   });
 }
 
+// バックエンド(/api/upload)があるか。無ければ(GitHub Pages など)ブラウザ内で解析する。?wasm=1 で強制できる
+let _serverOk = null;
+async function hasServer() {
+  if (_serverOk !== null) return _serverOk;
+  if (new URLSearchParams(location.search).has("wasm")) return (_serverOk = false);
+  try {
+    const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 2500);
+    const r = await fetch(API_BASE + "/api/health", { signal: ctl.signal }); clearTimeout(tm);
+    _serverOk = r.ok && (await r.json()).status === "ok";
+  } catch (_) { _serverOk = false; }
+  return _serverOk;
+}
+
 async function handleFile(file) {
   if (!file) return;
   statusEl.textContent = `アップロード中… ${file.name} (${(file.size/1024).toFixed(0)} KB)`;
@@ -2992,7 +3009,15 @@ async function handleFile(file) {
   setLoading(true);
   try {
     await nextFrame();
-    const data = await uploadWithProgress(form);
+    let data;
+    if (await hasServer()) {
+      data = await uploadWithProgress(form);
+    } else {                                        // サーバーなし(GitHub Pages など): ブラウザ内で解析する
+      if (/\.(qif|xml)$/i.test(file.name)) throw new Error("サーバーなしの版では STEP ファイルのみ開けます。");
+      startCreep(0.05, 0.85);
+      data = await window.WasmStepLoader.load(await file.arrayBuffer(), file.name, (m) => { loadLabel.textContent = m; });
+      stopCreep();
+    }
     loadLabel.textContent = "Building scene...";
     setProgress(0.92); await nextFrame();
     clearHighlights();
