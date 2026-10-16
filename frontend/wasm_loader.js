@@ -51,6 +51,8 @@
     if (!qifPromise) qifPromise = (async () => {
       const py = await getPy();
       await py.loadPackage("numpy");
+      // 穴あき平面の三角形分割に使う earcut(Python 側の mapbox_earcut スタブ経由)
+      await loadScript("https://cdn.jsdelivr.net/npm/earcut@2.2.4/dist/earcut.min.js");
       const mf = await fetch("py/qif_viewer/manifest.json");
       if (!mf.ok) throw new Error("py/qif_viewer が見つかりません");
       const files = await mf.json();
@@ -66,7 +68,7 @@
         if (!r.ok) throw new Error("py/qif_viewer/" + f + " が見つかりません");
         py.FS.writeFile("qif_viewer/" + f, await r.text());
       }));
-      for (const f of ["pyvista.py", "qif_loader.py"]) {
+      for (const f of ["pyvista.py", "mapbox_earcut.py", "qif_loader.py"]) {
         const r = await fetch("py/" + f);
         if (!r.ok) throw new Error("py/" + f + " が見つかりません");
         py.FS.writeFile(f, await r.text());
