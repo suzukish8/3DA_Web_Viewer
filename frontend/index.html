@@ -2152,17 +2152,12 @@ function bmSetFcfUnits(u, fromUser) {
   bmFcfUnits = mm / bmUnitToMm;
   fcfNum.value = mm.toFixed(1);
   fcfSlider.value = String(mm);
-  if (fromUser) { try { localStorage.setItem("fcfHeightMm", String(mm)); } catch (e) {} }
   bmDirty = true; bmLastSig = "";
 }
 function bmInitFcf(unitFactor) {
   bmUnitToMm = unitFactor && unitFactor > 0 ? unitFactor : 1;
   fcfDefaultUnits = 5 / bmUnitToMm;              // 既定 5 mm
   let u = fcfDefaultUnits;
-  try {                                           // 前回選んだ高さ(mm)を引き継ぐ
-    const saved = parseFloat(localStorage.getItem("fcfHeightMm"));
-    if (saved > 0) u = saved / bmUnitToMm;
-  } catch (e) {}
   bmSetFcfUnits(u, false);
 }
 fcfSlider.addEventListener("input", () => {
