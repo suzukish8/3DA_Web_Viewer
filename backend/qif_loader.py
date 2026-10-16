@@ -13,7 +13,8 @@ from qif_viewer.parsing.qif_document import load_qif_document  # noqa: E402
 from qif_viewer.tessellate.mesh_builder import build_mesh  # noqa: E402
 from qif_viewer.annotations import types_gdt  # noqa: E402,F401  (特性タイプの登録)
 from qif_viewer.annotations.registry import get_spec  # noqa: E402
-from qif_viewer.annotations.builder import _iso_value_text  # noqa: E402
+from qif_viewer.annotations.builder import _iso_value_text, _total_feature_instances  # noqa: E402
+from qif_viewer.parsing.xml_utils import id_list  # noqa: E402
 
 TYPE_JA = {
     "Flatness": "平面度", "Straightness": "真直度", "Circularity": "真円度", "Cylindricity": "円筒度",
@@ -57,17 +58,65 @@ def load_qif(path: str) -> tuple[dict, dict]:
                 out.append(d.label)
         return out
 
+    def entity_ids(fn_id, seen=None):
+        # Group 形体(パターン)は、含まれる形体の面をまとめて返す。同じ穴群を指す直径寸法と位置度が同じ塊になる
+        fn = doc.feature_nominals.get(fn_id)
+        if fn is None:
+            return []
+        ids = list(fn.entity_internal_ids)
+        if getattr(fn, "kind", None) == "Group":
+            seen = seen if seen is not None else set()
+            if fn_id in seen:
+                return ids
+            seen.add(fn_id)
+            for sub in id_list(fn.raw_element, "FeatureNominalIds"):
+                ids.extend(entity_ids(sub, seen))
+        return ids
+
+    def first_instance_ids(fn_id, seen=None):
+        # パターン(Group や複数の形体)は、重心ではなく最初の 1 個(実在する穴など)を指す
+        fn = doc.feature_nominals.get(fn_id)
+        if fn is None:
+            return []
+        if fn.entity_internal_ids:
+            return list(fn.entity_internal_ids)
+        if getattr(fn, "kind", None) == "Group":
+            seen = seen if seen is not None else set()
+            if fn_id in seen:
+                return []
+            seen.add(fn_id)
+            for sub in id_list(fn.raw_element, "FeatureNominalIds"):
+                ids = first_instance_ids(sub, seen)
+                if ids:
+                    return ids
+        return []
+
     tolerances = []
     for nom in doc.characteristic_nominals.values():
         definition = doc.characteristic_definitions.get(nom.definition_id)
         face_ids: list[str] = []
         for fn_id in nom.feature_nominal_ids:
-            fn = doc.feature_nominals.get(fn_id)
-            if fn is not None:
-                face_ids.extend(fn.entity_internal_ids)
+            face_ids.extend(entity_ids(fn_id))
         tri_ranges: list[list[int]] = []
         for fid in dict.fromkeys(face_ids):
             tri_ranges.extend(ranges_by_face.get(fid, []))
+        # 複数のサイズ形体(穴など)を 1 つの寸法で指すときの「N×」(Diameter/Radius のみ)
+        count = 1
+        if nom.type_name in ("Diameter", "Radius"):
+            try:
+                count = max(1, _total_feature_instances(list(nom.feature_nominal_ids), doc))
+            except Exception:
+                count = 1
+        fns = [doc.feature_nominals.get(i) for i in nom.feature_nominal_ids]
+        is_pattern = any(getattr(f, "kind", None) == "Group" for f in fns) or (
+            len(fns) > 1 and all(f is not None and type(f).__name__ == "CylinderFeatureNominal" for f in fns))
+        anchor_ranges: list[list[int]] = []
+        for fn_id in nom.feature_nominal_ids:
+            ids = first_instance_ids(fn_id)
+            if ids:
+                for fid in dict.fromkeys(ids):
+                    anchor_ranges.extend(ranges_by_face.get(fid, []))
+                break
         spec = get_spec(nom.type_name)
         own_fns = set(nom.feature_nominal_ids)
         attached = [d.label for d in doc.datums.values() if own_fns & set(d.feature_nominal_ids)]
@@ -89,7 +138,34 @@ def load_qif(path: str) -> tuple[dict, dict]:
             "name": nom.designator or nom.id,
             "datums": datum_labels(definition.datum_reference_frame_id) if definition else [],
             "face_triangle_ranges": tri_ranges,
+            "anchor_triangle_ranges": anchor_ranges,
+            "pattern": is_pattern,
+            "_fns": list(nom.feature_nominal_ids),
+            "count": count,
         })
+
+    # 幾何公差がグループ(パターン)でまとめて指す穴に、同じ直径寸法が 1 つずつ付いているとき:
+    # 1 つだけ残して「N×」を付け、残りの寸法は書かない
+    drop: set[int] = set()
+    for t in tolerances:
+        if t["symbol_kind"] == "dimension" or len(t["_fns"]) != 1:
+            continue
+        g = doc.feature_nominals.get(t["_fns"][0])
+        if getattr(g, "kind", None) != "Group":
+            continue
+        subs = set(id_list(g.raw_element, "FeatureNominalIds"))
+        dims = [i for i, d in enumerate(tolerances)
+                if d["layer"] in ("Diameter", "Radius") and len(d["_fns"]) == 1 and d["_fns"][0] in subs and i not in drop]
+        if len(dims) >= 2 and len({tolerances[i]["layer"] + tolerances[i]["value_text"] for i in dims}) == 1:
+            tolerances[dims[0]]["count"] = sum(tolerances[i]["count"] for i in dims)
+            keep = tolerances[dims[0]]
+            for i in dims[1:]:                      # ハイライトは残した寸法で全部の穴を光らせる
+                keep["face_triangle_ranges"] = keep["face_triangle_ranges"] + tolerances[i]["face_triangle_ranges"]
+            keep["pattern"] = True                 # 塊のまとめ・アンカー・寸法線は最初の 1 個の穴で行う
+            drop.update(dims[1:])
+    tolerances = [t for i, t in enumerate(tolerances) if i not in drop]
+    for t in tolerances:
+        t.pop("_fns", None)
 
     datum_items = []
     for d in doc.datums.values():

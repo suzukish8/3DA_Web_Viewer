@@ -83,6 +83,7 @@
   #loadFill { height: 100%; width: 0%; background: #3d8bff; transition: width .12s linear; }
   .menu-item.disabled { color: var(--text-dim); cursor: default; }
   .menu-item.disabled:hover { background: transparent; }
+  #styleMenu .menu-item.disabled { color: #c4c8ce; }
   /* 保存ビューのパネル (右側) */
   #viewsPanel { width: 240px; max-width: 36vw; background: var(--panel); border-left: 1px solid var(--panel-border);
     display: flex; flex-direction: column; flex-shrink: 0; position: relative; }
@@ -290,7 +291,8 @@
     <div class="menu-items">
       <div class="menu-item has-sub">Annotation Style
         <div class="submenu" id="styleMenu">
-          <div class="menu-item radio checked" data-style="original">Graphic PMI</div>
+          <div class="menu-item radio checked" data-style="none">None</div>
+          <div class="menu-item radio" data-style="original">Graphic PMI</div>
           <div class="menu-item radio" data-style="balloon">Balloon &amp; Mirror</div>
           <div class="menu-sep"></div>
           <div class="menu-item checkable checked" id="miMirrors">Show Hidden-Side Mirrors</div>
@@ -319,6 +321,8 @@
       <div class="menu-item checkable" id="miDesignators">Show Designators</div>
       <div class="menu-item checkable checked" id="miViewsPanel">Show Saved Views Panel</div>
       <div class="menu-item checkable" id="miAxes">Show Origin Axes</div>
+      <div class="menu-item checkable" id="miDbgAnchors">Show Annotation Anchors</div>
+      <div class="menu-item checkable" id="miDbgDimEnds">Show Dimension Line Ends</div>
       <div class="menu-sep"></div>
       <div class="menu-item" id="miFit">Fit to View</div>
       <div class="menu-item" id="miCustomView">Custom View...</div>
@@ -350,9 +354,9 @@
     </div>
   </div>
   <div id="bmControls">
-    <input type="range" id="fcfSlider" min="0" max="1000" step="1" value="500">
+    <input type="range" id="fcfSlider" min="1" max="30" step="0.5" value="5">
     <label for="fcfNum">FCF Height:</label>
-    <input type="number" id="fcfNum" min="0" step="0.01" value="0">
+    <input type="number" id="fcfNum" min="1" max="30" step="0.5" value="5">
     <span>mm</span>
   </div>
   <button id="fsBtn" title="Full screen (Esc to exit)" aria-label="Full screen">
@@ -417,10 +421,11 @@ scene.background = new THREE.Color(0xffffff);
 // 正投影(平行投影)カメラ。frustumSize は現在の視野の縦幅(モデル座標系)を表し、
 // fitCameraToBBoxでモデルサイズに応じて更新する。
 let frustumSize = 2;
-let annotationStyle = "original";     // "original" | "balloon" (Balloon & Mirror)
+let annotationStyle = "none";     // "none" | "original" | "balloon" (Balloon & Mirror)
 function pmiVisible() {               // 3D 上のグラフィック PMI を描くか
   return annotationStyle === "original";
 }
+const BM_MIN_LEADER_DEG = 10;   // 引出線と水平線(肩)のなす最小角度
 let fitDist = 3;
 const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 1e6);
 camera.position.set(1, 1, 1);
@@ -469,6 +474,7 @@ function animate(now) {
   requestAnimationFrame(animate);
   if (typeof bmTick === "function") bmTick(now || performance.now());
   if (typeof cvTick === "function") cvTick();
+  if (typeof dbgUpdate === "function") dbgUpdate();
   renderer.render(scene, camera);
 }
 animate();
@@ -730,6 +736,21 @@ function revealRow(sel) {
 function handleViewClick(px, py) {
   if (!lastPmi) return;
   const tols = lastPmi.geometric_tolerances || [];
+
+  // 0) Balloon & Mirror の引出線(公差記入枠から面への線・寸法の矢印/同軸線)をクリック
+  if (annotationStyle === "balloon") {
+    let bestIt = null, bd = 6;
+    for (const it of bmItems) for (const sg of (it.segs || [])) {
+      const d = distPointSegment(px, py, sg[0], sg[1], sg[2], sg[3]);
+      if (d < bd) { bd = d; bestIt = it; }
+    }
+    const idx = bestIt ? bestIt.idxs.find(i => !hiddenTol.has(i)) : undefined;
+    if (idx !== undefined) {
+      if (idx !== selectedTolIndex) selectTolerance(idx, tols);
+      revealRow(`.pmi-card[data-idx="${idx}"]`);
+      return;
+    }
+  }
 
   // 1) 注記(線/文字)をクリック
   const name = pickAnnotationGroup(px, py);
@@ -1035,9 +1056,12 @@ function bmSetup(pmi) {
   const byKey = new Map();
   tols.forEach((t, i) => {
     const ranges = t.face_triangle_ranges || [];
-    const key = ranges.length ? ranges.map(r => r[0] + "-" + r[1]).sort().join(",") : null;
+    // パターン(複数の穴)を指す特性は、指示している最初の 1 個の形体でまとめる(その穴だけを指す寸法と同じ塊になる)
+    const aR = t.anchor_triangle_ranges || [];
+    const keyRanges = (t.pattern && aR.length) ? aR : ranges;
+    const key = keyRanges.length ? keyRanges.map(r => r[0] + "-" + r[1]).sort().join(",") : null;
     if (key !== null && byKey.has(key)) { byKey.get(key).members.push(i); return; }
-    const g = { members: [i], ranges };
+    const g = { members: [i], ranges, anchorRanges: t.anchor_triangle_ranges || [] };
     groups.push(g);
     if (key !== null) byKey.set(key, g);
   });
@@ -1048,7 +1072,10 @@ function bmSetup(pmi) {
     const val = (i) => (typeof tols[i].value_mm === "number") ? tols[i].value_mm : -Infinity;
     g.members.sort((x, y) => rank(x) - rank(y) || val(y) - val(x) || x - y);
 
-    const a = g.ranges.length ? bmComputeAnchor(g.ranges) : null;
+    // アンカーは、パターン(複数の穴など)の重心ではなく最初の 1 個の形体に付ける
+    const aRanges = g.members.map(i => tols[i].anchor_triangle_ranges || []).find(r => r.length) || g.ranges;
+    const a = aRanges.length ? bmComputeAnchor(aRanges) : null;
+    if (a) { const s = bmSnapToRanges(a.anchor, aRanges); if (s) a.anchor.copy(s.pt); }   // 面上でなければ、面上のいちばん近い点へ
     const el = document.createElement("div");
     el.className = "bm-label";
     const color = BM_PLAIN_COLOR;
@@ -1091,7 +1118,11 @@ function bmSetup(pmi) {
         if (dim) { dimIdx = i; break; }
       }
     }
-    bmItems.push({ idxs: g.members, members: memberEls, anchor: a ? a.anchor : null, normal: a ? a.normal : null,
+    // 直径・半径のアンカーは、指示している円筒の面に接触させず、円筒の中心線上に置く
+    const axisAnchor = !!(dim && dim.type === "cyl");
+    const spanDim = !!(dim && dim.type === "span");     // 幅・距離などのアンカーは、2 つの寸法線端点の中点
+    const anchorPt = axisAnchor ? dim.center.clone() : (spanDim ? dim.d1.clone().add(dim.d2).multiplyScalar(0.5) : (a ? a.anchor : null));
+    bmItems.push({ aRanges, axisAnchor, idxs: g.members, members: memberEls, anchor: anchorPt, normal: a ? a.normal : null,
                    cands: a ? a.cands : [], color, el, w: 0, h: 0, tris, shownKey: "", dim, dimIdx });
   }
   // 寸法の実測(表示後に 1 回)
@@ -1251,7 +1282,7 @@ function bmFitCylinder(ranges) {
     if (tt < tmin) tmin = tt; if (tt > tmax) tmax = tt;
   }
   center.addScaledVector(axis, (tmin + tmax) / 2);
-  return { type: "cyl", center, axis, radius: Math.sqrt(r2) };
+  return { type: "cyl", center, axis, radius: Math.sqrt(r2), half: (tmax - tmin) / 2 };
 }
 
 // 面(三角形範囲)が平面か: 頂点が平均法線方向にほぼ同じ高さにあるか
@@ -1284,16 +1315,16 @@ function bmFindOppositePlane(ranges, st, value) {
     if (Math.abs(Math.abs(h) - value) > tol) continue;
     const inPlane = dvec.addScaledVector(n, -h).length();          // 面内での重心のずれ(近いほど対向している)
     const score = inPlane - Math.sqrt(f.area) * 0.1;
-    if (score < bestScore) { bestScore = score; best = { f, h }; }
+    if (score < bestScore) { bestScore = score; best = { f, h, r }; }
   }
   if (!best) return null;
   const d1 = st.c.clone();
   const d2 = st.c.clone().addScaledVector(n, best.h);
-  return { d1, d2 };
+  return { d1, d2, r1: ranges, r2: [best.r], n: n.clone() };
 }
 
 // 寸法 1 件の幾何: Diameter/Radius = 円筒、Width/Length/Distance = 向かい合う 2 面(または 2 形体)
-function bmBuildDim(t) {
+function bmBuildDim0(t) {
   const ranges = t.face_triangle_ranges || [];
   if (!ranges.length && (t.points || []).length >= 2) {      // 点間距離の寸法(面ではなく 2 点を参照)
     const p = t.points;
@@ -1310,34 +1341,36 @@ function bmBuildDim(t) {
       if (!f || !bmIsPlanar([r], f)) continue;
       const h = pt.clone().sub(f.c).dot(f.n);
       const err = Math.abs(Math.abs(h) - (t.value_mm || 0));
-      if (err < bestErr) { bestErr = err; best = { f, h }; }
+      if (err < bestErr) { bestErr = err; best = { f, h, r }; }
     }
-    if (best) return { type: "span", kind: t.layer, d1: pt.clone().addScaledVector(best.f.n, -best.h), d2: pt };
+    if (best) return { type: "span", kind: t.layer, d1: pt.clone().addScaledVector(best.f.n, -best.h), d2: pt, r1: [best.r], r2: null, n: best.f.n.clone() };
   }
   if (t.layer === "Diameter" || t.layer === "Radius") {
-    const cyl = bmFitCylinder(ranges);
+    // 同じ寸法で複数の穴(パターン)を指すときは、最初の 1 個に当てはめる
+    const cyl = bmFitCylinder((t.anchor_triangle_ranges || []).length ? t.anchor_triangle_ranges : ranges);
     if (!cyl) return null;
-    cyl.kind = t.layer;
+    cyl.kind = t.layer; cyl.ranges = (t.anchor_triangle_ranges || []).length ? t.anchor_triangle_ranges : ranges;
     return cyl;
   }
   // 面ごと(範囲ごと)に重心・法線を求め、面積の大きい 2 面を使う
-  let faces = ranges.map(r => bmFaceStats([r])).filter(Boolean).sort((a, b) => b.area - a.area);
+  let faces = ranges.map(r => { const st = bmFaceStats([r]); if (st) st.range = r; return st; }).filter(Boolean).sort((a, b) => b.area - a.area);
   // 同じ位置・向きに重なった重複面(ブラウザ内解析では単精度で区別できない)は 1 つにまとめる
   faces = faces.filter((f, i) => !faces.slice(0, i).some(g =>
     g.c.distanceTo(f.c) < bmDiag() * 1e-4 && g.n.dot(f.n) > 0.999 && Math.abs(g.area - f.area) < g.area * 0.05));
   if (faces.length < 2) {
     // 1 つの平面だけが指定された寸法: 反対側の平行な面をモデルから探して幅(2 面間の距離)として扱う
     const opp = bmFindOppositePlane(ranges, faces[0], t.value_mm);
-    if (opp) return { type: "span", kind: t.layer, d1: opp.d1, d2: opp.d2 };
+    if (opp) return { type: "span", kind: t.layer, d1: opp.d1, d2: opp.d2, r1: opp.r1, r2: opp.r2, n: opp.n };
     if (faces[0] && bmIsPlanar(ranges, faces[0])) return null;   // 平面を円筒に当てはめない
     const cyl = bmFitCylinder(ranges);        // 1 形体(円筒)だけなら直径として扱う
-    if (cyl) { cyl.kind = "Diameter"; return cyl; }
+    if (cyl) { cyl.kind = "Diameter"; cyl.ranges = ranges; return cyl; }
     return null;
   }
   const f1 = faces[0], f2 = faces[1];
   const parallel = Math.abs(f1.n.dot(f2.n)) > 0.98;
-  let d1, d2;
+  let d1, d2, nPar = null;
   if (parallel) {
+    nPar = f1.n.clone();
     const n = f1.n.clone();
     const dist = f2.c.clone().sub(f1.c).dot(n);
     d1 = f1.c.clone();
@@ -1345,20 +1378,151 @@ function bmBuildDim(t) {
   } else {
     d1 = f1.c.clone(); d2 = f2.c.clone();
   }
-  return { type: "span", kind: t.layer, d1, d2 };
+  return { type: "span", kind: t.layer, d1, d2, r1: [f1.range], r2: [f2.range], n: nPar };
 }
 
-// 現在のカメラでの両端点(ワールド)。円筒の直径は、画面の水平方向に最も近い方向にとる
+// ---- 面上への拘束: 寸法線の端点・アンカーは、指示している面(三角形範囲)から離れない ----
+// 三角形 abc 上で点 p にいちばん近い点の重心座標(Ericson, Real-Time Collision Detection)。2D(z=0)にも使える
+function bmBary(px, py, pz, ax, ay, az, bx, by, bz, cx, cy, cz) {
+  const abx = bx - ax, aby = by - ay, abz = bz - az, acx = cx - ax, acy = cy - ay, acz = cz - az;
+  const apx = px - ax, apy = py - ay, apz = pz - az;
+  const d1 = abx * apx + aby * apy + abz * apz, d2 = acx * apx + acy * apy + acz * apz;
+  if (d1 <= 0 && d2 <= 0) return [1, 0, 0];
+  const bpx = px - bx, bpy = py - by, bpz = pz - bz;
+  const d3 = abx * bpx + aby * bpy + abz * bpz, d4 = acx * bpx + acy * bpy + acz * bpz;
+  if (d3 >= 0 && d4 <= d3) return [0, 1, 0];
+  const vc = d1 * d4 - d3 * d2;
+  if (vc <= 0 && d1 >= 0 && d3 <= 0) { const v = d1 / (d1 - d3); return [1 - v, v, 0]; }
+  const cpx = px - cx, cpy = py - cy, cpz = pz - cz;
+  const d5 = abx * cpx + aby * cpy + abz * cpz, d6 = acx * cpx + acy * cpy + acz * cpz;
+  if (d6 >= 0 && d5 <= d6) return [0, 0, 1];
+  const vb = d5 * d2 - d1 * d6;
+  if (vb <= 0 && d2 >= 0 && d6 <= 0) { const w = d2 / (d2 - d6); return [1 - w, 0, w]; }
+  const va = d3 * d6 - d5 * d4;
+  if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0) { const w = (d4 - d3) / ((d4 - d3) + (d5 - d6)); return [0, 1 - w, w]; }
+  const den = 1 / (va + vb + vc), v = vb * den, w = vc * den;
+  return [1 - v - w, v, w];
+}
+// 三角形範囲 ranges の上で、3D 点 p にいちばん近い点(と、その三角形の番号)
+function bmSnapToRanges(p, ranges) {
+  if (!bmPos || !ranges || !ranges.length) return null;
+  const P = bmPos, I = bmIdx;
+  let best = null, bd = Infinity;
+  for (const [a, b] of ranges) for (let t = a; t < b; t++) {
+    const i0 = I[t * 3] * 3, i1 = I[t * 3 + 1] * 3, i2 = I[t * 3 + 2] * 3;
+    const w = bmBary(p.x, p.y, p.z, P[i0], P[i0 + 1], P[i0 + 2], P[i1], P[i1 + 1], P[i1 + 2], P[i2], P[i2 + 1], P[i2 + 2]);
+    const qx = w[0] * P[i0] + w[1] * P[i1] + w[2] * P[i2], qy = w[0] * P[i0 + 1] + w[1] * P[i1 + 1] + w[2] * P[i2 + 1],
+          qz = w[0] * P[i0 + 2] + w[1] * P[i1 + 2] + w[2] * P[i2 + 2];
+    const d = (qx - p.x) ** 2 + (qy - p.y) ** 2 + (qz - p.z) ** 2;
+    if (d < bd) { bd = d; best = { pt: new THREE.Vector3(qx, qy, qz), tri: t }; if (d === 0) break; }
+  }
+  return best;
+}
+function bmTriNormal(t) {
+  const P = bmPos, I = bmIdx, i0 = I[t * 3] * 3, i1 = I[t * 3 + 1] * 3, i2 = I[t * 3 + 2] * 3;
+  const ux = P[i1] - P[i0], uy = P[i1 + 1] - P[i0 + 1], uz = P[i1 + 2] - P[i0 + 2];
+  const vx = P[i2] - P[i0], vy = P[i2 + 1] - P[i0 + 1], vz = P[i2 + 2] - P[i0 + 2];
+  return new THREE.Vector3(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx).normalize();
+}
+// 画面上の点(mx,my: ビュー内の px)にいちばん近い、ranges 上の 3D 点。重なっていれば手前を優先
+function bmPickOnRanges(mx, my, ranges) {
+  if (!bmPos || !ranges || !ranges.length) return null;
+  const W = viewerEl.clientWidth, H = viewerEl.clientHeight;
+  const P = bmPos, I = bmIdx, v = new THREE.Vector3();
+  const prj = (k) => { v.set(P[k], P[k + 1], P[k + 2]).project(camera); return [(v.x + 1) * 0.5 * W, (1 - v.y) * 0.5 * H, v.z]; };
+  let best = null, bd = Infinity, bz = Infinity;
+  for (const [a, b] of ranges) for (let t = a; t < b; t++) {
+    const i0 = I[t * 3] * 3, i1 = I[t * 3 + 1] * 3, i2 = I[t * 3 + 2] * 3;
+    const A = prj(i0), B = prj(i1), C = prj(i2);
+    const w = bmBary(mx, my, 0, A[0], A[1], 0, B[0], B[1], 0, C[0], C[1], 0);
+    const qx = w[0] * A[0] + w[1] * B[0] + w[2] * C[0], qy = w[0] * A[1] + w[1] * B[1] + w[2] * C[1];
+    let d = Math.hypot(qx - mx, qy - my); if (d < 1) d = 0;
+    const z = w[0] * A[2] + w[1] * B[2] + w[2] * C[2];
+    if (d < bd - 1e-9 || (d <= bd + 1e-9 && z < bz)) {
+      bd = d; bz = z;
+      best = { pt: new THREE.Vector3(w[0] * P[i0] + w[1] * P[i1] + w[2] * P[i2], w[0] * P[i0 + 1] + w[1] * P[i1 + 1] + w[2] * P[i2 + 1],
+                                     w[0] * P[i0 + 2] + w[1] * P[i1 + 2] + w[2] * P[i2 + 2]), tri: t };
+    }
+  }
+  return best;
+}
+// Width / Distance / Dimension: annotation anchor は、2 つの dimension line ends の中点を保つ
+function bmSyncDimAnchor(it) {
+  if (!it.dim || it.dim.type !== "span") return;
+  if (!it.anchor) it.anchor = new THREE.Vector3();
+  it.anchor.copy(it.dim.d1).add(it.dim.d2).multiplyScalar(0.5);
+}
+// 既定のアンカーどうしが近い(5 mm 未満)ときは、指示している面から離れない範囲で、5 mm 以上離す。
+// 面上の候補点(it.cands)の中から、元の位置にいちばん近く、すでに置いたアンカーから 5 mm 以上離れた点を選ぶ。
+// 寸法線端点の中点・円筒の中心線上のアンカーは位置が決まっているので動かさず、他のアンカーを避ける。
+function bmSpreadAnchors() {
+  const D = 5 / (bmUnitToMm || 1);
+  const placed = [];
+  const movable = [];
+  for (const it of bmItems) {
+    if (!it.anchor) continue;
+    bmSyncDimAnchor(it);
+    if (it.dim && it.dim.type === "span") placed.push(it.anchor); else movable.push(it);
+  }
+  for (const it of movable) {
+    const minD = (p) => placed.reduce((m, q) => Math.min(m, p.distanceTo(q)), Infinity);
+    if (minD(it.anchor) >= D) { placed.push(it.anchor); continue; }
+    let best = null, bestScore = -Infinity, bestT = 0;
+    // 直径・半径(同心の R1 と R2 など): 中心線に沿って、円筒の長さの範囲で動かす(寸法線端点も一緒に動かす)
+    const axisCands = [];
+    if (it.axisAnchor && it.dim.half > 0) {
+      for (let k = -12; k <= 12; k++) { const t = it.dim.half * k / 12; axisCands.push({ t, p: it.dim.center.clone().addScaledVector(it.dim.axis, t) }); }
+    }
+    for (const ac of axisCands) {
+      const md = minD(ac.p);
+      const score = md >= D ? 1e9 - ac.p.distanceTo(it.anchor) : md;
+      if (score > bestScore) { bestScore = score; best = ac.p; bestT = ac.t; }
+    }
+    for (const c of (it.axisAnchor ? [] : (it.cands || []))) {
+      const md = minD(c);
+      // 5 mm 以上離れていれば、元の位置に近いほど良い。離れられなければ、いちばん離れるものを選ぶ
+      const score = md >= D ? 1e9 - c.distanceTo(it.anchor) : md;
+      if (score > bestScore) { bestScore = score; best = c; }
+    }
+    if (best && minD(best) > minD(it.anchor)) {
+      it.anchor.copy(best);
+      if (it.axisAnchor) { it.dim.shift = bestT; it.dim._endsKey = null; }
+      const sn = it.aRanges ? bmSnapToRanges(best, it.aRanges) : null;
+      if (sn && it.normal) { const n = bmTriNormal(sn.tri); if (n.dot(it.normal) < 0) n.negate(); it.normal.copy(n); }
+    }
+    placed.push(it.anchor);
+  }
+  bmDirty = true; bmLastSig = "";
+}
+function bmBuildDim(t) {
+  const dim = bmBuildDim0(t);
+  if (dim && dim.type === "span") {       // 初期位置が面から外れていれば、面上のいちばん近い点へ
+    if (dim.r1) { const s = bmSnapToRanges(dim.d1, dim.r1); if (s) dim.d1 = s.pt; }
+    if (dim.r2) { const s = bmSnapToRanges(dim.d2, dim.r2); if (s) dim.d2 = s.pt; }
+  }
+  return dim;
+}
+
+// 現在のカメラでの両端点(ワールド)。円筒の直径は、画面の水平方向に最も近い方向にとる(ドラッグ後は固定)
 function bmDimEnds(dim) {
   if (dim.type === "span") return [dim.d1, dim.d2];
   const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0);
   const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1);
-  let u = right.clone().addScaledVector(dim.axis, -right.dot(dim.axis));
-  if (u.length() < 1e-3) u = up.clone().addScaledVector(dim.axis, -up.dot(dim.axis));
-  u.normalize();
-  const p1 = dim.center.clone().addScaledVector(u, -dim.radius);
-  const p2 = dim.center.clone().addScaledVector(u, dim.radius);
-  return dim.kind === "Radius" ? [p2] : [p1, p2];
+  let u;
+  if (dim.fixedU) u = dim.fixedU;
+  else {
+    u = right.clone().addScaledVector(dim.axis, -right.dot(dim.axis));
+    if (u.length() < 1e-3) u = up.clone().addScaledVector(dim.axis, -up.dot(dim.axis));
+    u.normalize();
+  }
+  const key = [u.x, u.y, u.z, dim.shift || 0].map(x => x.toFixed(4)).join();
+  if (dim._endsKey !== key) {              // 円筒面上(範囲内)へ拘束。向きが変わったときだけ計算し直す
+    const c = dim.center.clone().addScaledVector(dim.axis, dim.shift || 0);
+    const onFace = (p) => { const s = dim.ranges ? bmSnapToRanges(p, dim.ranges) : null; return s ? s.pt : p; };
+    dim._ends = [onFace(c.clone().addScaledVector(u, -dim.radius)), onFace(c.clone().addScaledVector(u, dim.radius))];
+    dim._endsKey = key;
+  }
+  return dim.kind === "Radius" ? [dim._ends[1]] : dim._ends;
 }
 
 // 外向きの矢印(先端が端点、本体は外側)と、外側へ stubLen px の同軸線を SVG に描く
@@ -1372,7 +1536,9 @@ function bmDrawDimEnd(pt, dirOut, stubLen, col, w, head) {
   bmSvg.appendChild(bmSvgEl("polygon", { points: poly, fill: col }));
   const ex = pt[0] + ux * (head + stubLen), ey = pt[1] + uy * (head + stubLen);
   bmSvg.appendChild(bmSvgEl("line", { x1: bx, y1: by, x2: ex, y2: ey, stroke: col, "stroke-width": w }));
+  if (bmCurSegs) bmCurSegs.push([pt[0], pt[1], ex, ey]);
 }
+let bmCurSegs = null;
 
 // ---- 可視判定 ----
 function bmViewDir() {
@@ -1554,7 +1720,7 @@ function buildMirror(axis, sign) {
 function bmPlaceMirrorMarker(g) {
   const m = g.userData.marker, b = g.userData.markerBase;
   if (!m || !b) return;
-  const side = bmFcfUnits;
+  const side = bmFcfUnits * 0.5;   // 公差記入枠の高さの半分
   m.scale.setScalar(side);
   m.position.copy(b.c).addScaledVector(b.right, b.halfU - side * 0.75).addScaledVector(b.up, b.halfV - side * 0.75);
   m.updateMatrixWorld(true);
@@ -1564,7 +1730,7 @@ function bmApplyMirrorSelection() {
   for (const ax of Object.keys(bmMirrors)) {
     const g = bmMirrors[ax].group, on = bmMirrorSel === Number(ax);
     if (g.userData.frameMat) g.userData.frameMat.color.set(on ? 0x0077ff : 0x9aa0aa);
-    if (g.userData.tint) g.userData.tint.visible = on;
+    if (g.userData.tint) g.userData.tint.visible = false;   // 選択のハイライトは縁(枠線の色)だけ。面全体は塗らない
   }
 }
 function bmUpdateMirrors(viewDir) {
@@ -1591,6 +1757,36 @@ function bmCrossings(order, rowY, shoulderX, anchors) {
     }
   }
   return n;
+}
+// ハンガリー法(Kuhn-Munkres)。正方行列 cost の各行を列へ割り当て、総コスト最小の列番号を行ごとに返す
+function bmHungarian(cost) {
+  const n = cost.length;
+  const u = new Array(n + 1).fill(0), v = new Array(n + 1).fill(0);
+  const p = new Array(n + 1).fill(0), way = new Array(n + 1).fill(0);
+  for (let i = 1; i <= n; i++) {
+    p[0] = i;
+    let j0 = 0;
+    const minv = new Array(n + 1).fill(Infinity), used = new Array(n + 1).fill(false);
+    do {
+      used[j0] = true;
+      const i0 = p[j0];
+      let delta = Infinity, j1 = 0;
+      for (let j = 1; j <= n; j++) {
+        if (used[j]) continue;
+        const cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
+        if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
+        if (minv[j] < delta) { delta = minv[j]; j1 = j; }
+      }
+      for (let j = 0; j <= n; j++) {
+        if (used[j]) { u[p[j]] += delta; v[j] -= delta; } else minv[j] -= delta;
+      }
+      j0 = j1;
+    } while (p[j0] !== 0);
+    do { const j1 = way[j0]; p[j0] = p[j1]; j0 = j1; } while (j0);
+  }
+  const assigned = new Array(n);
+  for (let j = 1; j <= n; j++) assigned[p[j] - 1] = j - 1;
+  return assigned;
 }
 function bmSegCross(a, b) {
   const d = (p, q, r) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
@@ -1646,6 +1842,28 @@ function bmApplyDatumHighlight() {
     });
   }
 }
+// ---- 配置が変わったとき、公差記入枠と引出線をなめらかに移動させる(3DA B&M Viewer と同じ指数平滑) ----
+const BM_ANIM_TAU = 0.16;      // 時定数(秒)
+const BM_ANIM_SNAP_PX = 1.0;   // これ以内に近づいたら目標へ置く
+const BM_ANIM_MAX_STEP = 0.1;  // 1 回の更新で進める時間の上限(秒)
+let bmAnimOn = true;
+const bmAnimPos = new Map();   // 項目 -> 表示中の {x, y}
+let bmAnimPrev = null, bmAnimDt = 0, bmAnimActive = false;
+function bmAnimReset() { bmAnimPos.clear(); bmAnimPrev = null; bmAnimActive = false; }
+function bmAnimBegin() {
+  const now = performance.now() / 1000;
+  bmAnimDt = bmAnimPrev === null ? 0 : Math.max(0, now - bmAnimPrev);
+  bmAnimPrev = now; bmAnimActive = false;
+}
+function bmAnimEase(it, tx, ty) {
+  const prev = bmAnimPos.get(it);
+  if (!bmAnimOn || !prev) { bmAnimPos.set(it, { x: tx, y: ty }); return [tx, ty]; }
+  const k = 1 - Math.exp(-Math.min(bmAnimDt, BM_ANIM_MAX_STEP) / BM_ANIM_TAU);
+  let x = prev.x + (tx - prev.x) * k, y = prev.y + (ty - prev.y) * k;
+  if (Math.hypot(tx - x, ty - y) <= BM_ANIM_SNAP_PX) { x = tx; y = ty; } else bmAnimActive = true;
+  prev.x = x; prev.y = y;
+  return [x, y];
+}
 function bmLayout() {
   if (annotationStyle !== "balloon" || !currentMesh || !currentMeshData || !lastPmi) {
     bmLayerEl.style.display = "none";
@@ -1653,6 +1871,7 @@ function bmLayout() {
     return;
   }
   bmLayerEl.style.display = "block";
+  bmAnimBegin();
   bmApplyDatumHighlight();
   const W = viewerEl.clientWidth, H = viewerEl.clientHeight;
   if (!W || !H) return;
@@ -1664,8 +1883,8 @@ function bmLayout() {
   bmUpdateMirrors(viewDir);
 
   // FCF の高さ(モデル単位)を画面 px に換算。矢じり・黒丸・同軸線は、これに比例させる(スライダーは作らない)
-  const pxPerUnit = H / (frustumSize / camera.zoom);
-  const fcfPx = Math.max(6, bmFcfUnits * pxPerUnit);
+  // 注記の大きさは FCF Height(mm)だけで決まる。ズームにもモデルの大きさにも依存しない(既定 5 mm = 自然サイズ 22 px)
+  const fcfPx = Math.max(6, bmFcfUnits * bmUnitToMm / 5 * 22);
   const headPx = fcfPx * 0.5;          // _ARROW_SIZE_DEFAULT_FCF_RATIO
   const dotPx = fcfPx * 0.2;           // _DOT_SIZE_DEFAULT_FCF_RATIO
   bmScaleK = fcfPx / 22;
@@ -1674,6 +1893,7 @@ function bmLayout() {
   const tols = lastPmi.geometric_tolerances || [];
 
   const visible = [];       // {it, scr, mirror: axis|null}
+  for (const it0 of bmItems) it0.mirrorInfo = null;
   const parked = [];
   for (const it of bmItems) {
     // チェックを外した公差の枠は取り除く。全部外れていれば塊ごと隠す。変化したら測り直す。
@@ -1690,8 +1910,11 @@ function bmLayout() {
       // 寸法を持つ塊は、遮蔽されていても引出線・矢印・同軸線を常に描く(隠さない)
       const ends = bmDimEnds(it.dim).map(pw => ({ w: pw, s: toScr(pw) }));
       const mid = ends.reduce((acc, e) => [acc[0] + e.s[0] / ends.length, acc[1] + e.s[1] / ends.length], [0, 0]);
-      if (mid[0] >= -40 && mid[0] <= W + 40 && mid[1] >= -40 && mid[1] <= H + 40) {
-        visible.push({ it, scr: mid, mirror: null, ends });
+      // 引出線の始点は annotation anchor と一致させる(アンカーが無ければ両端点の中点)
+      bmSyncDimAnchor(it);
+      const attach = it.anchor ? toScr(it.anchor) : mid;
+      if (attach[0] >= -40 && attach[0] <= W + 40 && attach[1] >= -40 && attach[1] <= H + 40) {
+        visible.push({ it, scr: attach, mirror: null, ends });
         continue;
       }
     }
@@ -1727,6 +1950,7 @@ function bmLayout() {
     }
     if (axisFound) {
       const sp = mirrorSurfacePoint(it.anchor, axisFound[0], axisFound[1]);
+      it.mirrorInfo = { axis: axisFound[0], sign: axisFound[1] };
       visible.push({ it, scr: toScr(sp), mirror: axisFound[0] });
     } else {
       parked.push(it);
@@ -1737,6 +1961,7 @@ function bmLayout() {
   const pivots = visible.filter(v => v.mirror === null);
   const base = pivots.length ? pivots : visible;
   bmSvg.innerHTML = "";
+  for (const it0 of bmItems) it0.segs = null;
   bmSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   let avgX = W / 2;
   if (base.length) avgX = base.reduce((s2, v) => s2 + v.scr[0], 0) / base.length;   // 左右分割の基準(重心)
@@ -1762,35 +1987,67 @@ function bmLayout() {
     const shoulderEnd = side === "left" ? edgeShared + shoulder : edgeShared - shoulder;
     const anchors = {};
     list.forEach((v, k) => { anchors[k] = v.scr; });
-    // 初期順 = アンカーの y 順 -> 隣接入れ替えで交差を減らす
-    let order = list.map((_, k) => k).sort((a, c) => anchors[a][1] - anchors[c][1]);
-    const slotY = () => {
-      const ys = order.map(k => anchors[k][1]).sort((a, c) => a - c);
-      return ys;
+    // 引出線(肩の先端 -> アンカー)が水平線に対して BM_MIN_LEADER_DEG 以上の角度を保つよう、行の希望位置をアンカーから縦にずらす
+    const fullTan = Math.tan(BM_MIN_LEADER_DEG * Math.PI / 180);
+    let minTan = fullTan;                      // 交差が解消できないときは 0 にして角度の確保を放棄する
+    // 並び order に対して、実際に配置される行の y を返す(最終配置と同じ計算。交差の判定・探索もこれで行う)
+    const computeYs = (ord) => {
+      const desired = ord.map((k, row) => {
+        const ay = anchors[k][1], dx = Math.abs(anchors[k][0] - shoulderEnd);
+        const need = dx * minTan;
+        return row < ord.length / 2 ? ay - need : ay + need;   // 上半分の行は上へ、下半分は下へ(扇状に開く)
+      });
+      const ab = ord.map(k => list[k].it.scy);                                  // 取り付け位置(一番上の枠の中央)より上
+      const be = ord.map(k => list[k].it.sh - list[k].it.scy);                  // それより下(積んだ枠・データム記号を含む)
+      let y = bmPava(desired, ab, be, gap);
+      const lastBottom = y[y.length - 1] + be[be.length - 1];                   // 画面内に収める
+      if (lastBottom > bottom) y = y.map(v2 => v2 - (lastBottom - bottom));
+      if (y[0] - ab[0] < top) { const d = top - (y[0] - ab[0]); y = y.map(v2 => v2 + d); }
+      return y;
     };
-    for (let pass = 0; pass < 24; pass++) {
-      let improved = false;
-      for (let k = 0; k < order.length - 1; k++) {
-        const ys = slotY();
-        const before = bmCrossings(order, ys, shoulderEnd, anchors);
-        const swapped = order.slice(); [swapped[k], swapped[k + 1]] = [swapped[k + 1], swapped[k]];
-        const after = bmCrossings(swapped, ys, shoulderEnd, anchors);
-        if (after < before) { order = swapped; improved = true; }
+    const crossCount = (ord) => bmCrossings(ord, computeYs(ord), shoulderEnd, anchors);
+    const yOrder = list.map((_, k) => k).sort((a, c) => anchors[a][1] - anchors[c][1]);
+    // 並びを探す: ハンガリー法 -> 2 本ずつの入れ替え。戻り値は {order, cross}
+    const searchOrder = () => {
+      let ord = yOrder;
+      if (yOrder.length > 1) {
+        // ハンガリー法: 行(スロット)の位置を固定とみなし、引出線の斜め部分の長さの合計が最小になるようアンカーを行へ割り当てる
+        const slots = computeYs(yOrder);
+        const cost = yOrder.map(k => slots.map(sy => Math.hypot(shoulderEnd - anchors[k][0], sy - anchors[k][1])));
+        const assigned = bmHungarian(cost);
+        const hOrder = new Array(yOrder.length);
+        assigned.forEach((slot, i) => { hOrder[slot] = yOrder[i]; });
+        if (crossCount(hOrder) <= crossCount(yOrder)) ord = hOrder;
       }
-      if (!improved) break;
+      // 行の高さの違いなどで実際の行位置がスロットとずれて交差が残るとき: 実際の配置で数えながら 2 本ずつ入れ替えて解消する
+      let cur = crossCount(ord);
+      for (let pass = 0; pass < 12 && cur > 0; pass++) {
+        let improved = false;
+        for (let i = 0; i < ord.length - 1 && cur > 0; i++) {
+          for (let j = i + 1; j < ord.length && cur > 0; j++) {
+            const t = ord.slice(); [t[i], t[j]] = [t[j], t[i]];
+            const c = crossCount(t);
+            if (c < cur) { ord = t; cur = c; improved = true; }
+          }
+        }
+        if (!improved) break;
+      }
+      return { order: ord, cross: cur };
+    };
+    let found = searchOrder();
+    if (found.cross > 0 && fullTan > 0) {
+      // 10° を確保したままでは交差が残る: 角度の確保を放棄して、交差の回避を優先する
+      minTan = 0;
+      const relaxed = searchOrder();
+      if (relaxed.cross < found.cross) found = relaxed; else minTan = fullTan;
     }
-    const desired = order.map(k => anchors[k][1]);
-    const above = order.map(k => list[k].it.scy);                                  // 取り付け位置(一番上の枠の中央)より上
-    const below = order.map(k => list[k].it.sh - list[k].it.scy);                  // それより下(積んだ枠・データム記号を含む)
-    let ys = bmPava(desired, above, below, gap);
-    // 画面内に収める
-    const lastBottom = ys[ys.length - 1] + below[below.length - 1];
-    if (lastBottom > bottom) ys = ys.map(y => y - (lastBottom - bottom));
-    if (ys[0] - above[0] < top) { const d = top - (ys[0] - above[0]); ys = ys.map(y => y + d); }
+    const order = found.order;
+    const ys = computeYs(order);
     order.forEach((k, row) => {
       const v = list[k], it = v.it;
-      const y = ys[row];
-      const x = side === "left" ? edgeShared - it.sfr : edgeShared - it.sfl;   // ラベルの左端
+      const x0 = side === "left" ? edgeShared - it.sfr : edgeShared - it.sfl;   // ラベルの左端(目標)
+      const [x, y] = bmAnimEase(it, x0, ys[row]);
+      const dxo = x - x0;                        // 移動中のずれ(肩・水平線も一緒に動かす)
       it.el.style.left = x + "px";
       it.el.style.top = (y - it.scy) + "px";   // y = 一番上の公差記入枠の中央(引出線の取り付け位置)
       it.el.style.visibility = "visible";
@@ -1801,9 +2058,10 @@ function bmLayout() {
       it.members.forEach(m => m.row.classList.toggle("cur", m.idx === selectedTolIndex && it.idxs.length > 1));
       it.el.classList.toggle("sel", sel);
       const col = sel ? "#0077ff" : it.color;
-      const edgeX = edgeShared;                    // 水平線は、公差記入枠の端にぴったりつなぐ
-      const poly = `${edgeX.toFixed(1)},${y.toFixed(1)} ${shoulderEnd.toFixed(1)},${y.toFixed(1)} ${v.scr[0].toFixed(1)},${v.scr[1].toFixed(1)}`;
+      const edgeX = edgeShared + dxo;              // 水平線は、公差記入枠の端にぴったりつなぐ
+      const poly = `${edgeX.toFixed(1)},${y.toFixed(1)} ${(shoulderEnd + dxo).toFixed(1)},${y.toFixed(1)} ${v.scr[0].toFixed(1)},${v.scr[1].toFixed(1)}`;
       bmSvg.appendChild(bmSvgEl("polyline", { points: poly, fill: "none", stroke: col, "stroke-width": sel ? 2 : 1.2 }));
+      bmCurSegs = it.segs = [[edgeX, y, shoulderEnd + dxo, y], [shoulderEnd + dxo, y, v.scr[0], v.scr[1]]];   // クリック判定用(引出線)
       if (v.ends) {
         // 寸法線は描かない。端点ごとに外向きの矢印と、公差記入枠の高さぶんの同軸線を描く。
         const stub = fcfPx;                         // 同軸線の長さ = 公差記入枠の高さ
@@ -1823,14 +2081,12 @@ function bmLayout() {
       } else {
         bmSvg.appendChild(bmSvgEl("circle", { cx: v.scr[0], cy: v.scr[1], r: Math.max(1.5, dotPx / 2) * (sel ? 1.3 : 1), fill: col }));
       }
-      if (v.mirror !== null) {
-        bmSvg.appendChild(bmSvgEl("circle", { cx: v.scr[0], cy: v.scr[1], r: 7, fill: "none", stroke: col, "stroke-width": 1, "stroke-dasharray": "2 2" }));
-      }
       placed.add(it);
     });
   };
   layoutSide(left, "left");
   layoutSide(right, "right");
+  if (bmAnimActive) bmDirty = true;            // まだ移動中: 次のフレームでも続ける
 
   // 駐車: 左下から上へ、枠だけを積む(引出線・点なし)。通常配置の行とは重ならない位置を選ぶ。
   const occupied = { left: [], right: [] };
@@ -1874,7 +2130,7 @@ function bmLayout() {
   }
 }
 
-// ---- FCF Height (モデル単位。3D 空間で固定 = ズームすると画面上の大きさも変わる) ----
+// ---- FCF Height (mm。画面上の大きさはこれだけで決まり、ズームやモデルの大きさに依存しない) ----
 let bmFcfUnits = 1;          // モデル単位での FCF の高さ
 let bmScaleK = 1;            // 自然サイズ(22px)に対する表示倍率
 let bmUnitToMm = 1;          // モデル単位 -> mm
@@ -1891,18 +2147,17 @@ const fcfNum = document.getElementById("fcfNum");
 const bmControlsEl = document.getElementById("bmControls");
 let fcfDefaultUnits = 1;
 function bmSetFcfUnits(u, fromUser) {
-  bmFcfUnits = Math.max(fcfDefaultUnits * 0.2, Math.min(fcfDefaultUnits * 6, u));
-  const mm = bmFcfUnits * bmUnitToMm;
-  fcfNum.value = mm.toFixed(2);
-  fcfSlider.value = String(Math.round(((bmFcfUnits - fcfDefaultUnits * 0.2) / (fcfDefaultUnits * 5.8)) * 1000));
+  // FCF Height は mm で 0.5 刻み(1〜30 mm)
+  const mm = Math.max(1, Math.min(30, Math.round(u * bmUnitToMm / 0.5) * 0.5));
+  bmFcfUnits = mm / bmUnitToMm;
+  fcfNum.value = mm.toFixed(1);
+  fcfSlider.value = String(mm);
   if (fromUser) { try { localStorage.setItem("fcfHeightMm", String(mm)); } catch (e) {} }
   bmDirty = true; bmLastSig = "";
 }
 function bmInitFcf(unitFactor) {
-  const b = currentMeshData.bbox;
-  const diag = Math.hypot(b.max[0] - b.min[0], b.max[1] - b.min[1], b.max[2] - b.min[2]) || 1;
   bmUnitToMm = unitFactor && unitFactor > 0 ? unitFactor : 1;
-  fcfDefaultUnits = diag * 0.02;                 // 3DA B&M Viewer の既定: bbox 対角の 2%
+  fcfDefaultUnits = 5 / bmUnitToMm;              // 既定 5 mm
   let u = fcfDefaultUnits;
   try {                                           // 前回選んだ高さ(mm)を引き継ぐ
     const saved = parseFloat(localStorage.getItem("fcfHeightMm"));
@@ -1911,8 +2166,7 @@ function bmInitFcf(unitFactor) {
   bmSetFcfUnits(u, false);
 }
 fcfSlider.addEventListener("input", () => {
-  const t = Number(fcfSlider.value) / 1000;
-  bmSetFcfUnits(fcfDefaultUnits * 0.2 + t * fcfDefaultUnits * 5.8, true);
+  bmSetFcfUnits(Number(fcfSlider.value) / bmUnitToMm, true);
 });
 fcfNum.addEventListener("change", () => {
   const mm = parseFloat(fcfNum.value);
@@ -1934,6 +2188,7 @@ function bmTick(now) {
 
 function setAnnotationStyle(style) {
   annotationStyle = style;
+  bmAnimReset();                               // スタイル切替では飛び込ませず、その場に置く
   document.querySelectorAll("#styleMenu [data-style]").forEach(el =>
     el.classList.toggle("checked", el.dataset.style === style));
   bmControlsEl.style.display = style === "balloon" ? "flex" : "none";
@@ -1946,18 +2201,193 @@ function setAnnotationStyle(style) {
     const keep = selectedTolIndex;
     if (keep !== null) { selectedTolIndex = null; selectTolerance(keep, tols); }
   }
-  if (style === "balloon" && lastPmi && bmItems.length === 0 && currentMeshData) bmSetup(lastPmi);
+  if (style === "balloon" && lastPmi && bmItems.length === 0 && currentMeshData) { bmSetup(lastPmi); bmSpreadAnchors(); }
   bmDirty = true; bmLastSig = "";
   bmLayout();
 }
 document.querySelectorAll("#styleMenu [data-style]").forEach(el =>
-  el.addEventListener("click", () => setAnnotationStyle(el.dataset.style)));
+  el.addEventListener("click", () => { if (!el.classList.contains("disabled")) setAnnotationStyle(el.dataset.style); }));
+// ファイル種別と PMI の有無から、既定の注記スタイルと選択可否を決める
+function applyDefaultAnnotationStyle(isQif, pmi) {
+  const hasTol = (pmi.geometric_tolerances || []).length > 0;
+  const hasGraphic = (pmi.tessellated || []).some(g => (g.polylines && g.polylines.length) || g.glyph);
+  document.querySelector('#styleMenu [data-style="original"]').classList.toggle("disabled", isQif);
+  let style = "none";
+  if (isQif) { if (hasTol) style = "balloon"; }
+  else if (hasGraphic) style = "original";
+  setAnnotationStyle(style);
+}
 document.getElementById("miAxes").addEventListener("click", () => {
   const el = document.getElementById("miAxes");
   el.classList.toggle("checked");
   originAxesOn = el.classList.contains("checked");
   if (originAxes) originAxes.visible = originAxesOn;
 });
+
+// ---- Show Annotation Anchors / Dimension Line Ends (3DA B&M Viewer の Debug 点オーバーレイと同じ定義) ----
+// アンカー = 各特性(塊)の面上の点 (bmItems[].anchor, 赤の四角)。寸法線の端点 = bmDimEnds() (緑の丸)。
+// 注釈スタイルに依存せず、隠れていても描く。チェックを外した特性の点は出さない。
+var dbgAnchorsOn = false, dbgDimEndsOn = false;
+// 点は、中を白で塗りつぶし、枠線だけを色(通常: 赤/緑、ハイライト: 水色)にする
+function dbgDotTex(css, round) {
+  const c = document.createElement("canvas"); c.width = c.height = 32;
+  const g = c.getContext("2d"); g.fillStyle = "#fff"; g.strokeStyle = css; g.lineWidth = 7;
+  if (round) { g.beginPath(); g.arc(16, 16, 12.5, 0, 6.2832); g.fill(); g.stroke(); }
+  else { g.fillRect(3.5, 3.5, 25, 25); g.strokeRect(3.5, 3.5, 25, 25); }
+  return new THREE.CanvasTexture(c);
+}
+const dbgPtMat = (css, round, size) => new THREE.PointsMaterial({ color: 0xffffff, size, sizeAttenuation: false, depthTest: false,
+  transparent: true, map: dbgDotTex(css, round), alphaTest: 0.5 });
+var dbgAnchorPts = new THREE.Points(new THREE.BufferGeometry(), dbgPtMat("#ff0000", false, 5));
+var dbgDimEndPts = new THREE.Points(new THREE.BufferGeometry(), dbgPtMat("#1a9926", true, 8));
+// ハイライト中の注記(選択した特性)のアンカー・寸法線端点は、メニューの ON/OFF に関係なく、ハイライト色で必ず表示する
+var dbgSelAnchorPts = new THREE.Points(new THREE.BufferGeometry(), dbgPtMat("#0077ff", false, 6));
+var dbgSelDimEndPts = new THREE.Points(new THREE.BufferGeometry(), dbgPtMat("#0077ff", true, 9));
+dbgAnchorPts.renderOrder = 1001; dbgDimEndPts.renderOrder = 1002; dbgSelAnchorPts.renderOrder = 1003; dbgSelDimEndPts.renderOrder = 1004;
+dbgAnchorPts.frustumCulled = dbgDimEndPts.frustumCulled = dbgSelAnchorPts.frustumCulled = dbgSelDimEndPts.frustumCulled = false;
+dbgAnchorPts.visible = dbgDimEndPts.visible = dbgSelAnchorPts.visible = dbgSelDimEndPts.visible = false;
+scene.add(dbgAnchorPts); scene.add(dbgDimEndPts); scene.add(dbgSelAnchorPts); scene.add(dbgSelDimEndPts);
+// ミラーに映っているアンカーは、ミラー上の点(表示されている点)を表示・ドラッグの対象にする
+const dbgAnchorPos = (it) => (it.mirrorInfo && annotationStyle === "balloon") ? mirrorSurfacePoint(it.anchor, it.mirrorInfo.axis, it.mirrorInfo.sign) : it.anchor;
+const dbgIsSel = (it) => selectedTolIndex !== null && it.idxs.includes(selectedTolIndex);
+function dbgSetPoints(obj, vs) {
+  obj.geometry.setAttribute("position", new THREE.Float32BufferAttribute(vs.flatMap(v => [v.x, v.y, v.z]), 3));
+  obj.visible = vs.length > 0;
+}
+function dbgUpdate() {
+  if (!dbgAnchorPts) return;
+  const items = (currentMeshData && lastPmi) ? bmItems : [];
+  const sel = items.filter(dbgIsSel);
+  if (!dbgAnchorsOn && !dbgDimEndsOn && !sel.length) {
+    dbgAnchorPts.visible = dbgDimEndPts.visible = dbgSelAnchorPts.visible = dbgSelDimEndPts.visible = false; return;
+  }
+  camera.updateMatrixWorld(true);
+  items.forEach(bmSyncDimAnchor);
+  const anchorOf = (it) => it.anchor && !it.members.every(m => hiddenTol.has(m.idx));
+  const dimOf = (it) => it.dim && !hiddenTol.has(it.dimIdx);
+  if (dbgAnchorsOn) dbgSetPoints(dbgAnchorPts, items.filter(it => anchorOf(it) && !dbgIsSel(it)).map(dbgAnchorPos));
+  else dbgAnchorPts.visible = false;
+  if (dbgDimEndsOn) dbgSetPoints(dbgDimEndPts, items.filter(it => dimOf(it) && !dbgIsSel(it)).flatMap(it => bmDimEnds(it.dim)));
+  else dbgDimEndPts.visible = false;
+  dbgSetPoints(dbgSelAnchorPts, sel.filter(it => it.anchor).map(dbgAnchorPos));
+  dbgSetPoints(dbgSelDimEndPts, sel.filter(it => it.dim).flatMap(it => bmDimEnds(it.dim)));
+}
+[["miDbgAnchors", v => { dbgAnchorsOn = v; }], ["miDbgDimEnds", v => { dbgDimEndsOn = v; }]].forEach(([id, set]) => {
+  const el = document.getElementById(id);
+  el.addEventListener("click", () => { el.classList.toggle("checked"); set(el.classList.contains("checked")); dbgUpdate(); });
+});
+
+// ---- アンカー / 寸法線端点のドラッグ(指示している面の上だけを動く) ----
+let dbgDrag = null;
+function dbgPickHandle(mx, my) {
+  const W = viewerEl.clientWidth, H = viewerEl.clientHeight, v = new THREE.Vector3();
+  const scr = (p) => { v.copy(p).project(camera); return [(v.x + 1) * 0.5 * W, (1 - v.y) * 0.5 * H]; };
+  let best = null, bd = 10;
+  camera.updateMatrixWorld(true);
+  for (const it of bmItems) {
+    if (!it.dim || hiddenTol.has(it.dimIdx) || !(dbgDimEndsOn || dbgIsSel(it))) continue;
+    bmDimEnds(it.dim).forEach((p, k) => {
+      const ranges = it.dim.type === "span" ? (k === 0 ? it.dim.r1 : it.dim.r2) : it.dim.ranges;
+      if (!ranges) return;
+      const s = scr(p), d = Math.hypot(s[0] - mx, s[1] - my);
+      if (d < bd) { bd = d; best = { kind: "end", it, k, ranges }; }
+    });
+  }
+  if (best) return best;
+  bd = 10;
+  for (const it of bmItems) {
+    if (!(dbgAnchorsOn || dbgIsSel(it))) continue;
+    if (!it.anchor || !it.aRanges || (it.dim && it.dim.type === "span") || it.members.every(m => hiddenTol.has(m.idx))) continue;   // 幅・距離のアンカーは端点から決まるのでドラッグしない
+    const s = scr(dbgAnchorPos(it)), d = Math.hypot(s[0] - mx, s[1] - my);
+    if (d < bd) { bd = d; best = { kind: "anchor", it, ranges: it.aRanges }; }
+  }
+  return best;
+}
+// 中心線上のアンカー: マウスに最も近い(画面上で)中心線上の点へ。円筒の軸方向の長さの範囲内
+function dbgDragAxisAnchor(it, mx, my) {
+  const dim = it.dim, W = viewerEl.clientWidth, H = viewerEl.clientHeight, v = new THREE.Vector3();
+  const scr = (p) => { v.copy(p).project(camera); return [(v.x + 1) * 0.5 * W, (1 - v.y) * 0.5 * H]; };
+  const s0 = scr(dim.center), s1 = scr(dim.center.clone().add(dim.axis));
+  const dx = s1[0] - s0[0], dy = s1[1] - s0[1], l2 = dx * dx + dy * dy;
+  if (l2 < 1e-9) return;                      // 軸が視線方向と平行 -> 動かせない
+  const t = ((mx - s0[0]) * dx + (my - s0[1]) * dy) / l2;
+  const h = dim.half || Infinity;
+  it.anchor.copy(dim.center).addScaledVector(dim.axis, Math.max(-h, Math.min(h, t)));
+}
+function dbgApplyDrag(h, pk) {
+  const it = h.it, p = pk.pt;
+  if (h.kind === "anchor") {
+    it.anchor.copy(p);
+    const n = bmTriNormal(pk.tri);
+    if (it.normal) { if (n.dot(it.normal) < 0) n.negate(); it.normal.copy(n); }
+    return;
+  }
+  const dim = it.dim;
+  if (dim.type === "span") {
+    const mine = h.k === 0 ? "d1" : "d2", other = h.k === 0 ? "d2" : "d1", oR = h.k === 0 ? dim.r2 : dim.r1;
+    dim[mine] = p.clone();
+    if (dim.n) {                       // 向かい合う平行な面: 寸法線が面に垂直のままになるよう、反対側の端点も連動
+      let q = p.clone().addScaledVector(dim.n, dim[other].clone().sub(p).dot(dim.n));
+      if (oR) { const s = bmSnapToRanges(q, oR); if (s) q = s.pt; }
+      dim[other] = q;
+    }
+  } else {                             // 円筒: 掴んだ点の方向・軸方向位置を記憶(反対側の端点は中心対称)
+    const v = p.clone().sub(dim.center), sh = v.dot(dim.axis);
+    v.addScaledVector(dim.axis, -sh);
+    if (v.length() < 1e-9) return;
+    v.normalize();
+    const sgn = (dim.kind === "Radius" || h.k === 1) ? 1 : -1;
+    dim.fixedU = v.multiplyScalar(sgn); dim.shift = sh; dim._endsKey = null;
+  }
+}
+cv.addEventListener("pointerdown", (e) => {
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  if (!dbgAnchorsOn && !dbgDimEndsOn && selectedTolIndex === null) return;
+  const r = cv.getBoundingClientRect();
+  const h = dbgPickHandle(e.clientX - r.left, e.clientY - r.top);
+  if (!h) return;
+  e.stopImmediatePropagation();
+  clickStart = null;
+  dbgDrag = { h, id: e.pointerId };
+  cv.style.cursor = "grabbing";
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+}, true);
+cv.addEventListener("pointermove", (e) => {
+  if (dbgDrag) {
+    const r = cv.getBoundingClientRect();
+    if (dbgDrag.h.kind === "anchor" && dbgDrag.h.it.mirrorInfo && !dbgDrag.h.it.axisAnchor) {
+      // ミラー上の点をドラッグ: ミラー面上の位置を求め、元のアンカーを(指示面上で)それに対応する位置へ動かす
+      const it = dbgDrag.h.it, { axis } = it.mirrorInfo;
+      const W = viewerEl.clientWidth, H = viewerEl.clientHeight;
+      const rc = new THREE.Raycaster();
+      rc.setFromCamera(new THREE.Vector2((e.clientX - r.left) / W * 2 - 1, -((e.clientY - r.top) / H * 2 - 1)), camera);
+      const nrm = new THREE.Vector3(); nrm.setComponent(axis, 1);
+      const hit = rc.ray.intersectPlane(new THREE.Plane(nrm, -mirrorPlanePoint(axis, it.mirrorInfo.sign)[axis]), new THREE.Vector3());
+      if (hit) {
+        hit.setComponent(axis, it.anchor.getComponent(axis));
+        const sn = bmSnapToRanges(hit, it.aRanges);
+        if (sn) { it.anchor.copy(sn.pt); const n = bmTriNormal(sn.tri); if (it.normal) { if (n.dot(it.normal) < 0) n.negate(); it.normal.copy(n); } }
+        bmDirty = true; bmLastSig = "";
+      }
+      e.stopImmediatePropagation(); return;
+    }
+    if (dbgDrag.h.kind === "anchor" && dbgDrag.h.it.axisAnchor) {
+      dbgDragAxisAnchor(dbgDrag.h.it, e.clientX - r.left, e.clientY - r.top); bmDirty = true; bmLastSig = "";
+      e.stopImmediatePropagation(); return;
+    }
+    const pk = bmPickOnRanges(e.clientX - r.left, e.clientY - r.top, dbgDrag.h.ranges);
+    if (pk) { dbgApplyDrag(dbgDrag.h, pk); bmDirty = true; bmLastSig = ""; }
+    e.stopImmediatePropagation();
+    return;
+  }
+  if (e.buttons === 0 && (dbgAnchorsOn || dbgDimEndsOn || selectedTolIndex !== null)) {
+    const r = cv.getBoundingClientRect();
+    cv.style.cursor = dbgPickHandle(e.clientX - r.left, e.clientY - r.top) ? "grab" : "";
+  }
+}, true);
+function dbgEndDrag() { if (dbgDrag) { dbgDrag = null; cv.style.cursor = ""; } }
+cv.addEventListener("pointerup", dbgEndDrag, true);
+cv.addEventListener("pointercancel", dbgEndDrag, true);
 function bmSyncMirrorMenu() {
   ["miMirrorX", "miMirrorY", "miMirrorZ"].forEach((id, axis) => {
     document.getElementById(id).classList.toggle("checked", !bmMirrorHidden[axis]);
@@ -2172,7 +2602,9 @@ cv.addEventListener("pointermove", (e) => {
   }
   // ホバー: 鏡の上ではカーソルを変える
   if (e.buttons === 0 && annotationStyle === "balloon") {
-    cv.style.cursor = bmPickMirror(e.clientX, e.clientY) !== null ? "grab" : "";
+    const rr = cv.getBoundingClientRect();
+    const overDbg = (dbgAnchorsOn || dbgDimEndsOn || selectedTolIndex !== null) && dbgPickHandle(e.clientX - rr.left, e.clientY - rr.top);
+    cv.style.cursor = (overDbg || bmPickMirror(e.clientX, e.clientY) !== null) ? "grab" : "";
   }
 }, true);
 function bmEndMirrorDrag(e) {
@@ -2352,7 +2784,18 @@ function faceBoundaryGeometry(meshData) {
   const ranges = meshData.faceRanges || [];
   const out = [];
   const key = (i) => `${Math.round(pos[i * 3] * 1e4)},${Math.round(pos[i * 3 + 1] * 1e4)},${Math.round(pos[i * 3 + 2] * 1e4)}`;
-  for (const [start, end] of ranges) {
+  const triNormal = (t) => {
+    const a = idx[t * 3] * 3, b = idx[t * 3 + 1] * 3, c = idx[t * 3 + 2] * 3;
+    const ux = pos[b] - pos[a], uy = pos[b + 1] - pos[a + 1], uz = pos[b + 2] - pos[a + 2];
+    const vx = pos[c] - pos[a], vy = pos[c + 1] - pos[a + 1], vz = pos[c + 2] - pos[a + 2];
+    const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+    const l = Math.hypot(nx, ny, nz) || 1;
+    return [nx / l, ny / l, nz / l];
+  };
+  // 面の境界線分(その面の三角形 1 枚にだけ属する辺)を集め、隣接面と接する(正接)線分は捨てる
+  const TANGENT_COS = Math.cos(10 * Math.PI / 180);   // 曲面の分割誤差ぶん余裕を見る
+  const all = new Map();   // 線分キー -> [{face, n, a, b}]
+  ranges.forEach(([start, end], f) => {
     const edges = new Map();
     for (let t = start; t < end; t++) {
       const v = [idx[t * 3], idx[t * 3 + 1], idx[t * 3 + 2]];
@@ -2362,14 +2805,30 @@ function faceBoundaryGeometry(meshData) {
         if (ka === kb) continue;
         const k = ka < kb ? ka + "|" + kb : kb + "|" + ka;
         const rec = edges.get(k);
-        if (rec) rec.n++; else edges.set(k, { n: 1, a, b });
+        if (rec) rec.n++; else edges.set(k, { n: 1, a, b, t });
       }
     }
-    for (const rec of edges.values()) {
+    for (const [k, rec] of edges) {
       if (rec.n !== 1) continue;
-      out.push(pos[rec.a * 3], pos[rec.a * 3 + 1], pos[rec.a * 3 + 2], pos[rec.b * 3], pos[rec.b * 3 + 1], pos[rec.b * 3 + 2]);
+      const item = { face: f, nrm: triNormal(rec.t), a: rec.a, b: rec.b };
+      const l = all.get(k);
+      if (l) l.push(item); else all.set(k, [item]);
     }
+  });
+  for (const list of all.values()) {
+    let tangent = false;
+    for (let i = 0; i < list.length && !tangent; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        if (list[i].face === list[j].face) continue;
+        const p = list[i].nrm, q = list[j].nrm;
+        if (p[0] * q[0] + p[1] * q[1] + p[2] * q[2] >= TANGENT_COS) { tangent = true; break; }
+      }
+    }
+    if (tangent) continue;
+    const r = list[0];
+    out.push(pos[r.a * 3], pos[r.a * 3 + 1], pos[r.a * 3 + 2], pos[r.b * 3], pos[r.b * 3 + 1], pos[r.b * 3 + 2]);
   }
+  // 同じ線分が両隣の面から出る場合は 1 本だけ描く(上で list[0] のみ出力)
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(out, 3));
   return g;
@@ -2818,10 +3277,10 @@ const SYMBOL_SVG = {
 function fcfHtml(t) {
   const kind = t.symbol_kind || "generic";
   const val = escapeHtml(t.value_text || "?");
-  const count = t.count > 1 ? `${t.count}×` : "";
+  const count = t.count > 1 ? `${t.count}×` : "";   // 複数のサイズ形体: 「4× ∅3.5 ±0.1」
   if (kind === "dimension") {
     const icon = t.dimension_icon ? escapeHtml(t.dimension_icon) + " " : "";
-    return `<span class="dimlabel">${count}${icon}${val}</span>`;
+    return `<span class="dimlabel">${count ? count + " " : ""}${icon}${val}</span>`;
   }
   const svg = SYMBOL_SVG[kind] || SYMBOL_SVG.generic;
   const datums = (t.datum_refs || []).map(d => `<span>${escapeHtml(d)}</span>`).join("");
@@ -3062,9 +3521,11 @@ async function handleFile(file) {
     setupGeneralNotes(data.pmi);
     bmSetup(data.pmi);
     bmInitFcf(data.pmi.unit_factor_to_mm);
+    bmSpreadAnchors();
     bmDirty = true;
     userViews = [];
     setFileViews(data.pmi.saved_views);
+    applyDefaultAnnotationStyle(/\.(qif|xml)$/i.test(file.name), data.pmi);
     applyHiddenGraphics();
     const tolCount = (data.pmi.geometric_tolerances || []).length;
     const lineCount = (data.pmi.tessellated || []).reduce((n, g) => n + g.polylines.length, 0);
