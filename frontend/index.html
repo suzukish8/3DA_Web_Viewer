@@ -60,22 +60,32 @@
   .datum-row { cursor: pointer; }
   .row.selected { background: #dbe8fa; outline: 1px solid var(--accent); }
   .row .des { min-width: 20px; font-size: 13px; }
-  .fcf { display: inline-flex; align-items: stretch; border: 1.2px solid var(--text); font-size: 12px; line-height: 1.2; background: #fff; }
-  .fcf > span { padding: 3px 6px; display: flex; align-items: center; border-left: 1.2px solid var(--text); white-space: nowrap; }
+  .fcf { display: inline-flex; align-items: stretch; border: 0.5px solid var(--text); font-size: 12px; line-height: 1.2; background: #fff; }
+  .fcf > span { padding: 3px 6px; display: flex; align-items: center; border-left: 0.5px solid var(--text); white-space: nowrap; }
   .fcf > span.sym { border-left: none; padding: 0; width: 24px; justify-content: center; }
   .fcf svg { width: 22px; height: 22px; stroke: var(--text); fill: none; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
   .fcf-count { font-size: 11px; }
+  /* Visio 図の様式(JIS Z8313-5 CAD 用文字・ISO 1101 記号)。枠の高さ 5 mm = 22 px(罫線を含む) */
+  /* FCF Height に連動して、左パネルの枠・データム・寸法も大きさを変える(既定 5 mm = 等倍) */
+  .pmi-card > span[style], .pmi-card > .dimlabel, .pmi-card > .dside, .pmi-card > .des, .datum-row .dbox { zoom: var(--fcfk, 1); }
+  svg.vt, svg.vs { display: block; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
+  .fcf > span.vc { padding: 0; }
+  .fcf > span.sym.vc { width: auto; }
+  .fcf-count.vc, .dimlabel.vc { font-size: 0; line-height: 0; }
+  .dimlabel.ted.vc { padding: 0; }
+  .dbox.vc { padding: 0; min-width: 22px; width: 22px; box-sizing: border-box; }
+  .dbox.vc svg.vt { width: 100%; height: 100%; }
   .dimlabel { font-size: 13px; }
   /* 半径は理論的に正確な寸法(TED): 四角で囲む */
-  .dimlabel.ted { display: inline-flex; align-items: center; border: 1.2px solid currentColor; padding: 1px 4px;
+  .dimlabel.ted { display: inline-flex; align-items: center; border: 0.5px solid currentColor; padding: 1px 4px;
     font-size: 11px; line-height: 1.2; background: #fff; }
   .dbox { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 5px;
-    border: 1.2px solid var(--text); font-weight: 700; font-size: 12px; background: #fff; }
+    border: 0.5px solid var(--text); font-weight: 700; font-size: 12px; background: #fff; }
   .dside { display: inline-flex; align-items: center; margin-left: auto; }
   .dside { gap: 0; }
-  .dside .stem { width: 9px; height: 1.4px; margin-left: -1px; margin-right: -1px; background: var(--text); flex: 0 0 auto; }
-  .dside .dtri { width: 0; height: 0; border-top: 6px solid transparent; border-bottom: 6px solid transparent;
-    border-left: 9px solid var(--text); }
+  .dside .stem { width: 22px; height: 0.5px; margin-left: -11px; margin-right: -1px; background: var(--text); flex: 0 0 auto; }
+  .dside .dtri { width: 0; height: 0; border-top: 6.3px solid transparent; border-bottom: 6.3px solid transparent;
+    border-left: 11px solid var(--text); position: relative; z-index: 1; }
   /* ファイルを開いている間の進捗表示 (3DA B&M Viewer の loading overlay と同じ: 黒い角丸バッジ + ラベル + プログレスバー) */
   #loadOverlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
     background: rgba(255,255,255,0.35); z-index: 50; }
@@ -150,20 +160,20 @@
   .bm-core .fcf { line-height: 1.2; }
   .bm-core .dimlabel { line-height: 1.2; }
   .bm-frames { line-height: 0; }
-  .bm-row + .bm-row .fcf { margin-top: -1.2px; }       /* 罫線(1.2px)をちょうど重ねて、隙間なくくっつける */       /* 同じ形体の枠はくっつける(罫線を共有) */
+  .bm-row + .bm-row .fcf { margin-top: -0.5px; }       /* 罫線(0.5px)をちょうど重ねて、隙間なくくっつける */       /* 同じ形体の枠はくっつける(罫線を共有) */
   /* R1 など(TED の四角)と公差記入枠の間には、公差記入枠の高さの 1/10 の隙間をあける(22px の 1/10 = 2.2px) */
   .bm-row.has-ted + .bm-row, .bm-row + .bm-row.has-ted { margin-top: calc(var(--fh, 22px) * 0.1); }
   .bm-row.has-ted + .bm-row .fcf { margin-top: 0; }
   .bm-row.cur { color: #0077ff; }
   .bm-row.cur .fcf, .bm-row.cur .fcf > span { border-color: #0077ff !important; }
   .bm-label .des { min-width: 22px; text-align: right; }
-  .bm-datums-wrap { display: flex; justify-content: center; padding-left: 28px; margin-top: -1.2px; line-height: 0; }
+  .bm-datums-wrap { display: flex; justify-content: center; padding-left: 28px; margin-top: 0; line-height: 0; }       /* 三角形の底辺は枠の下辺にぴったり(枠にはみ出さない) */
   .bm-label.right .bm-datums-wrap { padding-left: 0; padding-right: 28px; }
   #app.hide-designators .bm-datums-wrap { padding-left: 0; padding-right: 0; }
   .bm-datums { display: flex; flex-direction: column; align-items: center; }
-  .bm-dtri { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent;
-    border-top: 9px solid currentColor; }
-  .bm-dstem { width: 1.2px; height: 8px; background: currentColor; }
+  .bm-dtri { width: 0; height: 0; border-left: 6.3px solid transparent; border-right: 6.3px solid transparent;
+    border-top: 11px solid currentColor; position: relative; z-index: 1; }
+  .bm-dstem { width: 0.5px; height: 22px; margin-top: -11px; background: currentColor; }      /* 縦線は枠の下辺からデータム四角まで通す(三角形の裏を通る) */
   .bm-label .bm-datums .dbox { box-sizing: border-box; min-width: 0; padding: 0; }
   .bm-label .des { align-self: flex-start; }
   .bm-label.right .des { order: 10; }   /* 右列では designator を公差枠・データム記号の右に置く */
@@ -404,8 +414,8 @@
         <fieldset><legend>Output</legend>
           <div class="exp-row" id="expPaperRow"><span>PDF paper size:</span><select id="expPaper"></select></div>
           <div class="exp-row" id="expScaleRow"><span>PDF drawing scale:</span><select id="expScale"></select></div>
-          <div class="exp-row"><span>3D model line width (mm):</span><input type="number" id="expLwModel" min="0.05" max="2" step="0.05"></div>
-          <div class="exp-row"><span>Other line width (mm):</span><input type="number" id="expLwOther" min="0.05" max="2" step="0.05"></div>
+          <div class="exp-row"><span>3D model line width (mm):</span><input type="number" id="expLwModel" min="0.05" max="2" step="0.025"></div>
+          <div class="exp-row"><span>Other line width (mm):</span><input type="number" id="expLwOther" min="0.05" max="2" step="0.025"></div>
         </fieldset>
       </div>
     </div>
@@ -540,6 +550,7 @@
 </div>
 
 <script src="wasm_loader.js"></script>
+<script src="visio_style.js"></script>
 <script type="importmap">
 {
   "imports": {
@@ -1251,7 +1262,7 @@ function bmSetup(pmi) {
       const wrap = document.createElement("div");
       wrap.className = "bm-datums-wrap";
       wrap.innerHTML = `<span class="bm-datums">${letters.map(l =>
-        `<span class="bm-dtri"></span><span class="bm-dstem"></span><span class="dbox">${escapeHtml(l)}</span>`).join("")}</span>`;
+        `<span class="bm-dtri"></span><span class="bm-dstem"></span>${vsDatumBox(l)}`).join("")}</span>`;
       el.appendChild(wrap);
     }
     el.querySelectorAll(".fcf, .dbox").forEach(n => { n.style.borderColor = color; });
@@ -1279,6 +1290,9 @@ function bmSetup(pmi) {
   bmDirty = true;
 }
 function bmMeasureItem(it) {
+  // 幾何公差の無い寸法だけ(designator 98, 99 など): 寸法値の下に下線を引き、引出線はその下線の右端からのばす
+  { const vis = (q) => Array.from(it.el.querySelectorAll(q)).some(n => n.offsetParent !== null);
+    it.el.classList.toggle("dim-only", !vis(".bm-core .fcf") && !vis(".bm-core .ted") && vis(".bm-core .dimlabel")); }
   { const f0 = it.el.querySelector(".bm-core .fcf"); it.el.style.setProperty("--fh", (f0 ? f0.offsetHeight : 22) + "px"); }   // 公差記入枠の高さ(隙間 = その 1/10)
   const firstFcf = it.el.querySelector(".bm-core .fcf, .bm-core .ted");
   const oneH = firstFcf ? firstFcf.offsetHeight : 22;           // 公差枠の高さ = データム四角の一辺(正方形)
@@ -1301,7 +1315,7 @@ function bmMeasureItem(it) {
     const r = n.getBoundingClientRect();
     fl = Math.min(fl, (r.left - lr.left) / kk); fr = Math.max(fr, (r.right - lr.left) / kk);
     // 一番上の公差記入枠の高さの中央(引出線の水平線はここへつなぐ)
-    if (r.top < topY - 0.5) { topY = r.top; topCy = ((r.top + r.bottom) / 2 - lr.top) / kk; }
+    if (r.top < topY - 0.5) { topY = r.top; topCy = ((r.top + r.bottom) / 2 - lr.top) / kk; if (it.el.classList.contains("dim-only")) topCy = (r.bottom - lr.top) / kk - 0.6; }
   });
   it.frameL = isFinite(fl) ? fl : 0;
   it.frameR = isFinite(fr) ? fr : it.w;
@@ -1690,6 +1704,43 @@ function bmDrawDimEnd(pt, dirOut, stubLen, col, w, head) {
   bmSvg.appendChild(bmSvgEl("line", { x1: bx, y1: by, x2: ex, y2: ey, stroke: col, "stroke-width": w }));
   if (bmCurSegs) bmCurSegs.push([pt[0], pt[1], ex, ey]);
 }
+// 矢印を 3D の平面の上に描く(平面 = 法線 n)。端点 E から外向き(dir3)に、矢じりの長さ head px・同軸線 stub px。
+// 矢じり: 長さ = FCF の高さの 1/2、頂角 30 度(Visio 様式: FCF 高さ 5 mm のとき 長さ 2.5 mm・幅 1.34 mm)
+function bmDrawDimEnd3D(E, dir3, n, head, stub, pxPerUnit, toScr, col, w) {
+  const w3 = new THREE.Vector3().crossVectors(n, dir3);
+  if (w3.length() < 1e-9) return false;
+  w3.normalize();
+  const L = head / pxPerUnit, half = L * 0.268, S = (head + stub) / pxPerUnit;
+  const B = E.clone().addScaledVector(dir3, L);
+  const p0 = toScr(E), p1 = toScr(B.clone().addScaledVector(w3, half)), p2 = toScr(B.clone().addScaledVector(w3, -half));
+  const pb = toScr(B), pe = toScr(E.clone().addScaledVector(dir3, S));
+  const f = (q) => q[0].toFixed(1) + "," + q[1].toFixed(1);
+  bmSvg.appendChild(bmSvgEl("polygon", { points: `${f(p0)} ${f(p1)} ${f(p2)}`, fill: col }));
+  bmSvg.appendChild(bmSvgEl("line", { x1: pb[0], y1: pb[1], x2: pe[0], y2: pe[1], stroke: col, "stroke-width": w }));
+  if (bmCurSegs) bmCurSegs.push([p0[0], p0[1], pe[0], pe[1]]);
+  return true;
+}
+// 寸法の矢印を描く平面の法線。直径: 円筒の中心線に垂直な平面。幅・距離: XY / YZ / ZX 平面のうち、寸法線と垂直でない(寸法線が法線と重ならない)もの
+// で、いちばん正面(視線方向)に近いもの。
+function bmDimArrowPlane(dim, a, b, viewDir) {
+  if (!dim) return null;
+  if (dim.type !== "span") return dim.axis ? dim.axis.clone().normalize() : null;
+  const t = b.clone().sub(a);
+  if (t.length() < 1e-9) return null;
+  t.normalize();
+  let best = null, bs = -1;
+  for (const n of [new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0)]) {
+    if (Math.abs(n.dot(t)) > 0.95) continue;                  // 寸法線が平面に垂直(法線とほぼ平行)だと、矢印が点になる
+    const sc = Math.abs(n.dot(viewDir));
+    if (sc > bs) { bs = sc; best = n; }
+  }
+  return best;
+}
+// 引出線の先の黒丸。ハイライト(選択)中は、寸法線の端点のハイライトと同じ仕様: 中を白で塗りつぶし、枠線だけを青にする(直径 9 px)
+function bmDot(cx, cy, r, sel, baseColor) {
+  if (!sel) { bmSvg.appendChild(bmSvgEl("circle", { cx, cy, r, fill: baseColor })); return; }
+  bmSvg.appendChild(bmSvgEl("circle", { cx, cy, r: 3.5, fill: "#ffffff", stroke: "#0077ff", "stroke-width": 2 }));
+}
 let bmCurSegs = null;
 
 // ---- 可視判定 ----
@@ -1997,10 +2048,13 @@ function bmApplyDatumHighlight() {
   if (t) {
     (t.datum_refs || []).forEach(d => (String(d).match(/[A-Za-z]+/g) || []).forEach(l => letters.add(l)));
   }
+  // 左パネルの Datums で選んだデータムの記号(データム四角・三角形)もハイライトする
+  const dsel = selectedDatumIndex !== null && lastPmi && lastPmi.datums ? lastPmi.datums[selectedDatumIndex] : null;
+  if (dsel && dsel.letter) letters.add(String(dsel.letter));
   for (const it of bmItems) {
     const selHere = t && it.idxs.includes(selectedTolIndex);
     it.el.querySelectorAll(".bm-datums").forEach(w => {
-      const on = selHere || Array.from(w.querySelectorAll(".dbox")).some(b => letters.has((b.textContent || "").trim()));
+      const on = selHere || Array.from(w.querySelectorAll(".dbox")).some(b => letters.has((b.dataset.l || b.textContent || "").trim()));
       w.classList.toggle("dhl", !!on);
     });
   }
@@ -2076,14 +2130,43 @@ function bmLayout() {
       // 引出線の始点は annotation anchor と一致させる(アンカーが無ければ両端点の中点)
       bmSyncDimAnchor(it);
       const attach = it.anchor ? toScr(it.anchor) : mid;
-      if (attach[0] >= -40 && attach[0] <= W + 40 && attach[1] >= -40 && attach[1] <= H + 40) {
+      if (attach[0] < 0 || attach[0] > W || attach[1] < 0 || attach[1] > H) { it.el.style.visibility = "hidden"; continue; }   // アンカーが画面の外に出たら、その注記は表示しない
+      {
+        // 寸法の両端点がどちらも遮蔽されて見えないときは、Hidden-Side Mirror に映っているところ(端点を鏡の面へ写した位置)を指示する
+        if (bmMirrorsOn && it.tris) {
+          const toCam = viewDir.clone().negate();
+          const endsW = ends.map(e => e.w);
+          if (endsW.length && endsW.every(pw => bmBlocked(it, pw, toCam, it.tris))) {
+            let best = null, bestAlign = -1;
+            const tDim = endsW.length >= 2 ? endsW[1].clone().sub(endsW[0]).normalize() : null;
+            for (let axis = 0; axis < 3; axis++) {
+              if (bmMirrorHidden[axis]) continue;
+              const sign = viewDir.getComponent(axis) > 0 ? 1 : -1;
+              const dirM = new THREE.Vector3(); dirM.setComponent(axis, sign);
+              if (endsW.every(pw => bmBlocked(it, pw, dirM, it.tris))) continue;        // 鏡の側からも見えない
+              // 寸法線(幅・距離)・中心線(直径)が鏡の面と平行なほど、鏡に正面から映る
+              const along = it.dim.type === "span" ? (tDim ? Math.abs(tDim.getComponent(axis)) : 0) : Math.abs(it.dim.axis.getComponent(axis));
+              const align = it.dim.type === "span" ? 1 - along : along;
+              if (align > bestAlign) { bestAlign = align; best = [axis, sign]; }
+            }
+            if (best) {
+              const mEnds = endsW.map(pw => { const q = mirrorSurfacePoint(pw, best[0], best[1]); return { w: q, s: toScr(q) }; });
+              const mAttach = toScr(mirrorSurfacePoint(it.anchor || endsW[0], best[0], best[1]));
+              const nAx = new THREE.Vector3(); nAx.setComponent(best[0], 1);
+              it.mirrorInfo = { axis: best[0], sign: best[1] };
+              if (mAttach[0] < 0 || mAttach[0] > W || mAttach[1] < 0 || mAttach[1] > H) { it.el.style.visibility = "hidden"; continue; }   // 鏡に映った位置が画面の外なら表示しない
+              visible.push({ it, scr: mAttach, mirror: best[0], ends: mEnds, arrowN: nAx });
+              continue;
+            }
+          }
+        }
         visible.push({ it, scr: attach, mirror: null, ends });
         continue;
       }
     }
     if (!it.anchor) { parked.push(it); continue; }          // 面に紐づかない特性は駐車
     const s0 = toScr(it.anchor);
-    if (s0[0] < 0 || s0[0] > W || s0[1] < 0 || s0[1] > H) { parked.push(it); continue; }
+    if (s0[0] < 0 || s0[0] > W || s0[1] < 0 || s0[1] > H) { it.el.style.visibility = "hidden"; continue; }   // アンカーが画面の外に出たら、その注記は表示しない
     // 自分の面(it.tris)を除いて、カメラ側へのレイが他の面に当たるか。裏向きの面は自身の裏側の面に当たるので遮蔽される。
     const blocked = bmBlocked(it, it.anchor, viewDir.clone().negate(), it.tris);
     if (!blocked) { visible.push({ it, scr: s0, mirror: null }); continue; }
@@ -2114,7 +2197,9 @@ function bmLayout() {
     if (axisFound) {
       const sp = mirrorSurfacePoint(it.anchor, axisFound[0], axisFound[1]);
       it.mirrorInfo = { axis: axisFound[0], sign: axisFound[1] };
-      visible.push({ it, scr: toScr(sp), mirror: axisFound[0] });
+      const sm = toScr(sp);
+      if (sm[0] < 0 || sm[0] > W || sm[1] < 0 || sm[1] > H) { it.el.style.visibility = "hidden"; continue; }   // 鏡に映った位置が画面の外なら表示しない
+      visible.push({ it, scr: sm, mirror: axisFound[0] });
     } else {
       parked.push(it);
     }
@@ -2132,6 +2217,15 @@ function bmLayout() {
   // 寸法: 引出線は、ラベルのある側(左列なら左、右列なら右)に近い方の端点へ付ける
   for (const v of left) if (v.ends) v.scr = v.ends.reduce((m, e) => (e.s[0] < m[0] ? e.s : m), v.ends[0].s);
   for (const v of right) if (v.ends) v.scr = v.ends.reduce((m, e) => (e.s[0] > m[0] ? e.s : m), v.ends[0].s);
+  // 左右どちらの列に置くか・通知番号の表示/非表示で、ラベル内の枠の位置が変わる。変わったものは測り直して、引出線を枠の端にぴったりつなぐ
+  { const hideDes = document.getElementById("app").classList.contains("hide-designators");
+    for (const [lst, sd] of [[left, "left"], [right, "right"]]) for (const v of lst) {
+      const it = v.it, sig = sd + (hideDes ? "0" : "1");
+      if (it.measSig === sig) continue;
+      it.measSig = sig;
+      it.el.classList.toggle("right", sd === "right");
+      bmMeasureItem(it); bmApplyScale(it);
+    } }
 
   const marginX = W * BM_EDGE_MARGIN, top = 8, bottom = H - 8;
   const placed = new Set();
@@ -2222,9 +2316,11 @@ function bmLayout() {
       it.el.classList.toggle("sel", sel);
       const col = sel ? "#0077ff" : it.color;
       const edgeX = edgeShared + dxo;              // 水平線は、公差記入枠の端にぴったりつなぐ
-      const poly = `${edgeX.toFixed(1)},${y.toFixed(1)} ${(shoulderEnd + dxo).toFixed(1)},${y.toFixed(1)} ${v.scr[0].toFixed(1)},${v.scr[1].toFixed(1)}`;
+      // 寸法値だけの注記は、肩(短い水平線)を寸法値の下まで延ばして 1 本の線にする(寸法値の反対側の端から引出線の曲がりまで)
+      const farX = it.el.classList.contains("dim-only") ? (side === "left" ? x + it.sfl : x + it.sfr) : edgeX;
+      const poly = `${farX.toFixed(1)},${y.toFixed(1)} ${(shoulderEnd + dxo).toFixed(1)},${y.toFixed(1)} ${v.scr[0].toFixed(1)},${v.scr[1].toFixed(1)}`;
       bmSvg.appendChild(bmSvgEl("polyline", { points: poly, fill: "none", stroke: col, "stroke-width": sel ? 2 : 1.2 }));
-      bmCurSegs = it.segs = [[edgeX, y, shoulderEnd + dxo, y], [shoulderEnd + dxo, y, v.scr[0], v.scr[1]]];   // クリック判定用(引出線)
+      bmCurSegs = it.segs = [[farX, y, shoulderEnd + dxo, y], [shoulderEnd + dxo, y, v.scr[0], v.scr[1]]];   // クリック判定用(引出線)
       if (v.ends) {
         // 寸法線は描かない。端点ごとに外向きの矢印と、公差記入枠の高さぶんの同軸線を描く。
         const stub = fcfPx;                         // 同軸線の長さ = 公差記入枠の高さ
@@ -2233,14 +2329,29 @@ function bmLayout() {
           const a = v.ends[0].s, b = v.ends[1].s;
           let dx = b[0] - a[0], dy = b[1] - a[1];
           if (Math.hypot(dx, dy) < 2) { dx = 1; dy = 0; }       // 端点が重なる(軸方向視)ときは水平
-          bmDrawDimEnd(a, [-dx, -dy], stub, col, sw, headPx);
-          bmDrawDimEnd(b, [dx, dy], stub, col, sw, headPx);
+          // 矢印は 3D の平面(直径: 中心線に垂直な面 / 幅・距離: 寸法線と垂直でない XY・YZ・ZX 面)の上に描く
+          const nP = v.arrowN || bmDimArrowPlane(it.dim, v.ends[0].w, v.ends[1].w, viewDir);
+          let done = false;
+          if (nP) {
+            const t3 = v.ends[1].w.clone().sub(v.ends[0].w);
+            t3.addScaledVector(nP, -t3.dot(nP));                    // 平面の上に落とした寸法線の向き
+            if (t3.length() > 1e-9) {
+              t3.normalize();
+              const pxu = H / (frustumSize / camera.zoom);
+              done = bmDrawDimEnd3D(v.ends[0].w, t3.clone().negate(), nP, headPx, stub, pxu, toScr, col, sw)
+                  && bmDrawDimEnd3D(v.ends[1].w, t3, nP, headPx, stub, pxu, toScr, col, sw);
+            }
+          }
+          if (!done) {
+            bmDrawDimEnd(a, [-dx, -dy], stub, col, sw, headPx);
+            bmDrawDimEnd(b, [dx, dy], stub, col, sw, headPx);
+          }
         } else {
           // 半径(R1, R2 ...)は理論的に正確な寸法: 寸法線も端末記号(矢印・同軸線)も描かず、引出線と黒丸だけにする
-          bmSvg.appendChild(bmSvgEl("circle", { cx: v.scr[0], cy: v.scr[1], r: Math.max(1.5, dotPx / 2) * (sel ? 1.3 : 1), fill: col }));
+          bmDot(v.scr[0], v.scr[1], Math.max(1.5, dotPx / 2), sel, it.color);
         }
       } else {
-        bmSvg.appendChild(bmSvgEl("circle", { cx: v.scr[0], cy: v.scr[1], r: Math.max(1.5, dotPx / 2) * (sel ? 1.3 : 1), fill: col }));
+        bmDot(v.scr[0], v.scr[1], Math.max(1.5, dotPx / 2), sel, it.color);
       }
       placed.add(it);
     });
@@ -2313,6 +2424,7 @@ function bmSetFcfUnits(u, fromUser) {
   bmFcfUnits = mm / bmUnitToMm;
   fcfNum.value = mm.toFixed(1);
   fcfSlider.value = String(mm);
+  document.documentElement.style.setProperty("--fcfk", (mm / 5).toFixed(3));      // 左パネル(Characteristics / Datums)の枠も同じ比率で拡大・縮小
   bmDirty = true; bmLastSig = "";
 }
 function bmInitFcf(unitFactor) {
@@ -2993,8 +3105,8 @@ function expMapper() {
 // ---- モデルの稜線(陰線処理つき) ----
 async function expModelEdges(ir, M, onProgress) {
   if (!currentMeshData) return;
-  // 図面には B-rep の稜線をすべて出す(画面表示では省いている、接する面どうしの境界線も含める)
-  const eg = faceBoundaryGeometry(currentMeshData, true);
+  // 図面には、画面表示と同じ稜線を出す(平面と円筒面などが滑らかに接する「正接」の境界線は出さない)
+  const eg = faceBoundaryGeometry(currentMeshData, false);
   const pos = eg.getAttribute("position");
   eg.dispose();
   if (!pos) return;
@@ -3087,13 +3199,21 @@ function expTextNodes(el, fn) {
   const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
   let n; while ((n = w.nextNode())) { if (n.parentElement && getComputedStyle(n.parentElement).display !== "none") fn(n); }
 }
+function expAnyText(ir, M, el, k, layer) {      // Visio 様式の線画文字(svg)はそのまま線に、通常の文字は文字として書き出す
+  const sv = el.querySelectorAll("svg.vt");
+  if (sv.length) sv.forEach(x => expSymbol(ir, M, x, layer));
+  else expTextNodes(el, n => expText(ir, M, n, k, layer));
+}
 function expRect(ir, M, r, layer) {
   const a = M.cpx(r.left, r.top), b = M.cpx(r.right, r.top), c = M.cpx(r.right, r.bottom), d = M.cpx(r.left, r.bottom);
   ir.polylines.push({ layer, rgb: EXP_BLACK, points: [a, b, c, d, a] });
 }
 function expSymbol(ir, M, svg, layer) {
-  const r = svg.getBoundingClientRect(), sc = r.width / 24;
-  const toMm = (x, y) => M.cpx(r.left + x * sc, r.top + y * sc);
+  const r = svg.getBoundingClientRect();
+  const vb = svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width ? svg.viewBox.baseVal : { width: 24, height: 24 };
+  const sc = Math.min(r.width / vb.width, r.height / vb.height);          // 枠いっぱいに収める拡大率(縦横比は保つ)
+  const ox = r.left + (r.width - vb.width * sc) / 2, oy = r.top + (r.height - vb.height * sc) / 2;
+  const toMm = (x, y) => M.cpx(ox + x * sc, oy + y * sc);
   svg.querySelectorAll("path").forEach(pa => {
     for (const poly of expPathToPolylines(pa.getAttribute("d") || "")) ir.polylines.push({ layer, rgb: EXP_BLACK, points: poly.map(q => toMm(q[0], q[1])) });
   });
@@ -3110,7 +3230,7 @@ async function expMirrors(ir, M, onProgress) {
   const axes = [0, 1, 2].filter(ax => bmMirrors[ax] && bmMirrors[ax].group.visible && !bmMirrorHidden[ax]);
   if (!axes.length) return;
   const GREY = [154, 160, 170];
-  const eg = faceBoundaryGeometry(currentMeshData, true);
+  const eg = faceBoundaryGeometry(currentMeshData, false);
   const pos = eg.getAttribute("position");
   eg.dispose();
   const A = pos ? pos.array : new Float32Array(0), nSeg = Math.floor(A.length / 6);
@@ -3174,7 +3294,11 @@ function expBalloonAnnotations(ir, M) {
       const pts = el.getAttribute("points").split(" ").map(q => q.split(",").map(Number)).map(q => M.px(q[0], q[1]));
       ir.solids.push({ layer: "DIMENSION", rgb: EXP_BLACK, points: pts });
     } else if (tag === "circle") {
-      ir.circles.push({ layer: "LEADER", rgb: EXP_BLACK, c: M.px(+el.getAttribute("cx"), +el.getAttribute("cy")), r: M.pxLen(+el.getAttribute("r")) });
+      // 引出線の先の黒丸は塗りつぶす(円は輪郭だけなので、多角形にして塗りつぶしの図形として出す)
+      const c0 = M.px(+el.getAttribute("cx"), +el.getAttribute("cy")), rr = M.pxLen(+el.getAttribute("r"));
+      if (el.getAttribute("fill") === "#ffffff") { ir.circles.push({ layer: "LEADER", rgb: EXP_BLACK, c: c0, r: rr }); continue; }      // 白塗りの丸は輪郭だけ
+      const dot = []; for (let i = 0; i < 24; i++) { const a2 = i / 24 * 2 * Math.PI; dot.push([c0[0] + rr * Math.cos(a2), c0[1] + rr * Math.sin(a2)]); }
+      ir.solids.push({ layer: "LEADER", rgb: EXP_BLACK, points: dot });
     }
   }
   // 公差記入枠・寸法・データム記号(ラベルの DOM)
@@ -3196,9 +3320,11 @@ function expBalloonAnnotations(ir, M) {
           else expTextNodes(cell, n => expText(ir, M, n, k, "ANNOTATION"));
         });
       });
-      row.querySelectorAll(".fcf-count").forEach(c => expTextNodes(c, n => expText(ir, M, n, k, "ANNOTATION")));
-      row.querySelectorAll(".ted").forEach(t => { expRect(ir, M, t.getBoundingClientRect(), "ANNOTATION"); expTextNodes(t, n => expText(ir, M, n, k, "ANNOTATION")); });
-      row.querySelectorAll(".dimlabel:not(.ted)").forEach(t => expTextNodes(t, n => expText(ir, M, n, k, "ANNOTATION")));
+      row.querySelectorAll(".fcf-count").forEach(c => expAnyText(ir, M, c, k, "ANNOTATION"));
+      row.querySelectorAll(".ted").forEach(t => { expRect(ir, M, t.getBoundingClientRect(), "ANNOTATION"); expAnyText(ir, M, t, k, "ANNOTATION"); });
+      row.querySelectorAll(".dimlabel:not(.ted)").forEach(t => {
+        expAnyText(ir, M, t, k, "ANNOTATION");
+      });
     });
     // データム記号: 下向き三角 + 短い線 + 四角に入った文字
     lab.querySelectorAll(".bm-dtri").forEach(t => {
@@ -3209,7 +3335,7 @@ function expBalloonAnnotations(ir, M) {
       const r = t.getBoundingClientRect(), cx = (r.left + r.right) / 2;
       ir.polylines.push({ layer: "DATUM", rgb: EXP_BLACK, points: [M.cpx(cx, r.top), M.cpx(cx, r.bottom)] });
     });
-    lab.querySelectorAll(".bm-datums .dbox").forEach(t => { expRect(ir, M, t.getBoundingClientRect(), "DATUM"); expTextNodes(t, n => expText(ir, M, n, k, "DATUM")); });
+    lab.querySelectorAll(".bm-datums .dbox").forEach(t => { expRect(ir, M, t.getBoundingClientRect(), "DATUM"); expAnyText(ir, M, t, k, "DATUM"); });
   });
 }
 
@@ -3544,7 +3670,7 @@ let expActive = "balloon";
 function expSelectedStyles() { return expStyleKeys.filter(k => expStyleChecks[k].checked); }
 function expOptions() {
   return { paper: expEls.paper.value, scale: expEls.scale.value,
-           lwModel: Math.max(0.05, parseFloat(expEls.lwModel.value) || 0.5), lwOther: Math.max(0.05, parseFloat(expEls.lwOther.value) || 0.25) };
+           lwModel: Math.max(0.05, parseFloat(expEls.lwModel.value) || 0.25), lwOther: Math.max(0.05, parseFloat(expEls.lwOther.value) || 0.125) };
 }
 function expSyncVisibility() {
   const pdf = expEls.fPdf.checked || expEls.fPng.checked;           // 用紙・尺度は PDF と PNG に効く
@@ -3613,8 +3739,8 @@ function expOpen() {
   if (!EXP_PAGE_SIZES.includes(expEls.paper.value)) expEls.paper.value = "A4 Portrait";
   expEls.scale.value = expStore.get("scale", "x1");
   if (!EXP_SCALES.includes(expEls.scale.value)) expEls.scale.value = "x1";
-  expEls.lwModel.value = expStore.get("lwModel", "0.5");
-  expEls.lwOther.value = expStore.get("lwOther", "0.25");
+  expEls.lwModel.value = expStore.get("lwModel2", "0.25");
+  expEls.lwOther.value = expStore.get("lwOther2", "0.125");
   expEls.fDxf.checked = expStore.get("fDxf", "1") === "1";
   expEls.fSvg.checked = expStore.get("fSvg", "1") === "1";
   expEls.fPdf.checked = expStore.get("fPdf", "1") === "1";
@@ -3642,7 +3768,7 @@ async function expRun() {
   if (!fmts.length) { expEls.msg.textContent = "ファイル形式を 1 つ以上選んでください。"; return; }
   if (!styles.length) { expEls.msg.textContent = "スタイルを 1 つ以上選んでください。"; return; }
   const opts = expOptions();
-  expStore.set("paper", opts.paper); expStore.set("scale", opts.scale); expStore.set("lwModel", opts.lwModel); expStore.set("lwOther", opts.lwOther);
+  expStore.set("paper", opts.paper); expStore.set("scale", opts.scale); expStore.set("lwModel2", opts.lwModel); expStore.set("lwOther2", opts.lwOther);
   expStore.set("fPng", expEls.fPng.checked ? "1" : "0");
   expStore.set("fDxf", expEls.fDxf.checked ? "1" : "0"); expStore.set("fSvg", expEls.fSvg.checked ? "1" : "0"); expStore.set("fPdf", expEls.fPdf.checked ? "1" : "0");
   const all = styles.length > 1;                       // 複数のスタイルを選んだときは、ファイル名にスタイル名を付ける
@@ -4224,9 +4350,11 @@ function selectDatum(di) {
   if (selectedDatumIndex === di) {          // もう一度押したら解除
     selectedDatumIndex = null;
     applyHiddenGraphics();
+    bmDirty = true; bmLastSig = "";
     return;
   }
   selectedDatumIndex = di;
+  bmDirty = true; bmLastSig = "";          // Balloon & Mirror のデータム記号も青くする
   const row = tolListEl.querySelector(`.datum-row[data-di="${di}"]`);
   if (row) row.classList.add("selected");
   const d = datums[di];
@@ -4423,6 +4551,79 @@ function arrowPath(x0, y0, x1, y1) {
   const r = 25 * Math.PI / 180;
   return `M${x0} ${y0}L${x1} ${y1}${f(r)}${f(-r)}`;
 }
+// ---- Visio 図の様式 (visio_style.js): JIS Z8313-5 CAD 用文字と ISO 1101 記号を、線画のまま描く ----
+// 文字は「字の幅 + 0.75 mm」で並べる。枠の内側の余白は 1 mm、1 マスの最小幅は 5 mm(Visio の様式と同じ)。
+const VS = window.VISIO || null;
+const VS_PX = 21 / 5;             // 1 mm あたりの px(枠の内側の高さ 5 mm = 21 px + 罫線 1 px = 22 px)
+const VS_STROKE = 0.125;           // 線の太さ(mm)
+function vsItems(text) {
+  const out = [];
+  let bad = false;
+  for (const ch0 of Array.from(String(text))) {
+    const cp = ch0.codePointAt(0);
+    let ch = ch0;
+    if (cp >= 0x24B6 && cp <= 0x24CF) { out.push({ mod: String.fromCharCode(0x41 + cp - 0x24B6) }); continue; }       // Ⓐ-Ⓩ
+    if ("\u2300\u2205\u00F8\u00D8\u03A6\u03D5\u03C6".includes(ch)) ch = "\u03C6";                                 // ⌀ ∅ ø Ø Φ ϕ φ -> φ
+    else if ("\u2212\u2013\u2014\u2010".includes(ch)) ch = "-";
+    else if (ch === "x" || ch === "X") ch = ch === "x" ? "\u00D7" : "X";
+    else if (ch === "\u00B0") { out.push({ deg: true }); continue; }
+    else if (ch === ":") { out.push({ colon: true }); continue; }
+    else if (ch === " " || ch === "_" || ch === "\u00A0" || ch === "\u3000") { out.push({ space: true }); continue; }
+    if (!VS.font[ch]) { const up = ch.toUpperCase(); if (VS.font[up]) ch = up; else { bad = true; continue; } }
+    out.push({ ch });
+  }
+  return { items: out, bad };
+}
+// 文字列 -> 線(mm, 文字の基準線が y=0、上向き が +y)と円
+function vsLayout(text) {
+  const { items, bad } = vsItems(text);
+  const gap = VS.gap, paths = [], circles = [];
+  let x = 0, first = true;
+  for (const it of items) {
+    if (!first) x += gap;
+    first = false;
+    if (it.space) { x += 0.5; continue; }
+    if (it.mod) {
+      const d = VS.mod.d, g = VS.font[it.mod];
+      circles.push({ cx: x + d / 2, cy: VS.cap / 2, r: d / 2 });
+      if (g) { const ox = x + d / 2 - g.w / 2; for (const st of g.s) paths.push(st.map(q => [q[0] + ox, q[1]])); }
+      x += d; continue;
+    }
+    if (it.deg) { const r = 0.45, c = []; for (let i = 0; i <= 12; i++) c.push([x + r + r * Math.cos(i / 12 * 2 * Math.PI), VS.cap - r + r * Math.sin(i / 12 * 2 * Math.PI)]); paths.push(c); x += 2 * r; continue; }
+    if (it.colon) { paths.push([[x, 0.05], [x, 0.12]]); paths.push([[x, 1.3], [x, 1.37]]); continue; }
+    const g = VS.font[it.ch];
+    for (const st of g.s) paths.push(st.map(q => [q[0] + x, q[1]]));
+    x += g.w;
+  }
+  return { w: x, paths, circles, bad };
+}
+const vsN = (v) => (Math.round(v * 1000) / 1000).toString();
+// 文字列の SVG。H = 高さ(mm), padX = 左右の余白, minW = 最小幅。使えない文字があるときは null(呼び出し側で通常の文字にする)
+function vsTextSvg(text, o) {
+  if (!VS) return null;
+  o = o || {};
+  const L = vsLayout(text);
+  if (L.bad) return null;
+  const H = o.H || 5, padX = o.padX === undefined ? 1.0 : o.padX;
+  const W = Math.max(L.w + 2 * padX, o.minW || 0);
+  const ox = (W - L.w) / 2, base = H / 2 + VS.cap / 2;
+  const d = L.paths.map(st => "M" + st.map(q => vsN(q[0] + ox) + " " + vsN(base - q[1])).join("L")).join("");
+  const cs = L.circles.map(c => `<circle cx="${vsN(c.cx + ox)}" cy="${vsN(base - c.cy)}" r="${vsN(c.r)}"/>`).join("");
+  const size = o.fill ? "width:100%;height:100%" : `width:${vsN(W * VS_PX)}px;height:${vsN(H * VS_PX)}px`;
+  return `<svg class="vt" viewBox="0 0 ${vsN(W)} ${vsN(H)}" style="${size};stroke-width:${VS_STROKE}"><path d="${d}"/>${cs}</svg>`;
+}
+function vsSymSvg(kind) {
+  const sy = VS && VS.sym[kind];
+  if (!sy) return null;
+  const H = 5;
+  const d = sy.s.map(st => "M" + st.map(q => vsN(q[0]) + " " + vsN(H - q[1])).join("L")).join("");
+  return `<svg class="vs" viewBox="0 0 ${sy.w} ${H}" style="width:${vsN(sy.w * VS_PX)}px;height:${vsN(H * VS_PX)}px;stroke-width:${VS_STROKE}"><path d="${d}"/></svg>`;
+}
+function vsDatumBox(letter) {      // データム四角(5 mm の正方形 + 文字)。通常の文字になるときは文字のまま
+  const sv = vsTextSvg(letter, { H: 5, padX: 0, minW: 5, fill: true });
+  return sv ? `<span class="dbox vc" data-l="${escapeHtml(letter)}">${sv}</span>` : `<span class="dbox" data-l="${escapeHtml(letter)}">${escapeHtml(letter)}</span>`;
+}
+
 const SYMBOL_SVG = {
   flatness: '<path d="M9.5 7.8H19L14.5 16.2H5Z"/>',
   position: '<circle cx="12" cy="12" r="5.76"/><path d="M4.2 12H19.8M12 4.2V19.8"/>',
@@ -4446,12 +4647,25 @@ function fcfHtml(t) {
   const val = escapeHtml(t.value_text || "?");
   const count = t.count > 1 ? `${t.count}×` : "";   // 複数のサイズ形体: 「4× ∅3.5 ±0.1」
   if (kind === "dimension") {
-    const icon = t.dimension_icon ? escapeHtml(t.dimension_icon) + (t.dimension_icon === "R" ? "" : " ") : "";   // 「R1」(半径は R と数値の間に空白を入れない)
+    const iconRaw = t.dimension_icon ? t.dimension_icon + ("R⌀∅ø".includes(t.dimension_icon) ? "" : " ") : "";   // R・⌀ は値に続けて書く(Visio 様式: ⌀16±0.5)   // 「R1」(半径は R と数値の間に空白を入れない)
+    const icon = escapeHtml(iconRaw);
     const ted = t.layer === "Radius" ? " ted" : "";          // 半径(R1, R2 ...)は TED -> 四角で囲む
+    const raw = (count ? count + " " : "") + iconRaw + (t.value_text || "?");
+    const sv = ted ? vsTextSvg(raw, { H: 5, padX: 1.0 }) : vsTextSvg(raw, { H: 4, padX: 0 });
+    if (sv) return `<span class="dimlabel${ted} vc">${sv}</span>`;
     return `<span class="dimlabel${ted}">${count ? count + " " : ""}${icon}${val}</span>`;
   }
+  const datumRefs = t.datum_refs || [];
+  const symSv = vsSymSvg(kind);
+  const valSv = vsTextSvg(t.value_text || "?", { H: 5, padX: 1.0, minW: 5 });
+  const datumSv = datumRefs.map(d => vsTextSvg(d, { H: 5, padX: 1.0, minW: 5 }));
+  if (symSv && valSv && datumSv.every(x => x)) {       // Visio の様式で描く(使えない文字があるときは従来の文字表示)
+    const cntSv = count ? vsTextSvg(count, { H: 4, padX: 0 }) : null;
+    return `<span style="display:inline-flex;flex-direction:column">${count ? (cntSv ? `<span class="fcf-count vc">${cntSv}</span>` : `<span class="fcf-count">${count}</span>`) : ""}`
+         + `<span class="fcf"><span class="sym vc">${symSv}</span><span class="vc">${valSv}</span>${datumSv.map(x => `<span class="vc">${x}</span>`).join("")}</span></span>`;
+  }
   const svg = SYMBOL_SVG[kind] || SYMBOL_SVG.generic;
-  const datums = (t.datum_refs || []).map(d => `<span>${escapeHtml(d)}</span>`).join("");
+  const datums = datumRefs.map(d => `<span>${escapeHtml(d)}</span>`).join("");
   return `<span style="display:inline-flex;flex-direction:column">${count ? `<span class="fcf-count">${count}</span>` : ""}`
        + `<span class="fcf"><span class="sym"><svg viewBox="0 0 24 24">${svg}</svg></span><span>${val}</span>${datums}</span></span>`;
 }
@@ -4504,14 +4718,14 @@ function renderPmi(pmi) {
 
   if (datums.length) {
     const order = datums.map((_, i) => i).sort((a, b) => String(datums[a].letter).localeCompare(String(datums[b].letter)));
-    const rows = order.map(i => `<div class="row datum-row" data-di="${i}"><span class="dbox">${escapeHtml(datums[i].letter)}</span></div>`).join("");
+    const rows = order.map(i => `<div class="row datum-row" data-di="${i}">${vsDatumBox(String(datums[i].letter))}</div>`).join("");
     groups.push(groupHtml(`Datums (${datums.length})`, rows, false, true));
   }
 
   const idxs = tols.map((_, i) => i);
   const rowHtml = (i) => {
     const t = tols[i];
-    const side = (t.attached_datums || []).map(l => `<span class="dtri"></span><span class="stem"></span><span class="dbox">${escapeHtml(l)}</span>`).join("");
+    const side = (t.attached_datums || []).map(l => `<span class="dtri"></span><span class="stem"></span>${vsDatumBox(l)}`).join("");
     return `<div class="row pmi-card" data-idx="${i}">
       <input type="checkbox" class="vis" data-idx="${i}" checked>
       <span class="des">${escapeHtml(t.designator || "--")}</span>${fcfHtml(t)}
@@ -4676,6 +4890,62 @@ async function hasServer() {
   return _serverOk;
 }
 
+// ---- 前回開いたファイルを覚えておく(ブラウザの IndexedDB)。何も開いていない画面を右クリックして、開き直せる ----
+function lastFileDb() {
+  return new Promise((res, rej) => {
+    const rq = indexedDB.open("viewer3da", 1);
+    rq.onupgradeneeded = () => rq.result.createObjectStore("kv");
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+async function lastFileSave(file) {
+  try {
+    const db = await lastFileDb();
+    await new Promise((res, rej) => { const tx = db.transaction("kv", "readwrite"); tx.objectStore("kv").put({ name: file.name, blob: file }, "lastFile"); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+    db.close();
+  } catch (e) { /* 保存できなくても、ファイルを開く動作には影響しない */ }
+}
+async function lastFileOpen() {
+  try {
+    const db = await lastFileDb();
+    const rec = await new Promise((res, rej) => { const rq = db.transaction("kv").objectStore("kv").get("lastFile"); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); });
+    db.close();
+    if (rec && rec.blob) { handleFile(new File([rec.blob], rec.name)); return; }
+    statusEl.textContent = "前回開いたファイルはありません。";
+  } catch (e) { statusEl.textContent = "前回のファイルを開けませんでした: " + e.message; }
+}
+// 何も開いていない白い画面を右クリックすると、「最後に開いたファイル」を開くメニューを出す
+(function () {
+  let menu = null;
+  const close = () => { if (menu) { menu.remove(); menu = null; } };
+  document.addEventListener("pointerdown", (e) => { if (menu && !menu.contains(e.target)) close(); }, true);
+  window.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  viewerEl.addEventListener("contextmenu", async (e) => {
+    if (currentMesh) return;                       // モデルを表示中は、従来どおり(右ボタンは視点操作)
+    e.preventDefault();
+    close();
+    let name = null;
+    try {
+      const db = await lastFileDb();
+      const rec = await new Promise((res, rej) => { const rq = db.transaction("kv").objectStore("kv").get("lastFile"); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); });
+      db.close();
+      name = rec && rec.name;
+    } catch (_) {}
+    menu = document.createElement("div");
+    menu.style.cssText = `position:fixed;left:${e.clientX}px;top:${e.clientY}px;z-index:100000;background:#fff;border:1px solid #c9ced6;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.2);padding:3px 0;font-size:12px;min-width:200px`;
+    const item = document.createElement("div");
+    item.textContent = name ? `最後に開いたファイルを開く: ${name}` : "最後に開いたファイルはありません";
+    item.style.cssText = "padding:5px 14px;white-space:nowrap;" + (name ? "cursor:pointer;" : "color:#9aa0aa;");
+    if (name) {
+      item.onmouseenter = () => { item.style.background = "#e9eef6"; };
+      item.onmouseleave = () => { item.style.background = ""; };
+      item.onclick = () => { close(); lastFileOpen(); };
+    }
+    menu.appendChild(item);
+    document.body.appendChild(menu);
+  });
+})();
 async function handleFile(file) {
   if (!file) return;
   statusEl.textContent = `アップロード中… ${file.name} (${(file.size/1024).toFixed(0)} KB)`;
@@ -4722,6 +4992,7 @@ async function handleFile(file) {
     selectedAnnName = null; selectedPlainFace = false;
     setProgress(1); await nextFrame();
     setTimeout(() => setLoading(false), 150);
+    lastFileSave(file);                             // 次回、白い画面の右クリックから開き直せるよう、開いたファイルを覚えておく
   } catch (e) {
     setLoading(false);
     statusEl.textContent = "エラー: " + e.message;

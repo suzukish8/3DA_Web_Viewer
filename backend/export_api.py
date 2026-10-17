@@ -44,16 +44,23 @@ async def export_view(fmt: str, body: dict):
         DxfCircle(layer=str(c.get("layer", "0")), rgb=_rgb(c.get("rgb")), center=(float(c["c"][0]), float(c["c"][1])), radius=float(c["r"]))
         for c in body.get("circles", [])
     ]
-    solids = [
-        DxfSolid(layer=str(s.get("layer", "0")), rgb=_rgb(s.get("rgb")), points=np.asarray(s["points"], dtype=float).reshape(-1, 2))
-        for s in body.get("solids", []) if len(s.get("points", [])) >= 3
-    ]
+    solids = []
+    for s in body.get("solids", []):
+        pts = np.asarray(s.get("points", []), dtype=float).reshape(-1, 2)
+        if len(pts) < 3:
+            continue
+        layer, rgb = str(s.get("layer", "0")), _rgb(s.get("rgb"))
+        if fmt == "dxf" and len(pts) > 3:        # DXF の SOLID は三角形(4 点)まで。黒丸などの多角形は三角形に分けて塗りつぶす
+            for i in range(1, len(pts) - 1):
+                solids.append(DxfSolid(layer=layer, rgb=rgb, points=np.array([pts[0], pts[i], pts[i + 1]])))
+        else:
+            solids.append(DxfSolid(layer=layer, rgb=rgb, points=pts))
     labels = [
         DxfLabel(layer=str(t.get("layer", "0")), rgb=_rgb(t.get("rgb")), position=(float(t["p"][0]), float(t["p"][1])),
                  text=str(t["text"]), height=float(t["h"]))
         for t in body.get("labels", [])
     ]
-    widths = body.get("line_widths") or [0.5, 0.25]
+    widths = body.get("line_widths") or [0.25, 0.125]
     line_widths = (float(widths[0]), float(widths[1]))
 
     fd, path = tempfile.mkstemp(suffix="." + fmt)
