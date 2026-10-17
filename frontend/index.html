@@ -55,7 +55,7 @@
   .grp.collapsed > .grp-body { display: none; }
   .grp.collapsed > .grp-head .tri::before { content: "\25B6"; }
   .grp:not(.collapsed) > .grp-head .tri::before { content: "\25BC"; }
-  .row { display: flex; align-items: center; gap: 6px; padding: 3px 4px 3px 18px; cursor: pointer; border-radius: 3px; }
+  .row { display: flex; align-items: center; gap: calc(6px * var(--sbk, 1)); padding: calc(3px * var(--sbk, 1)) 4px calc(3px * var(--sbk, 1)) 18px; cursor: pointer; border-radius: 3px; }       /* 記号を小さくしたら行の隙間も詰める */
   .row:hover { background: #e9eef6; }
   .datum-row { cursor: pointer; }
   .row.selected { background: #dbe8fa; outline: 1px solid var(--accent); }
@@ -65,9 +65,12 @@
   .fcf > span.sym { border-left: none; padding: 0; width: 24px; justify-content: center; }
   .fcf svg { width: 22px; height: 22px; stroke: var(--text); fill: none; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
   .fcf-count { font-size: 11px; }
+  /* Hatched Cross Section の表示/非表示は行の右端に固定。データム記号はその左(チェックボックスの分の幅を、断面の有無に関わらず空けておく) */
+  .row.pmi-card { position: relative; padding-right: 26px; }
+  .row .sec-vis { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); margin: 0; }
   /* Visio 図の様式(JIS Z8313-5 CAD 用文字・ISO 1101 記号)。枠の高さ 5 mm = 22 px(罫線を含む) */
-  /* FCF Height に連動して、左パネルの枠・データム・寸法も大きさを変える(既定 5 mm = 等倍) */
-  .pmi-card > span[style], .pmi-card > .dimlabel, .pmi-card > .dside, .pmi-card > .des, .datum-row .dbox { zoom: var(--fcfk, 1); }
+  /* 左パネルの枠・データム・寸法の大きさ(パネル下のスライダ。FCF Height とは別。既定 5 mm = 等倍) */
+  .pmi-card > span[style], .pmi-card > .dimlabel, .pmi-card > .dside, .pmi-card > .des, .pmi-card > input.vis, .datum-row .dbox { zoom: var(--sbk, 1); }
   svg.vt, svg.vs { display: block; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
   .fcf > span.vc { padding: 0; }
   .fcf > span.sym.vc { width: auto; }
@@ -83,7 +86,7 @@
     border: 0.5px solid var(--text); font-weight: 700; font-size: 12px; background: #fff; }
   .dside { display: inline-flex; align-items: center; margin-left: auto; }
   .dside { gap: 0; }
-  .dside .stem { width: 22px; height: 0.5px; margin-left: -11px; margin-right: -1px; background: var(--text); flex: 0 0 auto; }
+  .dside .stem { width: 20px; height: 0.5px; margin-left: -9px; margin-right: -1px; background: var(--text); flex: 0 0 auto; }
   .dside .dtri { width: 0; height: 0; border-top: 6.3px solid transparent; border-bottom: 6.3px solid transparent;
     border-left: 11px solid var(--text); position: relative; z-index: 1; }
   /* ファイルを開いている間の進捗表示 (3DA B&M Viewer の loading overlay と同じ: 黒い角丸バッジ + ラベル + プログレスバー) */
@@ -106,7 +109,7 @@
   #viewsClose { border: none; background: transparent; font-size: 20px; line-height: 1; color: var(--text-dim);
     cursor: pointer; padding: 2px 6px; border-radius: 4px; }
   #viewsClose:hover { background: #e3e6ec; color: var(--text); }
-  #viewsList { flex: 1 1 auto; overflow-y: auto; padding: 6px; }
+  #viewsList { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding: 6px; }       /* 保存ビューが全部見える高さ(足りなければスクロール) */
   .view-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; cursor: pointer;
     font-size: 13px; }
   .view-row:hover { background: #e9eef6; }
@@ -122,20 +125,21 @@
     font-size: 13px; cursor: pointer; }
   #viewsSave:hover { background: #eaf1fb; }
   /* General tolerance などの一般注記: 3D モデル上には描かず、画面右下に画面へ正対して表示する */
-  #generalNotes { position: absolute; right: 12px; bottom: 12px; max-width: 46%; max-height: 50%; overflow: auto;
-    display: none; flex-direction: column; gap: 8px; z-index: 5; }
+  #generalNotes { position: static; flex: 0 1 auto; min-height: 0; max-height: 45%; overflow: auto; padding: 8px 10px;
+    margin: auto 8px 8px; background: #fff; border: 1px solid var(--panel-border); border-radius: 6px;       /* 保存ビューとは別の窓。パネルの下端に揃える */
+    box-shadow: 0 1px 4px rgba(0,0,0,.12); display: none; flex-direction: column; gap: 8px; }
   .gnote { background: transparent; border: none; border-radius: 0;
     padding: 2px 4px; font-size: 12px; line-height: 1.45; color: var(--text); white-space: pre-wrap;
-    font-family: "Segoe UI", "Meiryo", sans-serif; pointer-events: none; }
-  #generalNotes { align-items: flex-end; gap: 2px; }
-  #generalNotes .ghead { display: flex; align-items: center; gap: 8px; pointer-events: none; }
-  #generalNotes .gtitle2 { display: none; font-size: 12px; color: var(--text); }
+    font-family: "Segoe UI", "Meiryo", sans-serif; user-select: text; }
+  #generalNotes { align-items: flex-start; gap: 2px; }
+  #generalNotes .ghead { display: flex; align-items: center; gap: 8px; }
+  #generalNotes .gtitle2 { display: inline; font-size: 12px; font-weight: 600; color: var(--text); }
   #generalNotes.collapsed .gtitle2 { display: inline; }
   #generalNotes .gbtn { pointer-events: auto; width: 20px; height: 20px; line-height: 16px; padding: 0; font-size: 14px;
     border: 1px solid var(--panel-border); border-radius: 3px; background: rgba(255,255,255,0.7); color: var(--text);
     cursor: pointer; }
   #generalNotes .gbtn:hover { background: #e3e6ec; }
-  #generalNotes .gbody { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+  #generalNotes .gbody { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
   #generalNotes.collapsed .gbody { display: none; }
   #generalNotes .gnote { text-align: left; }
   /* Balloon & Mirror スタイル (3DA B&M Viewer の移植) */
@@ -188,6 +192,8 @@
   .fs-exit { display: none; }
   #app:fullscreen #fsBtn .fs-enter { display: none; }
   #app:fullscreen #fsBtn .fs-exit { display: block; }
+  #app.hide-rowchecks .pmi-card > input.vis, #app.hide-rowchecks .grp-head input.gvis { display: none; }   /* View > Show/No Show > Individual Characteristic Show/Hide(既定は非表示) */
+  #app.hide-rowchecks .row.pmi-card { padding-left: 6px; }
   #app.hide-designators .des { display: none; }   /* View > Show Designators */
   #bmControls { display: none; align-items: center; gap: 6px; margin-left: 14px; font-size: 12px; }
   #bmControls input[type=range] { width: 140px; }
@@ -198,6 +204,7 @@
   .splitter::after { content: ""; position: absolute; top: 0; bottom: 0; left: 2px; width: 1px; background: var(--panel-border); }
   .splitter:hover, .splitter.dragging { background: rgba(11,111,214,0.25); }
   .splitter.hidden { display: none; }
+  body.mirror-dragging, body.mirror-dragging * { cursor: var(--mirror-cursor, ew-resize) !important; user-select: none !important; }
   body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-select: none !important; }
   @media (max-width: 720px) { .splitter { display: none; } }
   /* ステータスバー: 左にメッセージ、右にカメラ情報(クリックで Custom View) */
@@ -310,6 +317,16 @@
 
   #panel { width: 320px; max-width: 42vw; background: var(--panel); border-right: 1px solid var(--panel-border);
     overflow-y: auto; padding: 10px; flex-shrink: 0; position: relative; }
+  #symSizeBar { position: sticky; bottom: -10px; margin: 10px -10px -10px; padding: 6px 10px; display: flex; align-items: center; gap: 6px;
+    background: var(--panel); border-top: 1px solid var(--panel-border); font-size: 12px; z-index: 2; }
+  #symSizeBar { flex-wrap: wrap; }
+  #secBrRow { display: none !important; }       /* 調整は Option > Section Color Brightness... から(スライダ自体は残して連動させる) */
+  #secBrRowOld { flex-basis: 100%; display: flex; align-items: center; gap: 6px; }
+  #secBrRow input[type=range] { flex: 1; min-width: 40px; }
+  #secBrRow input[type=number] { width: 52px; }
+  #symDesRow { flex-basis: 100%; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  #symSizeBar input[type=range] { flex: 1; min-width: 40px; }
+  #symSizeBar input[type=number] { width: 52px; }
   #panelClose { position: absolute; top: 4px; right: 6px; border: none; background: transparent; font-size: 20px;
     line-height: 1; color: var(--text-dim); cursor: pointer; padding: 2px 6px; border-radius: 4px; }
   #panelClose:hover { background: #e3e6ec; color: var(--text); }
@@ -336,7 +353,7 @@
 </style>
 </head>
 <body>
-<div id="app" class="hide-designators">
+<div id="app" class="hide-designators hide-rowchecks">
 <div id="customView" class="cv-win" style="display:none">
   <div class="cv-title"><span>Custom View</span><button id="cvClose" title="Close" aria-label="Close">&times;</button></div>
   <div class="cv-body">
@@ -428,6 +445,8 @@
     <div class="menu-title"><u>F</u>ile</div>
     <div class="menu-items">
       <div class="menu-item" id="miOpen">Open...</div>
+      <div class="menu-item" id="miAntSave">Save Settings (.ant)</div>
+      <div class="menu-item" id="miAntLink">Link .ant Folder...</div>
       <div class="menu-sep"></div>
       <div class="menu-item" id="miExpView">Export 2D View...</div>
     </div>
@@ -467,6 +486,7 @@
             </div>
           </div>
           <div class="menu-item checkable" id="miDesignators">Designators</div>
+          <div class="menu-item checkable" id="miRowChecks">Individual Characteristic Show/Hide</div>
           <div class="menu-item checkable checked" id="miViewsPanel">Saved Views Panel</div>
           <div class="menu-item checkable" id="miAxes">Origin Axes</div>
         </div>
@@ -503,6 +523,7 @@
           <div class="menu-item radio checked" data-scheme="solidworks">SOLIDWORKS (Default)</div>
         </div>
       </div>
+      <div class="menu-item" id="miSecBrightness" title="Hatched Cross Section の色: モデルの色より何 % 明るく(+)/暗く(-)するか">Section Color Brightness...</div>
     </div>
   </div>
   <div class="menu" id="menuHelp">
@@ -522,18 +543,26 @@
     <svg class="fs-exit" viewBox="0 0 16 16"><path d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4"/></svg>
   </button>
 </div>
-  <input id="fileInput" type="file" accept=".stp,.step,.stpx,.p21,.qif">
+  <input id="fileInput" type="file" accept=".stp,.step,.stpx,.p21,.qif,.ant" multiple>
   <main>
     <div id="panel">
       <button id="panelClose" title="Close" aria-label="Close">&times;</button>
       <div id="tolList"></div>
       <div id="datumList"></div>
+      <div id="symSizeBar" title="Characteristics / Datums の記号の大きさ(FCF Height とは別)">
+        <label for="symSizeNum">Symbol Height:</label>
+        <input type="range" id="symSizeSlider" min="6" max="20" step="1" value="20">
+        <input type="number" id="symSizeNum" min="6" max="20" step="1" value="20"><span>px</span>
+        <label id="secBrRow" title="断面(輪郭・ハッチング)の色: モデルの色より何 % 明るく(+)/暗く(-)するか(暫定)">Section Brightness:
+          <input type="range" id="secBrSlider" min="-100" max="100" step="1" value="-50">
+          <input type="number" id="secBrNum" min="-100" max="100" step="1" value="-50"><span>%</span></label>
+        <label id="symDesRow"><input type="checkbox" id="symDesCheck"> Show Designators</label>
+      </div>
     </div>
     <div class="splitter" id="splitLeft" title="Drag to resize"></div>
     <div id="viewer">
       <div id="loadOverlay"><div id="loadBadge"><div id="loadLabel">Opening file...</div><div id="loadBar"><div id="loadFill"></div></div></div></div>
       <div id="bmLayer"><svg id="bmSvg" xmlns="http://www.w3.org/2000/svg"></svg><div id="bmLabels"></div></div>
-      <div id="generalNotes"></div>
       <div id="dropOverlay">ここにSTEPファイルをドロップ</div>
     </div>
     <div class="splitter" id="splitRight" title="Drag to resize"></div>
@@ -541,6 +570,7 @@
       <div id="viewsHead"><span>Saved Views</span><button id="viewsClose" title="Close" aria-label="Close">&times;</button></div>
       <div id="viewsList"></div>
       <div id="viewsFoot"><button id="viewsSave">Save Current View...</button></div>
+      <div id="generalNotes"></div>      <!-- General tolerance などの一般注記: 3D 画面には出さず、ここ(保存ビューの下)に出す -->
     </div>
   </main>
   <div id="statusbar">
@@ -566,6 +596,21 @@ const viewerEl = document.getElementById("viewer");
 const statusEl = document.getElementById("status");
 const fileInput = document.getElementById("fileInput");
 const tolListEl = document.getElementById("tolList");
+// Characteristics / Datums の記号の大きさ(公差記入枠の高さ, px)。FCF Height(3D 画面の注記)とは別に調節する。既定 20 px(最大も 20 px)
+(function () {
+  const sl = document.getElementById("symSizeSlider"), nm = document.getElementById("symSizeNum");
+  const apply = (px, save) => {
+    px = Math.max(6, Math.min(20, Math.round(parseFloat(px) || 20)));
+    sl.value = String(px); nm.value = String(px);
+    document.documentElement.style.setProperty("--sbk", (px / 22).toFixed(3));
+    if (save) { try { localStorage.setItem("symSizePx", String(px)); } catch (_) {} }
+  };
+  let init = 20;
+  try { const v = parseFloat(localStorage.getItem("symSizePx")); if (v > 0) init = v; } catch (_) {}
+  apply(init, false);
+  sl.addEventListener("input", () => apply(sl.value, true));
+  nm.addEventListener("change", () => apply(nm.value, true));
+})();
 const datumListEl = document.getElementById("datumList");
 const dropOverlay = document.getElementById("dropOverlay");
 const panelEl = document.getElementById("panel");
@@ -905,6 +950,26 @@ function handleViewClick(px, py) {
       if (d < bd) { bd = d; bestIt = it; }
     }
     const idx = bestIt ? bestIt.idxs.find(i => !hiddenTol.has(i)) : undefined;
+    if (idx !== undefined) {
+      if (idx !== selectedTolIndex) selectTolerance(idx, tols);
+      revealRow(`.pmi-card[data-idx="${idx}"]`);
+      return;
+    }
+  }
+
+  // 0b) Hatched Cross Section(断面の輪郭・ハッチング)をクリック: その断面を付けた注記を選ぶ(断面もハイライト)
+  if (bmSections && bmSections.size) {
+    const W = viewerEl.clientWidth, H = viewerEl.clientHeight, v3 = new THREE.Vector3();
+    const scr = (arr, k) => { v3.set(arr[k], arr[k + 1], arr[k + 2]).project(camera); return [(v3.x + 1) * 0.5 * W, (1 - v3.y) * 0.5 * H]; };
+    let best = null, bd = 8;
+    for (const sec of bmSections.values()) if (sec.visible !== false) for (const arr of [sec.data.outline, sec.data.hatch, sec.data.circle]) {      // 輪郭・ハッチング・範囲を示す円
+      for (let i = 0; i + 5 < arr.length; i += 6) {
+        const p0 = scr(arr, i), p1 = scr(arr, i + 3);
+        const d = distPointSegment(px, py, p0[0], p0[1], p1[0], p1[1]);
+        if (d < bd) { bd = d; best = sec.item; }
+      }
+    }
+    const idx = best ? best.idxs.find(i => !hiddenTol.has(i)) : undefined;
     if (idx !== undefined) {
       if (idx !== selectedTolIndex) selectTolerance(idx, tols);
       revealRow(`.pmi-card[data-idx="${idx}"]`);
@@ -1532,7 +1597,18 @@ function bmBuildDim0(t) {
     if (cyl) { cyl.kind = "Diameter"; cyl.ranges = ranges; return cyl; }
     return null;
   }
-  const f1 = faces[0], f2 = faces[1];
+  let f1 = faces[0], f2 = faces[1];
+  // 面が 3 つ以上あるときは、面積の大きい 2 面ではなく、「平行で、間隔が寸法値に合う」2 面を探す(同じ平面上の 2 面を選んで長さ 0 になるのを防ぐ)
+  if (faces.length > 2 && t.value_mm > 0) {
+    let best = null, bestErr = Infinity;
+    for (let i = 0; i < faces.length; i++) for (let j = i + 1; j < faces.length; j++) {
+      if (Math.abs(faces[i].n.dot(faces[j].n)) <= 0.98) continue;
+      const sep = Math.abs(faces[j].c.clone().sub(faces[i].c).dot(faces[i].n));
+      const err = Math.abs(sep - t.value_mm);
+      if (err < bestErr - 1e-9) { bestErr = err; best = [faces[i], faces[j]]; }
+    }
+    if (best && bestErr <= Math.max(0.05, t.value_mm * 0.02)) { f1 = best[0]; f2 = best[1]; }
+  }
   const parallel = Math.abs(f1.n.dot(f2.n)) > 0.98;
   let d1, d2, nPar = null;
   if (parallel) {
@@ -1665,6 +1741,17 @@ function bmBuildDim(t) {
   if (dim && dim.type === "span") {       // 初期位置が面から外れていれば、面上のいちばん近い点へ
     if (dim.r1) { const s = bmSnapToRanges(dim.d1, dim.r1); if (s) dim.d1 = s.pt; }
     if (dim.r2) { const s = bmSnapToRanges(dim.d2, dim.r2); if (s) dim.d2 = s.pt; }
+    // 平行な 2 面の幅・距離: 寸法線は面に垂直にする。両端を面の上の点に拘束すると、斜めにずれることがあるので、
+    // 一方の面の点から他方の面へ最も近い点を取り、それをまた元の面へ戻すのを繰り返して、面の間の最短の(垂直な)線分にする
+    if (dim.n && dim.r1 && dim.r2) {
+      let a = dim.d1, b = dim.d2;
+      for (let k = 0; k < 4; k++) {
+        const sb = bmSnapToRanges(a, dim.r2); if (sb) b = sb.pt;
+        const sa = bmSnapToRanges(b, dim.r1); if (sa) a = sa.pt;
+      }
+      // 2 つの範囲が同じ面を含むなど、線分がつぶれる(元の長さの半分に満たない)ときは、元の端点のままにする
+      if (a.distanceTo(b) >= 0.5 * dim.d1.distanceTo(dim.d2)) { dim.d1 = a; dim.d2 = b; }
+    }
   }
   return dim;
 }
@@ -1737,7 +1824,10 @@ function bmDimArrowPlane(dim, a, b, viewDir) {
   return best;
 }
 // 引出線の先の黒丸。ハイライト(選択)中は、寸法線の端点のハイライトと同じ仕様: 中を白で塗りつぶし、枠線だけを青にする(直径 9 px)
-function bmDot(cx, cy, r, sel, baseColor) {
+var bmDotHits = [];   // 描いた黒丸の位置(右クリックで断面を出す対象)
+var bmPrevOrder = { left: null, right: null };   // 前回の並び(枠の入れ替わりを抑える)
+function bmDot(cx, cy, r, sel, baseColor, it) {
+  if (it) bmDotHits.push([cx, cy, it]);
   if (!sel) { bmSvg.appendChild(bmSvgEl("circle", { cx, cy, r, fill: baseColor })); return; }
   bmSvg.appendChild(bmSvgEl("circle", { cx, cy, r: 3.5, fill: "#ffffff", stroke: "#0077ff", "stroke-width": 2 }));
 }
@@ -1890,7 +1980,7 @@ function buildMirror(axis, sign) {
   const tgeo = new THREE.BufferGeometry();
   tgeo.setAttribute("position", new THREE.Float32BufferAttribute(pts.flatMap(p => p.toArray()), 3));
   tgeo.setIndex([0, 1, 2, 0, 2, 3]);
-  const tint = new THREE.Mesh(tgeo, new THREE.MeshBasicMaterial({ color: 0x0077ff, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthTest: false }));
+  const tint = new THREE.Mesh(tgeo, new THREE.MeshBasicMaterial({ color: 0x0077ff, transparent: true, opacity: 0.4, side: THREE.DoubleSide, depthTest: false }));
   tint.renderOrder = 11; tint.visible = false;
   g.add(tint);
   g.userData.tint = tint;
@@ -2042,6 +2132,7 @@ function bmSvgEl(tag, attrs) {
 
 // 選択中の公差記入枠に対応するデータム(枠が参照するデータム、枠の下に付くデータム記号)を青にする
 function bmApplyDatumHighlight() {
+  bmSectionRefreshHighlight();
   const tols = (lastPmi && lastPmi.geometric_tolerances) || [];
   const t = selectedTolIndex !== null ? tols[selectedTolIndex] : null;
   const letters = new Set();
@@ -2133,7 +2224,7 @@ function bmLayout() {
       if (attach[0] < 0 || attach[0] > W || attach[1] < 0 || attach[1] > H) { it.el.style.visibility = "hidden"; continue; }   // アンカーが画面の外に出たら、その注記は表示しない
       {
         // 寸法の両端点がどちらも遮蔽されて見えないときは、Hidden-Side Mirror に映っているところ(端点を鏡の面へ写した位置)を指示する
-        if (bmMirrorsOn && it.tris) {
+        if (bmMirrorsOn && it.tris && !bmHasSection(it)) {      // 断面を表示している注記は、ミラーではなく元のモデルを指す
           const toCam = viewDir.clone().negate();
           const endsW = ends.map(e => e.w);
           if (endsW.length && endsW.every(pw => bmBlocked(it, pw, toCam, it.tris))) {
@@ -2184,7 +2275,7 @@ function bmLayout() {
     if (swapped) { visible.push({ it, scr: swapped.sc, mirror: null }); continue; }
     // Hidden-Side Mirror に映っているか
     let axisFound = null, bestAlign = BM_REVEAL_ALIGN;
-    if (bmMirrorsOn) {
+    if (bmMirrorsOn && !bmHasSection(it)) {
       for (let axis = 0; axis < 3; axis++) {
         if (bmMirrorHidden[axis]) continue;
         const sign = viewDir.getComponent(axis) > 0 ? 1 : -1;
@@ -2194,6 +2285,7 @@ function bmLayout() {
         if (!bmBlocked(it, it.anchor, dir, it.tris)) { bestAlign = align; axisFound = [axis, sign]; }
       }
     }
+    if (!axisFound && bmHasSection(it)) { visible.push({ it, scr: s0, mirror: null }); continue; }      // 断面あり: 隠れていても元のモデルのアンカーを指す(駐車もしない)
     if (axisFound) {
       const sp = mirrorSurfacePoint(it.anchor, axisFound[0], axisFound[1]);
       it.mirrorInfo = { axis: axisFound[0], sign: axisFound[1] };
@@ -2209,11 +2301,18 @@ function bmLayout() {
   const pivots = visible.filter(v => v.mirror === null);
   const base = pivots.length ? pivots : visible;
   bmSvg.innerHTML = "";
+  bmDotHits = [];
   for (const it0 of bmItems) it0.segs = null;
   bmSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   let avgX = W / 2;
   if (base.length) avgX = base.reduce((s2, v) => s2 + v.scr[0], 0) / base.length;   // 左右分割の基準(重心)
-  const left = visible.filter(v => v.scr[0] < avgX), right = visible.filter(v => v.scr[0] >= avgX);
+  // 左右の列の振り分けにヒステリシス: 重心の近く(40 px 以内)では、前回の列のままにする(視点を少し変えただけで列が入れ替わらないように)
+  for (const v of visible) {
+    const dx = v.scr[0] - avgX, ls = v.it.lastSide;
+    v.side = (ls && Math.abs(dx) < 40) ? ls : (dx < 0 ? "left" : "right");
+    v.it.lastSide = v.side;
+  }
+  const left = visible.filter(v => v.side === "left"), right = visible.filter(v => v.side === "right");
   // 寸法: 引出線は、ラベルのある側(左列なら左、右列なら右)に近い方の端点へ付ける
   for (const v of left) if (v.ends) v.scr = v.ends.reduce((m, e) => (e.s[0] < m[0] ? e.s : m), v.ends[0].s);
   for (const v of right) if (v.ends) v.scr = v.ends.reduce((m, e) => (e.s[0] > m[0] ? e.s : m), v.ends[0].s);
@@ -2298,7 +2397,15 @@ function bmLayout() {
       const relaxed = searchOrder();
       if (relaxed.cross < found.cross) found = relaxed; else minTan = fullTan;
     }
-    const order = found.order;
+    let order = found.order;
+    // 並びにもヒステリシス: 前回の並びが、今回見つけた並びより(交差の数で)悪くなければ、前回の並びを使う(視点を少し変えるたびに枠が入れ替わらない)
+    const prevIts = bmPrevOrder[side];
+    if (prevIts && prevIts.length === list.length) {
+      const idxOf = new Map(list.map((v2, k2) => [v2.it, k2]));
+      const po = prevIts.map(it2 => idxOf.get(it2));
+      if (po.every(k2 => k2 !== undefined) && crossCount(po) <= found.cross) order = po;
+    }
+    bmPrevOrder[side] = order.map(k2 => list[k2].it);
     const ys = computeYs(order);
     order.forEach((k, row) => {
       const v = list[k], it = v.it;
@@ -2329,6 +2436,8 @@ function bmLayout() {
           const a = v.ends[0].s, b = v.ends[1].s;
           let dx = b[0] - a[0], dy = b[1] - a[1];
           if (Math.hypot(dx, dy) < 2) { dx = 1; dy = 0; }       // 端点が重なる(軸方向視)ときは水平
+          for (const e2 of v.ends) bmDotHits.push([e2.s[0], e2.s[1], it]);    // 寸法の端点・引出線の先を右クリックして、Hatched Cross Section を出せるように
+          bmDotHits.push([v.scr[0], v.scr[1], it]);
           // 矢印は 3D の平面(直径: 中心線に垂直な面 / 幅・距離: 寸法線と垂直でない XY・YZ・ZX 面)の上に描く
           const nP = v.arrowN || bmDimArrowPlane(it.dim, v.ends[0].w, v.ends[1].w, viewDir);
           let done = false;
@@ -2348,10 +2457,10 @@ function bmLayout() {
           }
         } else {
           // 半径(R1, R2 ...)は理論的に正確な寸法: 寸法線も端末記号(矢印・同軸線)も描かず、引出線と黒丸だけにする
-          bmDot(v.scr[0], v.scr[1], Math.max(1.5, dotPx / 2), sel, it.color);
+          bmDot(v.scr[0], v.scr[1], Math.max(1.5, dotPx / 2), sel, it.color, it);
         }
       } else {
-        bmDot(v.scr[0], v.scr[1], Math.max(1.5, dotPx / 2), sel, it.color);
+        bmDot(v.scr[0], v.scr[1], Math.max(1.5, dotPx / 2), sel, it.color, it);
       }
       placed.add(it);
     });
@@ -2424,7 +2533,6 @@ function bmSetFcfUnits(u, fromUser) {
   bmFcfUnits = mm / bmUnitToMm;
   fcfNum.value = mm.toFixed(1);
   fcfSlider.value = String(mm);
-  document.documentElement.style.setProperty("--fcfk", (mm / 5).toFixed(3));      // 左パネル(Characteristics / Datums)の枠も同じ比率で拡大・縮小
   bmDirty = true; bmLastSig = "";
 }
 function bmInitFcf(unitFactor) {
@@ -2700,6 +2808,19 @@ document.addEventListener("fullscreenchange", onFsChange);
 document.addEventListener("webkitfullscreenchange", onFsChange);
 
 // ---- View > Show Designators: 通知番号の表示/非表示 (左パネルと Balloon & Mirror の枠) ----
+// 左パネルの「Show Designators」チェックボックス: View メニューの Designators と同じ(どちらを操作しても連動する)
+(function () {
+  const cb = document.getElementById("symDesCheck"), mi = document.getElementById("miDesignators");
+  const sync = () => { cb.checked = mi.classList.contains("checked"); };
+  cb.addEventListener("change", () => { if (cb.checked !== mi.classList.contains("checked")) mi.click(); });
+  mi.addEventListener("click", () => setTimeout(sync, 0));
+  sync();
+})();
+document.getElementById("miRowChecks").addEventListener("click", () => {      // 個別の特性のチェックボックス(表示/非表示の切り替え)を出す/隠す
+  const el = document.getElementById("miRowChecks");
+  el.classList.toggle("checked");
+  document.getElementById("app").classList.toggle("hide-rowchecks", !el.classList.contains("checked"));
+});
 document.getElementById("miDesignators").addEventListener("click", () => {
   const el = document.getElementById("miDesignators");
   el.classList.toggle("checked");
@@ -2815,6 +2936,19 @@ function bmPickMirrorClose(clientX, clientY) {
   const hit = mirrorRay.intersectObjects(quads, false)[0];
   return hit ? hit.object.userData.closeAxis : null;
 }
+// 鏡をドラッグできるときのカーソル: 鏡が動く方向(軸の画面上の向き)を指す、両方に矢のある矢印
+function bmMirrorCursor(axis) {
+  const m = bmMirrors[axis];
+  if (!m) return "ew-resize";
+  const c = new THREE.Vector3().fromArray(mirrorPlanePoint(axis, m.sign));
+  const unit = new THREE.Vector3(); unit.setComponent(axis, 1);
+  const p0 = c.clone().project(camera), p1 = c.clone().add(unit).project(camera);
+  const sx = (p1.x - p0.x) * 0.5 * viewerEl.clientWidth, sy = -(p1.y - p0.y) * 0.5 * viewerEl.clientHeight;
+  const ax = Math.abs(sx), ay = Math.abs(sy);
+  if (ay < 0.38 * ax) return "ew-resize";
+  if (ax < 0.38 * ay) return "ns-resize";
+  return sx * sy > 0 ? "nwse-resize" : "nesw-resize";
+}
 cv.addEventListener("pointerdown", (e) => {
   if (e.pointerType === "mouse" && e.button !== 0) return;
   const closeAxis = bmPickMirrorClose(e.clientX, e.clientY);
@@ -2852,8 +2986,8 @@ cv.addEventListener("pointerdown", (e) => {
   e.stopImmediatePropagation();
   clickStart = null;                              // ドラッグはクリック選択として扱わない
   bmMirrorDrag = { axis, sign: m.sign, x0: e.clientX, y0: e.clientY, off0: mirrorOffsetOf(axis), sx, sy, len2, built: m.builtOffset, id: e.pointerId };
-  document.body.classList.add("col-resizing");
-  document.body.style.cursor = "grabbing";
+  document.body.style.setProperty("--mirror-cursor", bmMirrorCursor(axis));
+  document.body.classList.add("mirror-dragging");
   try { cv.setPointerCapture(e.pointerId); } catch (_) {}
 }, true);
 cv.addEventListener("pointermove", (e) => {
@@ -2874,14 +3008,17 @@ cv.addEventListener("pointermove", (e) => {
     const rr = cv.getBoundingClientRect();
     const overDbg = (dbgAnchorsOn || dbgDimEndsOn || selectedTolIndex !== null) && dbgPickHandle(e.clientX - rr.left, e.clientY - rr.top);
     if (bmPickMirrorClose(e.clientX, e.clientY) !== null) cv.style.cursor = "default";    // 鏡の角の × の上は矢印(クリックで鏡を消す)
-    else cv.style.cursor = (overDbg || bmPickMirror(e.clientX, e.clientY) !== null) ? "grab" : "";
+    else {
+      const mAxis = overDbg ? null : bmPickMirror(e.clientX, e.clientY);
+      cv.style.cursor = overDbg ? "grab" : ((mAxis !== null && bmMirrorSel === mAxis) ? bmMirrorCursor(mAxis) : "");      // 一度クリックして選んだ鏡の上だけ、両矢印(ドラッグできる)
+    }
   }
 }, true);
 function bmEndMirrorDrag(e) {
   if (!bmMirrorDrag) return;
   const axis = bmMirrorDrag.axis, sign = bmMirrorDrag.sign;
   bmMirrorDrag = null;
-  document.body.classList.remove("col-resizing");
+  document.body.classList.remove("mirror-dragging");
   document.body.style.cursor = "";
   const m = bmMirrors[axis];
   if (m) { m.group.position.set(0, 0, 0); buildMirror(axis, sign); }               // 新しい位置で作り直す
@@ -3435,6 +3572,19 @@ async function expBuildIR(onProgress) {
     expBalloonAnnotations(ir, M);
   } else if (annotationStyle === "original") {
     expGraphicAnnotations(ir, M);
+  }
+  // Hatched Cross Section(断面の輪郭とハッチング)は、画面で見えているものをそのまま SECTION レイヤーに出す
+  if (bmSections && bmSections.size) {
+    const v3 = new THREE.Vector3(), secHex = bmSectionColor().getHex(), secRgb = [(secHex >> 16) & 255, (secHex >> 8) & 255, secHex & 255];
+    for (const sec of bmSections.values()) {
+      if (sec.visible === false) continue;
+      for (const arr of [sec.data.outline, sec.data.hatch, sec.data.circle]) {
+        for (let i = 0; i + 5 < arr.length; i += 6) {
+          ir.polylines.push({ layer: "SECTION", rgb: secRgb,
+            points: [M.world(v3.set(arr[i], arr[i + 1], arr[i + 2])), M.world(v3.set(arr[i + 3], arr[i + 4], arr[i + 5]))] });
+        }
+      }
+    }
   }
   // General tolerance の本文は、画面での表示/縮小に関係なく、書き出し時に用紙の右下へ置く(expWithGeneral)
   // 3D モデルの原点の座標軸(画面の「Show Origin Axes」と同じ長さ = 外接矩形の対角の 25%)を、この図の向きで投影した 2D ベクトル(mm)
@@ -4796,6 +4946,307 @@ window.addEventListener("keydown", (e) => {
     document.getElementById("errBackdrop").style.display = "none";
 });
 
+// ---- Hatched Cross Section (3DA B&M Viewer の「引出線の黒丸を右クリック > Hatched Cross Section」) ----
+// 注記のアンカーを通る XY / YZ / ZX 平面でモデルを切り、断面の輪郭(灰色)と 45 度のハッチングを重ねて描く。
+// 「Whole Part」は部品全体、「Within Radius...」はアンカーから指定した半径の円の中だけ(範囲を示す細い円つき)。
+// 注記をハイライトすると、その注記に付けた断面も青くなる。
+var bmSections = new Map();         // key "<特性の index>|<面>" -> { item, plane, radius, origin, outline, hatch, objs }
+const BM_SECTION_BASIS = {            // n: 平面の法線, u / v: 平面内の 2 軸(3DA B&M Viewer と同じ向き)
+  XY: { n: [0, 0, 1], u: [1, 0, 0], v: [0, 1, 0] },
+  YZ: { n: [1, 0, 0], u: [0, 1, 0], v: [0, 0, 1] },
+  ZX: { n: [0, 1, 0], u: [-1, 0, 0], v: [0, 0, 1] },
+};
+const BM_SECTION_BLUE = 0x0077ff;
+// 断面(輪郭・ハッチング)の色: 3D モデルの色を、bmSectionBrightness % だけ明るく(+)/暗く(-)した色
+var bmSectionBrightness = -50;       // モデルの色に対する明るさの変化(%)。+ は白へ、- は黒へ寄せる(暫定のスライダで調整)
+try { const v = parseFloat(localStorage.getItem("secBrightness2")); if (isFinite(v)) bmSectionBrightness = Math.max(-100, Math.min(100, v)); } catch (_) {}
+function bmSectionColor() {
+  const c = new THREE.Color(0x8c8c8c);
+  if (currentMesh && currentMesh.material && currentMesh.material.color) c.copy(currentMesh.material.color);
+  const k = bmSectionBrightness / 100;
+  return c.lerp(new THREE.Color(k >= 0 ? 0xffffff : 0x000000), Math.abs(k));
+}
+// 断面の色の明るさ(暫定のスライダ): -100〜+100 %
+(function () {
+  const sl = document.getElementById("secBrSlider"), nm = document.getElementById("secBrNum");
+  const apply = (v, save) => {
+    v = Math.max(-100, Math.min(100, Math.round(parseFloat(v) || 0)));
+    bmSectionBrightness = v; sl.value = String(v); nm.value = String(v);
+    if (save) { try { localStorage.setItem("secBrightness2", String(v)); } catch (_) {} }
+    for (const sec of bmSections.values()) sec.objs.forEach(o => { if (!(selectedTolIndex !== null && sec.item.idxs.includes(selectedTolIndex))) o.material.color.copy(bmSectionColor()); });
+  };
+  apply(bmSectionBrightness, false);
+  sl.addEventListener("input", () => apply(sl.value, true));
+  nm.addEventListener("change", () => apply(nm.value, true));
+  document.getElementById("miSecBrightness").addEventListener("click", () => {      // Option > Section Color Brightness...
+    const v = window.prompt("断面(Hatched Cross Section)の色: モデルの色より何 % 明るく(+)/暗く(-)するか\n(-100 〜 +100。0 = モデルと同じ色)", String(bmSectionBrightness));
+    if (v !== null && isFinite(parseFloat(v))) apply(v, true);
+  });
+})();
+function bmHasSection(it) {            // この注記に付けた断面(Hatched Cross Section)が表示されているか
+  if (!bmSections) return false;
+  for (const sec of bmSections.values()) if (sec.item === it && sec.visible !== false) return true;
+  return false;
+}
+function bmSectionKey(it, plane) { return `${it.idxs[0]}|${plane}`; }
+// 線分 (a0,b0)-(a1,b1) を、原点中心・半径 R の円の内側だけにする。外側なら null
+function bmClipSegDisc(a0, b0, a1, b1, R) {
+  const dx = a1 - a0, dy = b1 - b0, A = dx * dx + dy * dy;
+  if (A < 1e-18) return (a0 * a0 + b0 * b0 <= R * R) ? [a0, b0, a1, b1] : null;
+  const B = 2 * (a0 * dx + b0 * dy), C = a0 * a0 + b0 * b0 - R * R, D = B * B - 4 * A * C;
+  if (D < 0) return null;
+  const sq = Math.sqrt(D);
+  let k0 = (-B - sq) / (2 * A), k1 = (-B + sq) / (2 * A);
+  k0 = Math.max(0, k0); k1 = Math.min(1, k1);
+  if (k1 <= k0) return null;
+  return [a0 + k0 * dx, b0 + k0 * dy, a0 + k1 * dx, b0 + k1 * dy];
+}
+function bmSectionCompute(origin, plane, radius, outlineOnly) {
+  if (!bmPos) bmBuildFaces();
+  const B = BM_SECTION_BASIS[plane], n = B.n, u = B.u, v = B.v;
+  const P = bmPos, I = bmIdx, o = [origin.x, origin.y, origin.z];
+  const dist = (k) => (P[k] - o[0]) * n[0] + (P[k + 1] - o[1]) * n[1] + (P[k + 2] - o[2]) * n[2];
+  const segs = [];                                  // [a0, b0, a1, b1](平面内の座標)
+  const nt = I.length / 3;
+  for (let t = 0; t < nt; t++) {
+    const k = [I[t * 3] * 3, I[t * 3 + 1] * 3, I[t * 3 + 2] * 3];
+    const d = [dist(k[0]), dist(k[1]), dist(k[2])], sg = [d[0] > 0, d[1] > 0, d[2] > 0];
+    if (sg[0] === sg[1] && sg[1] === sg[2]) continue;
+    const pts = [], p3 = [];
+    for (let e = 0; e < 3; e++) {
+      const i = e, j = (e + 1) % 3;
+      if (sg[i] === sg[j]) continue;
+      const f = d[i] / (d[i] - d[j]);
+      const x = P[k[i]] + f * (P[k[j]] - P[k[i]]) - o[0], y = P[k[i] + 1] + f * (P[k[j] + 1] - P[k[i] + 1]) - o[1], z = P[k[i] + 2] + f * (P[k[j] + 2] - P[k[i] + 2]) - o[2];
+      pts.push([x * u[0] + y * u[1] + z * u[2], x * v[0] + y * v[1] + z * v[2]]); p3.push([x, y, z]);
+    }
+    if (pts.length === 2) {
+      // 切り口の線分に、三角形の向き(外向き法線)から決まる向きをつける(輪郭を一周する向きにそろえる)。ハッチングは「向きを足した巻き数が 0 でない所」を塗る
+      const e1 = [P[k[1]] - P[k[0]], P[k[1] + 1] - P[k[0] + 1], P[k[1] + 2] - P[k[0] + 2]], e2 = [P[k[2]] - P[k[0]], P[k[2] + 1] - P[k[0] + 1], P[k[2] + 2] - P[k[0] + 2]];
+      const N = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
+      const tt = [n[1] * N[2] - n[2] * N[1], n[2] * N[0] - n[0] * N[2], n[0] * N[1] - n[1] * N[0]];
+      const dd = [p3[1][0] - p3[0][0], p3[1][1] - p3[0][1], p3[1][2] - p3[0][2]];
+      if (dd[0] * tt[0] + dd[1] * tt[1] + dd[2] * tt[2] >= 0) segs.push([pts[0][0], pts[0][1], pts[1][0], pts[1][1]]);
+      else segs.push([pts[1][0], pts[1][1], pts[0][0], pts[0][1]]);
+    }
+  }
+  // 45 度のハッチング: 走査線 s = (b - a)/√2 = k * 間隔、線の上の位置 t = (a + b)/√2。上下の端はちょうど頂点に載らないよう「半開区間」で数える
+  const R2 = Math.SQRT2;
+  const hatch = [];
+  if (segs.length && !outlineOnly) {
+    let lo = Infinity, hi = -Infinity;
+    for (const g of segs) for (const q of [(g[3] - g[2]) / R2, (g[1] - g[0]) / R2]) { if (q < lo) lo = q; if (q > hi) hi = q; }
+    if (radius != null) { lo = Math.max(lo, -radius * 1.5); hi = Math.min(hi, radius * 1.5); }
+    const sp = Math.max(bmDiag() * 0.01, (hi - lo) / 2000, 1e-6);
+    for (let kk = Math.ceil(lo / sp); kk <= Math.floor(hi / sp); kk++) {
+      const sc = kk * sp, xs = [];
+      for (const g of segs) {
+        const s0 = (g[1] - g[0]) / R2, s1 = (g[3] - g[2]) / R2;
+        if ((s0 <= sc) === (s1 <= sc)) continue;
+        const f = (sc - s0) / (s1 - s0);
+        xs.push([((g[0] + f * (g[2] - g[0])) + (g[1] + f * (g[3] - g[1]))) / R2, s1 > s0 ? 1 : -1]);
+      }
+      xs.sort((x, y) => x[0] - y[0]);
+      // 巻き数(向きを足した数)が 0 でない区間を塗る。重なった面(同じ線分が 2 重)や穴でも、塗る/塗らないが狂わない
+      let wnd = 0;
+      for (let i = 0; i + 1 < xs.length; i++) {
+        wnd += xs[i][1];
+        if (wnd !== 0 && xs[i + 1][0] - xs[i][0] > 1e-9) hatch.push([(xs[i][0] - sc) / R2, (xs[i][0] + sc) / R2, (xs[i + 1][0] - sc) / R2, (xs[i + 1][0] + sc) / R2]);
+      }
+    }
+  }
+  const clip = (list) => radius == null ? list : list.map(g => bmClipSegDisc(g[0], g[1], g[2], g[3], radius)).filter(Boolean);
+  const outline = clip(segs), hatchC = clip(hatch);
+  const circle = [];
+  if (radius != null) for (let i = 0; i < 64; i++) { const a = i / 64 * 2 * Math.PI, b2 = (i + 1) / 64 * 2 * Math.PI; circle.push([radius * Math.cos(a), radius * Math.sin(a), radius * Math.cos(b2), radius * Math.sin(b2)]); }
+  const to3 = (list) => {
+    const out = new Float32Array(list.length * 6);
+    list.forEach((g, i) => {
+      out[i * 6] = o[0] + g[0] * u[0] + g[1] * v[0]; out[i * 6 + 1] = o[1] + g[0] * u[1] + g[1] * v[1]; out[i * 6 + 2] = o[2] + g[0] * u[2] + g[1] * v[2];
+      out[i * 6 + 3] = o[0] + g[2] * u[0] + g[3] * v[0]; out[i * 6 + 4] = o[1] + g[2] * u[1] + g[3] * v[1]; out[i * 6 + 5] = o[2] + g[2] * u[2] + g[3] * v[2];
+    });
+    return out;
+  };
+  return { outline: to3(outline), hatch: to3(hatchC), circle: to3(circle) };
+}
+function bmSectionRemove(key) {
+  const keys = key ? [key] : [...bmSections.keys()];
+  for (const k of keys) {
+    const sec = bmSections.get(k);
+    if (!sec) continue;
+    sec.objs.forEach(o => { scene.remove(o); o.geometry.dispose(); o.material.dispose(); });
+    bmSections.delete(k);
+  }
+  bmDirty = true; bmLastSig = "";
+}
+function bmSectionSet(it, plane, radius) {
+  const key = bmSectionKey(it, plane);
+  for (const [k, sec] of [...bmSections]) if (sec.item === it) bmSectionRemove(k);      // 1 つの注記に付けられる断面は、6 種類(3 平面 x 全体/半径)のうち 1 つだけ
+  if (!it.anchor || !currentMeshData) return;
+  const origin = it.anchor.clone();
+  const r = bmSectionCompute(origin, plane, radius);
+  const objs = [];
+  for (const arr of [r.outline, r.hatch, r.circle]) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(arr, 3));
+    const m = new THREE.LineBasicMaterial({ color: bmSectionColor(), depthTest: false, transparent: true });
+    const obj = new THREE.LineSegments(g, m);
+    obj.renderOrder = 998; obj.frustumCulled = false;
+    scene.add(obj); objs.push(obj);
+  }
+  bmSections.set(key, { item: it, plane, radius, origin, data: r, objs, visible: true });
+  bmSectionRefreshHighlight();
+  bmDirty = true;
+}
+// 断面を付けた特性の行の右端に、断面の表示/非表示のチェックボックスを置く(断面が無い行のものは取り除く)
+function bmSectionSyncRows() {
+  if (!tolListEl) return;
+  const want = new Map();                           // 行の index -> 断面
+  for (const sec of bmSections.values()) {
+    // サイズ(寸法)と幾何公差の両方がある塊は、幾何公差の行にだけ付ける(データム記号と同じ)。幾何公差が無ければ最初の行
+    const rows = sec.item.idxs.map(i => tolListEl.querySelector(`.pmi-card[data-idx="${i}"]`));
+    let k = rows.findIndex(r => r && r.querySelector(".fcf"));
+    if (k < 0) k = rows.findIndex(r => r);
+    if (k >= 0) want.set(String(sec.item.idxs[k]), sec);
+  }
+  tolListEl.querySelectorAll(".pmi-card").forEach(row => {
+    const sec = want.get(row.dataset.idx);
+    let cb = row.querySelector(".sec-vis");
+    if (!sec) { if (cb) cb.remove(); return; }
+    if (!cb) {
+      cb = document.createElement("input");
+      cb.type = "checkbox"; cb.className = "sec-vis"; cb.title = "Hatched Cross Section: 表示 / 非表示";
+      cb.addEventListener("click", (e) => e.stopPropagation());
+      cb.addEventListener("change", () => {
+        const s2 = want.get(row.dataset.idx) || [...bmSections.values()].find(x => x.item.idxs.map(String).includes(row.dataset.idx));
+        if (s2) { s2.visible = cb.checked; s2.objs.forEach(o => { o.visible = cb.checked; }); bmDirty = true; bmLastSig = ""; }
+      });
+      row.appendChild(cb);
+    }
+    cb.checked = sec.visible !== false;
+  });
+}
+function bmSectionRefreshHighlight() {                 // ハイライト中の注記に付いた断面は青にする
+  if (!bmSections) return;      // 起動直後(定義より前に呼ばれたとき)
+  // アンカーが動いたら(ドラッグ・再配置)、断面もそのアンカーを通る位置へ作り直す
+  for (const sec of [...bmSections.values()]) {
+    if (sec.item.anchor && sec.item.anchor.distanceToSquared(sec.origin) > 1e-12) { const vis = sec.visible; bmSectionSet(sec.item, sec.plane, sec.radius); const n2 = bmSections.get(bmSectionKey(sec.item, sec.plane)); if (n2) n2.visible = vis; }
+  }
+  for (const sec of bmSections.values()) sec.objs.forEach(o => { o.visible = sec.visible !== false; });
+  bmSectionSyncRows();
+  for (const sec of bmSections.values()) {
+    const on = selectedTolIndex !== null && sec.item.idxs.includes(selectedTolIndex);
+    sec.objs.forEach(o => { if (on) o.material.color.setHex(BM_SECTION_BLUE); else o.material.color.copy(bmSectionColor()); });
+  }
+}
+// 画面上の点 (clientX, clientY) にいちばん近い、表示中の注記のアンカー(10 px 以内)
+function bmAnchorAt(clientX, clientY) {
+  const r = viewerEl.getBoundingClientRect(), W = r.width, H = r.height;
+  let best = null, bd = 10;
+  const sr = document.getElementById("bmSvg").getBoundingClientRect();
+  for (const [x0, y0, it] of bmDotHits) {                 // 実際に描いた黒丸
+    const d = Math.hypot(x0 + sr.left - clientX, y0 + sr.top - clientY);
+    if (d < bd) { bd = d; best = it; }
+  }
+  if (best) return best;
+  for (const it of bmItems) {
+    if (!it.anchor || it.el.style.visibility === "hidden") continue;
+    const q = it.anchor.clone().project(camera);
+    const x = (q.x + 1) * 0.5 * W + r.left, y = (1 - q.y) * 0.5 * H + r.top;
+    const d = Math.hypot(x - clientX, y - clientY);
+    if (d < bd) { bd = d; best = it; }
+  }
+  return best;
+}
+// メニューの項目に合わせて、切る平面(アンカーを通る XY / YZ / ZX 平面)を青い半透明の四角でモデルに重ねて見せる
+var bmSectionPreview = null;
+function bmSectionPreviewClear() {
+  if (!bmSectionPreview) return;
+  bmSectionPreview.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+  scene.remove(bmSectionPreview);
+  bmSectionPreview = null;
+}
+function bmSectionPreviewShow(it, plane, radius) {
+  bmSectionPreviewClear();
+  if (!it.anchor || !currentMeshData) return;
+  if (radius != null) {                                 // Within Radius: アンカーを中心にした円(仮の半径)を平面の上に出す
+    const B = BM_SECTION_BASIS[plane], a0 = it.anchor, pts = [];
+    for (let i = 0; i < 72; i++) {
+      const t = i / 72 * 2 * Math.PI, c = radius * Math.cos(t), s2 = radius * Math.sin(t);
+      pts.push(new THREE.Vector3(a0.x + c * B.u[0] + s2 * B.v[0], a0.y + c * B.u[1] + s2 * B.v[1], a0.z + c * B.u[2] + s2 * B.v[2]));
+    }
+    const gd = new THREE.BufferGeometry().setFromPoints([a0.clone(), ...pts]);
+    const idx = []; for (let i = 0; i < 72; i++) idx.push(0, 1 + i, 1 + (i + 1) % 72);
+    gd.setIndex(idx);
+    const disc = new THREE.Mesh(gd, new THREE.MeshBasicMaterial({ color: BM_SECTION_BLUE, transparent: true, opacity: 0.4, side: THREE.DoubleSide, depthTest: false }));
+    disc.renderOrder = 996;
+    const ring = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: BM_SECTION_BLUE, depthTest: false }));
+    ring.renderOrder = 997;
+    const g2 = new THREE.Group(); g2.add(disc); g2.add(ring);
+    g2.traverse(o => { o.frustumCulled = false; });
+    scene.add(g2);
+    bmSectionPreview = g2;
+    return;
+  }
+  const b = currentMeshData.bbox, a = it.anchor, m = 0.08 * bmDiag();       // モデルの外形より少し大きく
+  const lo = [b.min[0] - m, b.min[1] - m, b.min[2] - m], hi = [b.max[0] + m, b.max[1] + m, b.max[2] + m];
+  const P = (x, y, z) => new THREE.Vector3(x, y, z);
+  const q = plane === "XY" ? [P(lo[0], lo[1], a.z), P(hi[0], lo[1], a.z), P(hi[0], hi[1], a.z), P(lo[0], hi[1], a.z)]
+          : plane === "YZ" ? [P(a.x, lo[1], lo[2]), P(a.x, hi[1], lo[2]), P(a.x, hi[1], hi[2]), P(a.x, lo[1], hi[2])]
+          :                  [P(lo[0], a.y, lo[2]), P(hi[0], a.y, lo[2]), P(hi[0], a.y, hi[2]), P(lo[0], a.y, hi[2])];
+  const g = new THREE.BufferGeometry().setFromPoints(q);
+  g.setIndex([0, 1, 2, 0, 2, 3]);
+  const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: BM_SECTION_BLUE, transparent: true, opacity: 0.4, side: THREE.DoubleSide, depthTest: false }));
+  mesh.renderOrder = 996;
+  const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(q), new THREE.LineBasicMaterial({ color: BM_SECTION_BLUE, depthTest: false }));
+  line.renderOrder = 997;
+  const grp = new THREE.Group();
+  // Whole Part: 断面の輪郭(モデルをこの平面で切った線)を青い線で描く
+  try {
+    const r = bmSectionCompute(a, plane, null, true);
+    if (r.outline.length) {       // 断面の輪郭だけを青い線で描く(外側の長方形は描かない)
+      const og = new THREE.BufferGeometry(); og.setAttribute("position", new THREE.BufferAttribute(r.outline, 3));
+      const ol = new THREE.LineSegments(og, new THREE.LineBasicMaterial({ color: BM_SECTION_BLUE, depthTest: false }));
+      ol.renderOrder = 998; grp.add(ol);
+    } else { grp.add(mesh); grp.add(line); }       // 断面が無い(モデルと交わらない)ときだけ、平面の四角を出す
+  } catch (_) { grp.add(mesh); grp.add(line); }       // 輪郭が作れなくても、平面のプレビューは出す
+  grp.traverse(o => { o.frustumCulled = false; });
+  scene.add(grp);
+  bmSectionPreview = grp;
+}
+// Within Radius の既定の半径(モデル単位): サイズ(直径・幅・距離)を持つ注記は「そのサイズの半分 x 1.2」、それ以外は設定値(既定 10 mm)
+function bmSectionDefaultRadius(it) {
+  const d = it && it.dim;
+  if (d) {
+    const size = d.type === "span" ? d.d1.distanceTo(d.d2) : (d.kind === "Radius" ? d.radius : 2 * d.radius);
+    if (size > 0) return size / 2 * 1.2;
+  }
+  return bmSectionRadiusMm / (bmUnitToMm || 1);
+}
+var bmSectionRadiusMm = 10;          // Within Radius の半径(mm)。メニューの「Set Radius...」で変える
+function bmSectionMenu(it, e, closeMenu, makeMenu) {
+  const items = [];
+  for (const plane of ["XY", "YZ", "ZX"]) {
+    const key = bmSectionKey(it, plane), cur = bmSections.get(key);
+    const hv = { onEnter: () => bmSectionPreviewShow(it, plane) };
+    items.push({ ...hv, text: `${plane} Plane - Whole Part`, checked: !!cur && cur.radius == null,
+      fn: () => { if (cur && cur.radius == null) bmSectionRemove(key); else bmSectionSet(it, plane, null); } });
+    items.push({ onEnter: () => bmSectionPreviewShow(it, plane, bmSectionDefaultRadius(it)), text: `${plane} Plane - Within Radius...`, checked: !!cur && cur.radius != null,
+      fn: () => {
+        if (cur && cur.radius != null) { bmSectionRemove(key); return; }
+        bmSectionSet(it, plane, bmSectionDefaultRadius(it));      // 半径はダイアログなし。サイズがあればその半分 x 1.2、なければ設定値(既定 10 mm)
+      } });
+  }
+  items.push({ text: `Set Radius... (${bmSectionRadiusMm} mm)`, fn: () => {      // Within Radius の半径。すでに出している Within Radius の断面にも反映する
+    const v = parseFloat(window.prompt("Within Radius: radius from the anchor point (mm):", String(bmSectionRadiusMm)));
+    if (!(v > 0)) return;
+    bmSectionRadiusMm = v;
+    for (const sec of [...bmSections.values()]) if (sec.radius != null) bmSectionSet(sec.item, sec.plane, v / (bmUnitToMm || 1));
+  } });
+  if (bmSections.size) items.push({ text: "Clear Cross Sections", fn: () => bmSectionRemove() });
+  makeMenu(e, "Hatched Cross Section", items, bmSectionPreviewClear);
+}
+
 // ---- アップロード処理 ----
 // ---- 進捗オーバーレイ ----
 const loadOverlay = document.getElementById("loadOverlay");
@@ -4890,6 +5341,294 @@ async function hasServer() {
   return _serverOk;
 }
 
+// ======================================================================
+// .ant ファイル(注記の配置・表示の設定。XML)
+//  - 元の STEP / QIF と同じ名前(拡張子だけ .ant)で、元のファイルと同じフォルダへ保存する。
+//  - 保存する内容: 既定の状態から変えた設定すべて(アンカーの位置・寸法線の端点・断面・ミラー・表示の設定・カメラ など)。
+//    今後、機能を追加したときの設定も、ここ(antCollect / antApply)に足してこのファイルへ保存する。
+//  - ファイルを開くとき、.ant があればその設定を読み込んで、前回の状態を再現する。
+//  - ブラウザの制約: ブラウザはファイルの場所を知らない。そのため「File > Link .ant Folder...」で、元のファイルがあるフォルダを一度
+//    指定すると、そのフォルダの <名前>.ant を読み書きする。指定がないときは、このブラウザ内に保存する
+//    (File > Save Settings (.ant) でファイルとして保存、開くときに .ant も一緒に選ぶと読み込める)。
+//  - Web 版の設定は .ant、Windows 版(3DA B&M Viewer)の設定は .antwin。既存の .ant が Windows 版の形式なら、上書きする前に .antwin へ残す。
+// ======================================================================
+const ANT_TAG = "WebViewerAnnotationLayout", ANT_VER = "1";
+var antSrcName = null, antBaseXml = "", antLastXml = "", antDirHandle = null, antLoading = false, antPath = null;   // antPath: 開いたファイルのパス(サーバー経由で開いたとき)
+const antEsc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const antNum = (v) => (Math.round(v * 1e6) / 1e6).toString();
+const antVec = (v) => v ? [v.x, v.y, v.z].map(antNum).join(" ") : "";
+const antParseVec = (t) => { const a = String(t || "").trim().split(/\s+/).map(Number); return a.length >= 3 && a.every(isFinite) ? new THREE.Vector3(a[0], a[1], a[2]) : null; };
+function antBaseName(name) { return String(name).replace(/\.[^.]+$/, ""); }
+
+// 既定の状態を覚えておく(ファイルを開いた直後。アンカー・寸法線の端点は、既定からずれたものだけを保存する)
+function antSnapshotDefaults() {
+  for (const it of bmItems) {
+    it.antAnchor0 = it.anchor ? it.anchor.clone() : null;
+    it.antShift0 = it.dim ? (it.dim.shift || 0) : 0;
+  }
+}
+function antCollect() {
+  const app = document.getElementById("app");
+  const L = [];
+  const el = (tag, attrs, inner) => `<${tag}${Object.entries(attrs || {}).map(([k, v]) => ` ${k}="${antEsc(v)}"`).join("")}${inner === undefined ? "/>" : `>${inner}</${tag}>`}`;
+  L.push(el("Source", {}, antEsc(antSrcName || "")));
+  L.push(el("Style", {}, annotationStyle));
+  L.push(el("FcfHeightMM", {}, antNum(parseFloat(document.getElementById("fcfNum").value) || 5)));
+  L.push(el("SymbolHeightPx", {}, document.getElementById("symSizeNum").value));
+  L.push(el("ShowDesignators", {}, String(!app.classList.contains("hide-designators"))));
+  L.push(el("CharacteristicCheckboxes", {}, String(!app.classList.contains("hide-rowchecks"))));
+  L.push(el("SectionBrightness", {}, String(bmSectionBrightness)));
+  L.push(el("SectionRadiusMM", {}, String(bmSectionRadiusMm)));
+  L.push(el("SortMode", {}, sortMode));
+  L.push(el("NavScheme", {}, navScheme));
+  L.push(el("Panels", { characteristics: String(document.getElementById("miPanel").classList.contains("checked")),
+                        savedViews: String(document.getElementById("miViewsPanel").classList.contains("checked")),
+                        originAxes: String(document.getElementById("miAxes").classList.contains("checked")) }));
+  L.push(el("DebugOverlays", { annotationAnchors: String(dbgAnchorsOn), dimensionLineEnds: String(dbgDimEndsOn) }));
+  L.push(el("Mirrors", { on: String(bmMirrorsOn), hidden: bmMirrorHidden.map(Number).join(" "),
+                         offsets: bmMirrorOffsets.map(v => v === null ? "" : antNum(v)).join(" ") }));
+  L.push(el("HiddenCharacteristics", {}, [...hiddenTol].sort((a, b) => a - b).join(" ")));
+  // アンカーの位置・寸法線の端点(既定から変えたものだけ)
+  const anchors = [], dims = [];
+  for (const it of bmItems) {
+    const id = it.idxs[0];
+    if (it.anchor && it.antAnchor0 && it.anchor.distanceToSquared(it.antAnchor0) > 1e-10) anchors.push(el("Anchor", { id, position: antVec(it.anchor), normal: antVec(it.normal) }));
+    if (it.dim && it.dim.type !== "span" && (it.dim.fixedU || (it.dim.shift || 0) !== it.antShift0)) {
+      dims.push(el("DimensionEnds", { id, direction: antVec(it.dim.fixedU), shift: antNum(it.dim.shift || 0) }));
+    }
+  }
+  L.push(el("Anchors", {}, anchors.join("")));
+  L.push(el("DimensionLineEnds", {}, dims.join("")));
+  L.push(el("Sections", {}, [...bmSections.values()].map(sec => el("Section", { id: sec.item.idxs[0], plane: sec.plane,
+    radiusMM: sec.radius == null ? "" : antNum(sec.radius * (bmUnitToMm || 1)), visible: String(sec.visible !== false) })).join("")));
+  L.push(el("UserViews", {}, userViews.map(v => el("View", { name: v.name, direction: v.direction.join(" "), up: v.up.join(" "),
+    zoom: antNum(v.zoom), target: v.target.join(" "), distance: antNum(v.distance) })).join("")));
+  if (camera && controls) {
+    const [rx, ry, rz] = cvCurrentAngles();          // 画面右下の「Camera Rotation (X,Y,Z)」「Camera Zoom (%)」と同じ値
+    L.push(el("CameraRotation", { x: antNum(rx), y: antNum(ry), z: antNum(rz) }));
+    L.push(el("CameraZoomPercent", {}, antNum(cvZoomPercent())));
+    L.push(el("Camera", { position: antVec(camera.position), quaternion: [camera.quaternion.x, camera.quaternion.y, camera.quaternion.z, camera.quaternion.w].map(antNum).join(" "),
+                          up: antVec(camera.up), zoom: antNum(camera.zoom), target: antVec(controls.target) }));
+  }
+  return `<${ANT_TAG} version="${ANT_VER}">${L.join("")}</${ANT_TAG}>`;
+}
+function antApply(xmlText) {
+  const doc = new DOMParser().parseFromString(xmlText, "application/xml");
+  if (doc.getElementsByTagName("parsererror").length) throw new Error(".ant を読み込めません(XML の形式が正しくありません)");
+  const root = doc.getElementsByTagName(ANT_TAG)[0];
+  if (!root) return false;
+  const T = (tag) => { const e = root.getElementsByTagName(tag)[0]; return e ? e.textContent.trim() : null; };
+  const A = (tag, name) => { const e = root.getElementsByTagName(tag)[0]; return e ? e.getAttribute(name) : null; };
+  const app = document.getElementById("app");
+  const clickIf = (id, want) => { const m = document.getElementById(id); if (m && m.classList.contains("checked") !== want) m.click(); };
+  antLoading = true;
+  try {
+    let v;
+    if ((v = T("SymbolHeightPx")) !== null) { const n = document.getElementById("symSizeNum"); n.value = v; n.dispatchEvent(new Event("change")); }
+    if ((v = T("SectionBrightness")) !== null) { const n = document.getElementById("secBrNum"); n.value = v; n.dispatchEvent(new Event("change")); }
+    if ((v = T("SectionRadiusMM")) !== null && parseFloat(v) > 0) bmSectionRadiusMm = parseFloat(v);
+    if ((v = T("ShowDesignators")) !== null && (v === "true") === app.classList.contains("hide-designators")) document.getElementById("miDesignators").click();
+    if ((v = T("CharacteristicCheckboxes")) !== null && (v === "true") === app.classList.contains("hide-rowchecks")) document.getElementById("miRowChecks").click();
+    if ((v = T("SortMode")) !== null && v !== sortMode) { const m = document.querySelector(`#sortMenu .menu-item[data-sort="${v}"]`); if (m) m.click(); }
+    if ((v = T("NavScheme")) !== null && v !== navScheme) setNavScheme(v);
+    const pn = root.getElementsByTagName("Panels")[0];
+    if (pn) {
+      const want = (a) => pn.getAttribute(a) === "true";
+      if (pn.hasAttribute("characteristics")) clickIf("miPanel", want("characteristics"));
+      if (pn.hasAttribute("savedViews")) clickIf("miViewsPanel", want("savedViews"));
+      if (pn.hasAttribute("originAxes")) clickIf("miAxes", want("originAxes"));
+    }
+    if ((v = T("Style")) !== null && v !== annotationStyle) setAnnotationStyle(v);
+    if ((v = T("FcfHeightMM")) !== null) { const n = document.getElementById("fcfNum"); n.value = v; n.dispatchEvent(new Event("change")); }
+    const mr = root.getElementsByTagName("Mirrors")[0];
+    if (mr) {
+      const on = mr.getAttribute("on") === "true";
+      clickIf("miMirrors", on);
+      const hid = (mr.getAttribute("hidden") || "").trim().split(/\s+/).filter(Boolean).map(x => x === "1");
+      const off = (mr.getAttribute("offsets") || "").split(" ");
+      for (let a = 0; a < 3; a++) { bmMirrorHidden[a] = !!hid[a]; bmMirrorOffsets[a] = off[a] && isFinite(parseFloat(off[a])) ? parseFloat(off[a]) : null; }
+      if (bmMirrorsOn) bmSyncMirrorMenu();
+      clearMirrors();
+    }
+    // 特性ごとの表示/非表示
+    const hid = (T("HiddenCharacteristics") || "").split(/\s+/).filter(Boolean).map(Number);
+    hiddenTol.clear(); hid.forEach(i => hiddenTol.add(i));
+    tolListEl.querySelectorAll("input.vis").forEach(cb => { cb.checked = !hiddenTol.has(parseInt(cb.dataset.idx, 10)); });
+    syncGroupChecks(); applyHiddenGraphics();
+    // アンカー・寸法線の端点
+    const byId = new Map(bmItems.map(it => [String(it.idxs[0]), it]));
+    for (const a of root.getElementsByTagName("Anchor")) {
+      const it = byId.get(a.getAttribute("id")), pos = antParseVec(a.getAttribute("position")), nrm = antParseVec(a.getAttribute("normal"));
+      if (it && pos && it.anchor) { it.anchor.copy(pos); if (nrm && it.normal) it.normal.copy(nrm); }
+    }
+    for (const d of root.getElementsByTagName("DimensionEnds")) {
+      const it = byId.get(d.getAttribute("id"));
+      if (!it || !it.dim) continue;
+      const u = antParseVec(d.getAttribute("direction"));
+      it.dim.fixedU = u; it.dim.shift = parseFloat(d.getAttribute("shift")) || 0; it.dim._endsKey = null;
+    }
+    // 断面
+    bmSectionRemove();
+    for (const sc of root.getElementsByTagName("Section")) {
+      const it = byId.get(sc.getAttribute("id"));
+      if (!it) continue;
+      const rmm = parseFloat(sc.getAttribute("radiusMM"));
+      bmSectionSet(it, sc.getAttribute("plane"), isFinite(rmm) ? rmm / (bmUnitToMm || 1) : null);
+      const sec = bmSections.get(bmSectionKey(it, sc.getAttribute("plane")));
+      if (sec && sc.getAttribute("visible") === "false") { sec.visible = false; sec.objs.forEach(o => { o.visible = false; }); }
+    }
+    // 保存したビュー
+    userViews = [];
+    for (const vw of root.getElementsByTagName("View")) {
+      const nums = (t) => String(t || "").trim().split(/\s+/).map(Number);
+      userViews.push({ name: vw.getAttribute("name"), source: "user", direction: nums(vw.getAttribute("direction")), up: nums(vw.getAttribute("up")),
+                       zoom: parseFloat(vw.getAttribute("zoom")) || 1, target: nums(vw.getAttribute("target")), distance: parseFloat(vw.getAttribute("distance")) || 1 });
+    }
+    rebuildSavedViewsMenu();
+    // デバッグ表示
+    const dbg = root.getElementsByTagName("DebugOverlays")[0];
+    if (dbg) { clickIf("miDbgAnchors", dbg.getAttribute("annotationAnchors") === "true"); clickIf("miDbgDimEnds", dbg.getAttribute("dimensionLineEnds") === "true"); }
+    // カメラは最後
+    const cm = root.getElementsByTagName("Camera")[0];
+    if (cm) {
+      const pos = antParseVec(cm.getAttribute("position")), tg = antParseVec(cm.getAttribute("target")), up = antParseVec(cm.getAttribute("up"));
+      const q = String(cm.getAttribute("quaternion") || "").trim().split(/\s+/).map(Number);
+      if (pos && tg && q.length === 4 && q.every(isFinite)) {
+        camera.position.copy(pos); controls.target.copy(tg); if (up) camera.up.copy(up);
+        camera.quaternion.set(q[0], q[1], q[2], q[3]);
+        const z = parseFloat(cm.getAttribute("zoom")); if (z > 0) camera.zoom = z;
+        camera.updateProjectionMatrix(); camera.updateMatrix(); camera.updateMatrixWorld(true);
+      }
+    }
+    // Camera Rotation (X,Y,Z) と Camera Zoom (%) は、画面に出ている値で再現する(上の Camera で位置・注視点を戻したあと)
+    const cr = root.getElementsByTagName("CameraRotation")[0], cz = T("CameraZoomPercent");
+    if (cr && isFinite(parseFloat(cr.getAttribute("x"))) && isFinite(parseFloat(cr.getAttribute("y"))) && isFinite(parseFloat(cr.getAttribute("z")))) {
+      cvApply(parseFloat(cr.getAttribute("x")), parseFloat(cr.getAttribute("y")), parseFloat(cr.getAttribute("z")), cz !== null ? parseFloat(cz) : 0);
+    }
+    bmDirty = true; bmLastSig = "";
+  } finally { antLoading = false; }
+  return true;
+}
+
+// ---- 保存先 / 読み込み元 ----
+function antDb() { return lastFileDb(); }
+async function antDbGet(key) { const db = await antDb(); const r = await new Promise((res, rej) => { const rq = db.transaction("kv").objectStore("kv").get(key); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); }); db.close(); return r; }
+async function antDbPut(key, val) { const db = await antDb(); await new Promise((res, rej) => { const tx = db.transaction("kv", "readwrite"); tx.objectStore("kv").put(val, key); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); db.close(); }
+async function antDirReady(askPermission) {            // 書き込める状態のフォルダ(元のファイルと同じ場所)があるか
+  if (!antDirHandle) { try { antDirHandle = await antDbGet("antDir") || null; } catch (_) {} }
+  if (!antDirHandle) return false;
+  try {
+    let st = await antDirHandle.queryPermission({ mode: "readwrite" });
+    if (st !== "granted" && askPermission) st = await antDirHandle.requestPermission({ mode: "readwrite" });
+    return st === "granted";
+  } catch (_) { return false; }
+}
+// ---- サーバー(このパソコン)経由: 開いたファイルと同じフォルダの <名前>.ant を、毎回の指定なしで読み書きする ----
+async function antReadFromServer() {
+  if (!antPath) return null;
+  try {
+    const r = await fetch(API_BASE + "/api/ant?path=" + encodeURIComponent(antPath));
+    return r.ok ? await r.text() : null;
+  } catch (_) { return null; }
+}
+async function antWriteToServer(ours) {
+  if (!antPath) return false;
+  try {
+    const existing = (await antReadFromServer()) || "";
+    const r = await fetch(API_BASE + "/api/ant?path=" + encodeURIComponent(antPath), { method: "PUT", body: antMergeInto(existing, ours), headers: { "Content-Type": "application/xml" }, keepalive: true });
+    return r.ok;
+  } catch (_) { return false; }
+}
+async function antReadFromDir(name) {
+  if (!(await antDirReady(false))) return null;
+  try { const fh = await antDirHandle.getFileHandle(antBaseName(name) + ".ant"); return await (await fh.getFile()).text(); } catch (_) { return null; }
+}
+// Web 版の設定は .ant、Windows 版(3DA B&M Viewer)の設定は .antwin。.ant は Web 版の形式だけにする(Windows 版の内容は混ぜない)。
+// 既存の .ant が Windows 版の形式なら、書き換える前に .antwin へ残す(antLegacyToAntwin / サーバー側も同じ)
+function antMergeInto(existing, ours) {
+  return '<?xml version="1.0" encoding="utf-8"?>' + String.fromCharCode(10) + ours + String.fromCharCode(10);
+}
+function antIsWindowsFormat(text) {
+  const m = /<\?xml[^>]*\?>\s*<([A-Za-z0-9_]+)/.exec(text || "") || /<([A-Za-z0-9_]+)/.exec(text || "");
+  return !!m && m[1] !== ANT_TAG;
+}
+async function antWriteToDir(name, ours) {
+  if (!(await antDirReady(false))) return false;
+  try {
+    let existing = "";
+    try { existing = await (await (await antDirHandle.getFileHandle(antBaseName(name) + ".ant")).getFile()).text(); } catch (_) {}
+    if (existing && antIsWindowsFormat(existing)) {          // Windows 版の .ant は、上書きする前に .antwin へ残す
+      try { await antDirHandle.getFileHandle(antBaseName(name) + ".antwin"); }
+      catch (_) { const lw = await (await antDirHandle.getFileHandle(antBaseName(name) + ".antwin", { create: true })).createWritable(); await lw.write(existing); await lw.close(); }
+    }
+    const fh = await antDirHandle.getFileHandle(antBaseName(name) + ".ant", { create: true });
+    const w = await fh.createWritable();
+    await w.write(antMergeInto(existing, ours));
+    await w.close();
+    return true;
+  } catch (_) { return false; }
+}
+function antDownload(name, ours) {
+  const blob = new Blob([antMergeInto("", ours)], { type: "application/xml" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = antBaseName(name) + ".ant";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+// ファイルを開いた直後: .ant を探して(一緒に選んだもの > 指定したフォルダ > このブラウザ内)、あれば設定を読み込む
+async function antAfterLoad(file, antFile) {
+  antSrcName = file.name;
+  antSnapshotDefaults();
+  antBaseXml = antCollect();
+  let text = null, from = "";
+  try {
+    if (antPath) { text = await antReadFromServer(); if (text !== null) from = antBaseName(antPath) + ".ant"; }
+    if (text === null && antFile) { text = await antFile.text(); from = antFile.name; }
+    if (text === null) { text = await antReadFromDir(file.name); if (text !== null) from = antBaseName(file.name) + ".ant (フォルダ)"; }
+    if (text === null) { try { text = localStorage.getItem("ant:" + file.name); if (text !== null) from = "このブラウザ内の設定"; } catch (_) {} }
+    if (text !== null && antApply(text)) statusEl.textContent = `${statusSummary}  |  設定を読み込みました: ${from}`;
+  } catch (e) { statusEl.textContent = `${statusSummary}  |  .ant を読み込めませんでした: ${e.message}`; }
+  antLastXml = antCollect();
+}
+// 設定が変わったら保存する(0.3 秒ごとに確認。既定の状態のままなら保存しない)
+var antBusy = false;
+async function antAutoSave() {
+  if (!antSrcName || !currentMesh || antLoading || antBusy) return;
+  const xml = antCollect();
+  if (xml === antLastXml) return;
+  antLastXml = xml;
+  antBusy = true;
+  try { await antAutoSaveWrite(xml); } finally { antBusy = false; }
+}
+async function antAutoSaveWrite(xml) {
+  let wrote = false;
+  if (antPath) { if (xml !== antBaseXml || await antReadFromServer() !== null) wrote = await antWriteToServer(xml); }
+  else if (xml !== antBaseXml || await antReadFromDir(antSrcName) !== null) wrote = await antWriteToDir(antSrcName, xml);
+  try { localStorage.setItem("ant:" + antSrcName, xml); } catch (_) {}
+}
+// 設定(.ant に入れる情報)が変わるたびに保存する: 0.3 秒ごとに内容を比べて、違っていればすぐ書く。ページを閉じる・隠すときにも書く
+setInterval(() => { antAutoSave().catch(() => {}); }, 300);
+window.addEventListener("pagehide", () => { antBusy = false; antAutoSave().catch(() => {}); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") { antBusy = false; antAutoSave().catch(() => {}); } });
+document.getElementById("miAntSave").addEventListener("click", async () => {
+  if (!antSrcName) { statusEl.textContent = "ファイルを開いてから保存してください。"; return; }
+  const xml = antCollect();
+  if (antPath && await antWriteToServer(xml)) { statusEl.textContent = `設定を保存しました: ${antPath.replace(/\.[^.\\/]+$/, "")}.ant`; return; }
+  if (await antDirReady(true) && await antWriteToDir(antSrcName, xml)) statusEl.textContent = `設定を保存しました: ${antBaseName(antSrcName)}.ant`;
+  else { antDownload(antSrcName, xml); statusEl.textContent = `設定を ${antBaseName(antSrcName)}.ant としてダウンロードしました(元のファイルと同じフォルダへ移してください)`; }
+});
+document.getElementById("miAntLink").addEventListener("click", async () => {
+  if (!window.showDirectoryPicker) { showError("このブラウザはフォルダの指定に対応していません(Chrome / Edge で使えます)。" + NL + "代わりに、File > Save Settings (.ant) で保存し、ファイルを開くときに .ant も一緒に選んでください。"); return; }
+  try {
+    const h = await window.showDirectoryPicker({ id: "ant-folder", mode: "readwrite" });
+    antDirHandle = h; await antDbPut("antDir", h);
+    statusEl.textContent = `.ant のフォルダを指定しました: ${h.name}`;
+    if (antSrcName && currentMesh) { const t = await antReadFromDir(antSrcName); if (t === null) await antWriteToDir(antSrcName, antCollect()); }
+  } catch (e) { if (e.name !== "AbortError") showError("フォルダを指定できませんでした: " + e.message); }
+});
+// 指定済みのフォルダの書き込み許可は、最初の操作のときに確認する(ブラウザの仕様で、操作の中でしか確認できない)
+document.addEventListener("pointerdown", () => { antDirReady(true).catch(() => {}); }, { once: true, capture: true });
+
 // ---- 前回開いたファイルを覚えておく(ブラウザの IndexedDB)。何も開いていない画面を右クリックして、開き直せる ----
 function lastFileDb() {
   return new Promise((res, rej) => {
@@ -4899,10 +5638,10 @@ function lastFileDb() {
     rq.onerror = () => rej(rq.error);
   });
 }
-async function lastFileSave(file) {
+async function lastFileSave(file, srcPath) {
   try {
     const db = await lastFileDb();
-    await new Promise((res, rej) => { const tx = db.transaction("kv", "readwrite"); tx.objectStore("kv").put({ name: file.name, blob: file }, "lastFile"); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+    await new Promise((res, rej) => { const tx = db.transaction("kv", "readwrite"); tx.objectStore("kv").put({ name: file.name, blob: file, path: srcPath || null }, "lastFile"); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
     db.close();
   } catch (e) { /* 保存できなくても、ファイルを開く動作には影響しない */ }
 }
@@ -4911,18 +5650,48 @@ async function lastFileOpen() {
     const db = await lastFileDb();
     const rec = await new Promise((res, rej) => { const rq = db.transaction("kv").objectStore("kv").get("lastFile"); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); });
     db.close();
-    if (rec && rec.blob) { handleFile(new File([rec.blob], rec.name)); return; }
+    if (rec && rec.blob) { handleFile(new File([rec.blob], rec.name), null, rec.path || null); return; }
     statusEl.textContent = "前回開いたファイルはありません。";
   } catch (e) { statusEl.textContent = "前回のファイルを開けませんでした: " + e.message; }
 }
-// 何も開いていない白い画面を右クリックすると、「最後に開いたファイル」を開くメニューを出す
+// 右クリックメニュー: 何も開いていない白い画面 -> 「最後に開いたファイルを開く」/ 引出線の黒丸(アンカー) -> Hatched Cross Section
 (function () {
   let menu = null;
-  const close = () => { if (menu) { menu.remove(); menu = null; } };
+  let onCloseCb = null;
+  const close = () => { if (menu) { menu.remove(); menu = null; } if (onCloseCb) { const f = onCloseCb; onCloseCb = null; f(); } };
   document.addEventListener("pointerdown", (e) => { if (menu && !menu.contains(e.target)) close(); }, true);
   window.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  function makeMenu(e, title, items, onClose) {
+    close();
+    onCloseCb = onClose || null;
+    menu = document.createElement("div");
+    menu.style.cssText = `position:fixed;left:${e.clientX}px;top:${e.clientY}px;z-index:100000;background:rgba(255,255,255,0.28);border:1px solid rgba(150,158,172,0.7);text-shadow:0 0 3px #fff,0 0 3px #fff;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.2);padding:3px 0;font-size:12px;min-width:200px`;      // 半透明(メニューの後ろのモデルが見える)
+    if (title) {
+      const h = document.createElement("div");
+      h.textContent = title; h.style.cssText = "padding:4px 14px;color:#5b6270;font-weight:600;border-bottom:1px solid #e3e6ec;margin-bottom:2px";
+      menu.appendChild(h);
+    }
+    for (const it of items) {
+      const row = document.createElement("div");
+      row.textContent = (it.checked ? "\u2713 " : "\u3000 ") + it.text;
+      row.style.cssText = "padding:5px 14px;white-space:nowrap;" + (it.fn ? "cursor:pointer;" : "color:#9aa0aa;");
+      if (it.fn) {
+        row.onmouseenter = () => { row.style.background = "rgba(120,160,230,0.35)"; if (it.onEnter) it.onEnter(); };
+        row.onmouseleave = () => { row.style.background = ""; if (it.onLeave) it.onLeave(); };
+        row.onclick = () => { close(); it.fn(); };
+      }
+      menu.appendChild(row);
+    }
+    document.body.appendChild(menu);
+  }
   viewerEl.addEventListener("contextmenu", async (e) => {
-    if (currentMesh) return;                       // モデルを表示中は、従来どおり(右ボタンは視点操作)
+    if (currentMesh) {                              // モデルを表示中: 引出線の黒丸(アンカー)の上なら Hatched Cross Section のメニュー。それ以外は従来どおり
+      if (annotationStyle === "balloon") {
+        const it = bmAnchorAt(e.clientX, e.clientY);
+        if (it) { e.preventDefault(); bmSectionMenu(it, e, close, makeMenu); }
+      }
+      return;
+    }
     e.preventDefault();
     close();
     let name = null;
@@ -4932,22 +5701,16 @@ async function lastFileOpen() {
       db.close();
       name = rec && rec.name;
     } catch (_) {}
-    menu = document.createElement("div");
-    menu.style.cssText = `position:fixed;left:${e.clientX}px;top:${e.clientY}px;z-index:100000;background:#fff;border:1px solid #c9ced6;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.2);padding:3px 0;font-size:12px;min-width:200px`;
-    const item = document.createElement("div");
-    item.textContent = name ? `最後に開いたファイルを開く: ${name}` : "最後に開いたファイルはありません";
-    item.style.cssText = "padding:5px 14px;white-space:nowrap;" + (name ? "cursor:pointer;" : "color:#9aa0aa;");
-    if (name) {
-      item.onmouseenter = () => { item.style.background = "#e9eef6"; };
-      item.onmouseleave = () => { item.style.background = ""; };
-      item.onclick = () => { close(); lastFileOpen(); };
-    }
-    menu.appendChild(item);
-    document.body.appendChild(menu);
+    makeMenu(e, null, [name ? { text: `最後に開いたファイルを開く: ${name}`, fn: () => lastFileOpen() } : { text: "最後に開いたファイルはありません" }]);
   });
 })();
-async function handleFile(file) {
+async function handleFile(file, antFile, srcPath) {
   if (!file) return;
+  antPath = srcPath || null;
+  if (!antPath && await hasServer()) {            // パスの分からないファイル(ドラッグ&ドロップなど): これまでに開いたフォルダから、同じ名前・大きさのファイルを探す
+    try { const r = await fetch(API_BASE + "/api/locate?name=" + encodeURIComponent(file.name) + "&size=" + file.size); if (r.ok) antPath = (await r.json()).path || null; } catch (_) {}
+  }
+  bmSectionRemove();                                 // 断面は、開いていたファイルのものなので消す
   statusEl.textContent = `アップロード中… ${file.name} (${(file.size/1024).toFixed(0)} KB)`;
   const form = new FormData();
   form.append("file", file);
@@ -4990,9 +5753,10 @@ async function handleFile(file) {
     statusSummary = `${data.filename}: ${data.mesh.faceCount ?? "?"}三角形 / 幾何公差${tolCount}件 / PMI線分${lineCount}本 / 文字${glyphTriCount}三角形`;
     statusEl.textContent = statusSummary;
     selectedAnnName = null; selectedPlainFace = false;
+    await antAfterLoad(file, antFile);                   // .ant があれば、前回の状態を再現する
     setProgress(1); await nextFrame();
     setTimeout(() => setLoading(false), 150);
-    lastFileSave(file);                             // 次回、白い画面の右クリックから開き直せるよう、開いたファイルを覚えておく
+    lastFileSave(file, antPath);                    // 次回、白い画面の右クリックから開き直せるよう、開いたファイルを覚えておく
   } catch (e) {
     setLoading(false);
     statusEl.textContent = "エラー: " + e.message;
@@ -5003,7 +5767,13 @@ async function handleFile(file) {
   }
 }
 
-fileInput.addEventListener("change", (e) => handleFile(e.target.files[0]));
+function openFiles(list) {            // 開くファイル(STEP / QIF)と、一緒に選んだ .ant
+  const files = [...(list || [])];
+  const ant = files.find(f => /\.ant$/i.test(f.name));
+  const main = files.find(f => !/\.ant$/i.test(f.name));
+  if (main) handleFile(main, ant);
+}
+fileInput.addEventListener("change", (e) => { openFiles(e.target.files); e.target.value = ""; });
 
 // ---- メニュー ----
 const menus = [...document.querySelectorAll(".menu")];
@@ -5043,9 +5813,42 @@ document.querySelectorAll("#sortMenu .menu-item").forEach(el => el.addEventListe
     if (keep !== null) selectTolerance(keep, lastPmi.geometric_tolerances);
   }
 }));
-document.getElementById("miOpen").addEventListener("click", () => fileInput.click());
+// File > Open...: このパソコンで動いているサーバーがあれば、サーバー側でファイルを開くダイアログを出して、パスを受け取る
+// (そうすれば .ant を元のファイルと同じフォルダへ、毎回の指定なしで保存できる)。サーバーが無いときは、ブラウザのダイアログ。
+document.getElementById("miOpen").addEventListener("click", async () => {
+  if (await hasServer()) {
+    try {
+      statusEl.textContent = "ファイルを選んでください…(ダイアログが別のウィンドウで開きます)";
+      const r = await fetch(API_BASE + "/api/open-dialog", { method: "POST" });
+      if (r.ok) {
+        const path = (await r.json()).path;
+        if (!path) { statusEl.textContent = ""; return; }                     // 取り消し
+        const fr = await fetch(API_BASE + "/api/file?path=" + encodeURIComponent(path));
+        if (fr.ok) { handleFile(new File([await fr.blob()], path.split(/[\\/]/).pop()), null, path); return; }
+      }
+    } catch (_) { /* サーバー側のダイアログが使えなければ、ブラウザのダイアログへ */ }
+  }
+  fileInput.click();
+});
 document.getElementById("miFit").addEventListener("click", () => { if (lastBBox) fitCameraToBBox(lastBBox.min, lastBBox.max, true); });   // Fit to View: カメラの回転は変えない
-document.getElementById("miAbout").addEventListener("click", () => alert("3DA Web Viewer - Graphic PMI / GD&T viewer"));
+// Help > About: プログラムの最終ビルド日時 = 画面を作っているファイル(index.html / visio_style.js)の最終更新日時(サーバーの Last-Modified)
+async function lastBuildTime() {
+  let best = 0;
+  for (const u of [location.pathname, "visio_style.js"]) {
+    try {
+      const r = await fetch(u, { method: "HEAD", cache: "no-store" });
+      const t = Date.parse(r.headers.get("Last-Modified") || "");
+      if (t > best) best = t;
+    } catch (_) {}
+  }
+  if (!best) return "(不明)";
+  const d = new Date(best), z = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}/${z(d.getMonth() + 1)}/${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`;
+}
+document.getElementById("miAbout").addEventListener("click", async () => {
+  const t = await lastBuildTime();
+  alert("3DA Web Viewer - Graphic PMI / GD&T viewer" + String.fromCharCode(10) + String.fromCharCode(10) + "最終ビルド日時: " + t);
+});
 
 // ドラッグ&ドロップ対応
 ["dragenter", "dragover"].forEach(ev => viewerEl.addEventListener(ev, (e) => {
@@ -5054,10 +5857,7 @@ document.getElementById("miAbout").addEventListener("click", () => alert("3DA We
 ["dragleave", "drop"].forEach(ev => viewerEl.addEventListener(ev, (e) => {
   e.preventDefault(); dropOverlay.style.display = "none";
 }));
-viewerEl.addEventListener("drop", (e) => {
-  const file = e.dataTransfer.files && e.dataTransfer.files[0];
-  if (file) handleFile(file);
-});
+viewerEl.addEventListener("drop", (e) => { openFiles(e.dataTransfer.files); });
 </script>
 </body>
 </html>

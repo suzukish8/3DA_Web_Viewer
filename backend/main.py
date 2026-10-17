@@ -217,6 +217,8 @@ async def upload_step(file: UploadFile = File(...)):
 
 from export_api import router as export_router  # noqa: E402
 app.include_router(export_router)
+from local_files import router as local_files_router  # noqa: E402
+app.include_router(local_files_router)
 
 
 @app.get("/api/health")

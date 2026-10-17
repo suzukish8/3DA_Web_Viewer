@@ -13,3 +13,4 @@ frontend/py/*
 !frontend/py/pyvista.py
 !frontend/py/mapbox_earcut.py
 # qif_viewer/ は sync_qif_web.py で生成してコミットする
+backend/recent_dirs.json
