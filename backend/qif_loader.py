@@ -44,6 +44,35 @@ def _qif_face_info(doc, face_id: str) -> dict:
             "surface_kw": kind}
 
 
+def _qif_topology(doc) -> dict:
+    """計測(Tool > Measurement)用の頂点・稜線(エッジ)・面ごとの稜線の一覧。ID は QIF の id 文字列。"""
+    def vec(a):
+        return [float(x) for x in a]
+
+    vertices = [{"id": vid, "p": vec(v.point)} for vid, v in doc.vertices.items()]
+    edges = []
+    for eid, e in doc.edges.items():
+        cv = doc.curves.get(e.curve_id)
+        kind = type(cv).__name__ if cv is not None else ""
+        info = {"type": {"LineCurve": "LINE", "ArcCurve": "CIRCLE", "EllipseCurve": "ELLIPSE", "NurbsCurve": "BSPLINE"}.get(kind, "OTHER"),
+                "curve_id": e.curve_id}
+        if kind == "ArcCurve":
+            info.update({"center": vec(cv.center), "axis": vec(cv.normal), "radius": float(cv.radius)})
+        v1, v2 = doc.vertices.get(e.vertex_beg_id), doc.vertices.get(e.vertex_end_id)
+        edges.append({"id": eid, "v1": e.vertex_beg_id, "v2": e.vertex_end_id,
+                      "p1": vec(v1.point) if v1 is not None else None, "p2": vec(v2.point) if v2 is not None else None, **info})
+    face_edges: dict[str, list] = {}
+    for fid, f in doc.faces.items():
+        es = []
+        for lid in f.loop_ids:
+            lp = doc.loops.get(lid)
+            if lp is not None:
+                es.extend(ce.edge_id for ce in lp.coedges)
+        if es:
+            face_edges[str(fid)] = sorted(set(es))
+    return {"vertices": vertices, "edges": edges, "face_edges": face_edges}
+
+
 def load_qif(path: str) -> tuple[dict, dict]:
     doc = load_qif_document(path)
     mesh, cell_offsets = build_mesh(doc)
@@ -218,6 +247,7 @@ def load_qif(path: str) -> tuple[dict, dict]:
 
     pmi = {
         "geometric_tolerances": tolerances,
+        "topology": _qif_topology(doc),
         "datums": datum_items,
         "tessellated": [],
         "saved_views": saved_views,

@@ -192,8 +192,9 @@
   .fs-exit { display: none; }
   #app:fullscreen #fsBtn .fs-enter { display: none; }
   #app:fullscreen #fsBtn .fs-exit { display: block; }
-  #app.hide-rowchecks .pmi-card > input.vis, #app.hide-rowchecks .grp-head input.gvis { display: none; }   /* View > Show/No Show > Individual Characteristic Show/Hide(既定は非表示) */
+  #app.hide-rowchecks .pmi-card > input.vis { display: none; }   /* View > Show/No Show > Individual Characteristic Show/Hide(既定は非表示) */
   #app.hide-rowchecks .row.pmi-card { padding-left: 6px; }
+  #app.hide-datums .bm-datums-wrap { display: none; }       /* 左パネルの Datums のチェック: 3D 上のデータム記号を隠す */
   #app.hide-designators .des { display: none; }   /* View > Show Designators */
   #bmControls { display: none; align-items: center; gap: 6px; margin-left: 14px; font-size: 12px; }
   #bmControls input[type=range] { width: 140px; }
@@ -317,6 +318,53 @@
 
   #panel { width: 320px; max-width: 42vw; background: var(--panel); border-right: 1px solid var(--panel-border);
     overflow-y: auto; padding: 10px; flex-shrink: 0; position: relative; }
+  /* Tool > Measurement の専用ウィンドウ */
+  /* Saved Views と同じように、画面に固定したパネルとして、3D ビューの右・Saved Views の左に並べる */
+  #measWin { width: 340px; max-width: 60vw; flex: 0 0 auto; display: none; flex-direction: column; position: relative; overflow: hidden;
+    background: var(--panel); border-left: 1px solid var(--panel-border); font-size: 12px; }
+  #measWin .mw-head { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid #d5dae3;
+    font-weight: 600; background: #eef1f6; user-select: none; }
+  #measWin .mw-head span { flex: 1 1 auto; }
+  #measWin .mw-head button { border: none; background: transparent; font-size: 16px; line-height: 1; cursor: pointer; padding: 1px 6px; border-radius: 4px; color: var(--text-dim); }
+  #measWin .mw-head button:hover { background: #dfe4ee; color: var(--text); }
+  #measWin .mw-body { flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+  #measWin .mw-sec { border: 1px solid #d5dae3; border-radius: 5px; padding: 6px 8px; background: #fff; }
+  #measWin .mw-sec h4 { margin: 0 0 4px; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .04em; display: flex; align-items: center; }
+  #measWin .mw-sec h4 button { margin-left: auto; font-size: 11px; padding: 1px 6px; border: 1px solid #c9ced6; background: #fff; border-radius: 4px; cursor: pointer; }
+  #measWin table { border-collapse: collapse; width: 100%; }
+  #measWin td { padding: 1px 4px; vertical-align: top; }
+  #measWin td:first-child { color: var(--text-dim); white-space: nowrap; width: 1%; padding-right: 8px; }
+  #measWin .mw-item { border-top: 1px solid #e3e6ec; padding: 4px 0; }
+  #measWin .mw-item:first-of-type { border-top: none; }
+  #measWin .mw-item:hover { background: #dcebff; box-shadow: inset 3px 0 0 #1e78ff; }      /* 3D モデル上の青いハイライトと対応 */
+  #measWin .mw-kind { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  #measWin .mw-kind i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  #measWin .mw-kind button { margin-left: auto; border: none; background: transparent; cursor: pointer; color: var(--text-dim); font-size: 14px; }
+  /* ホバーした要素の情報: 3D 画面上のポインターのやや右に、白い(少し透けた)背景で出す */
+  #measTip { position: fixed; left: 0; top: 0; display: none; z-index: 95; pointer-events: none; font-size: 12px; line-height: 1.4;
+    background: rgba(255,255,255,0.58); border: 1px solid rgba(120,130,150,0.5); text-shadow: 0 0 3px #fff, 0 0 3px #fff; border-radius: 4px; padding: 4px 8px; max-width: 360px; color: #1c1e23; }
+  #measTip table { border-collapse: collapse; }
+  #measTip td { padding: 0 4px; vertical-align: top; }
+  #measTip td:first-child { color: #5b6270; white-space: nowrap; padding-right: 8px; }
+  #measTip .mw-kind { font-weight: 600; display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+  #measTip .mw-kind i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: #0077ff; }
+  /* 選択した要素の一覧: 項目が増えたら、この枠の中でスクロールする(結果のテキストボックスは、下端の一定の位置に置く) */
+  #measSelSec { flex: 1 1 auto; min-height: 40px; overflow-y: auto; }
+  #measWin .mw-out { flex: 0 0 auto; background: #fff; }
+  #measOut { width: 100%; box-sizing: border-box; font-family: Consolas, "Courier New", monospace; font-size: 12px; resize: none; border: 1px solid #c9ced6;
+    border-radius: 4px; padding: 4px 6px; background: #fafbfc; white-space: pre; overflow: auto; }
+  #measCylModeRow { display: none; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); margin-top: 5px; }
+  #measCylMode { flex: 1 1 auto; font-size: 12px; padding: 1px 3px; }
+  #measClearRow { display: flex; justify-content: flex-end; flex: 0 0 auto; margin-top: auto; margin-bottom: -2px; }
+  #measCopyRow { display: flex; justify-content: flex-end; gap: 6px; }
+  #measClear, #measClearResult, #measCopy { margin-top: 0; padding: 3px 12px; font-size: 12px; border: 1px solid #b8bfcc; border-radius: 4px; background: #fff; cursor: pointer; }
+  #measCopyRow button { margin-top: 5px; }
+  #measClear:hover, #measClearResult:hover, #measCopy:hover { background: #eaf1fb; }
+  #measCopy:disabled { color: #9aa0aa; cursor: default; background: #f4f5f8; }
+  #measLabels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 7; }
+  #measLabels .mlab { position: absolute; left: 0; top: 0; background: #fff; border: 1.5px solid #000; border-radius: 3px; padding: 1px 5px;
+    font-size: 12px; font-weight: 600; white-space: nowrap; color: #000; line-height: 1.35; }
+  #measWin .mw-empty { color: var(--text-dim); }
   #symSizeBar { position: sticky; bottom: -10px; margin: 10px -10px -10px; padding: 6px 10px; display: flex; align-items: center; gap: 6px;
     background: var(--panel); border-top: 1px solid var(--panel-border); font-size: 12px; z-index: 2; }
   #symSizeBar { flex-wrap: wrap; }
@@ -512,6 +560,12 @@
       <div class="menu-item checkable" id="miDbgDimEnds">Show Dimension Line Ends</div>
     </div>
   </div>
+  <div class="menu" id="menuTool">
+    <div class="menu-title"><u>T</u>ool</div>
+    <div class="menu-items">
+      <div class="menu-item checkable" id="miMeasure">Measurement</div>
+    </div>
+  </div>
   <div class="menu" id="menuOption">
     <div class="menu-title"><u>O</u>ption</div>
     <div class="menu-items">
@@ -562,9 +616,25 @@
     <div class="splitter" id="splitLeft" title="Drag to resize"></div>
     <div id="viewer">
       <div id="loadOverlay"><div id="loadBadge"><div id="loadLabel">Opening file...</div><div id="loadBar"><div id="loadFill"></div></div></div></div>
+      <div id="measLabels"></div>
+      <div id="measTip"></div>
       <div id="bmLayer"><svg id="bmSvg" xmlns="http://www.w3.org/2000/svg"></svg><div id="bmLabels"></div></div>
       <div id="dropOverlay">ここにSTEPファイルをドロップ</div>
     </div>
+    <div class="splitter" id="splitMeas" title="Drag to resize" style="display:none"></div>
+    <div id="measWin">
+  <div class="mw-head" id="measHead"><span>Measurement</span><button id="measClose" title="Close (end measurement)" aria-label="Close">&times;</button></div>
+  <div class="mw-body">
+    <div class="mw-sec" id="measSelSec"><div id="measSelected"></div></div>
+    <div id="measClearRow"><button id="measClear" type="button" title="選択した要素をすべて解除する">Clear</button></div>
+    <div class="mw-sec mw-out">
+      <textarea id="measOut" readonly rows="7" spellcheck="false"></textarea>
+      <div id="measCopyRow"><button id="measClearResult" type="button" title="測定結果(テキスト・線・文字)を消す">Clear Result</button><button id="measCopy" type="button" disabled>Copy to Clipboard</button></div>
+      <label id="measCylModeRow">オプション:
+        <select id="measCylMode"><option value="axis">中心軸線の間の距離</option><option value="shortest">円筒面の最短距離</option><option value="longest">円筒面の最長距離</option></select></label>
+    </div>
+  </div>
+</div>
     <div class="splitter" id="splitRight" title="Drag to resize"></div>
     <div id="viewsPanel">
       <div id="viewsHead"><span>Saved Views</span><button id="viewsClose" title="Close" aria-label="Close">&times;</button></div>
@@ -591,6 +661,9 @@
 </script>
 <script type="module">
 import * as THREE from "three";
+import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 
 const viewerEl = document.getElementById("viewer");
 const statusEl = document.getElementById("status");
@@ -679,6 +752,7 @@ function animate(now) {
   if (typeof bmTick === "function") bmTick(now || performance.now());
   if (typeof cvTick === "function") cvTick();
   if (typeof dbgUpdate === "function") dbgUpdate();
+  if (typeof measLabelTick === "function") measLabelTick();
   renderer.render(scene, camera);
 }
 animate();
@@ -939,6 +1013,7 @@ function revealRow(sel) {
 }
 
 function handleViewClick(px, py) {
+  if (typeof measActive !== "undefined" && measActive) { measUpdateHover(px, py); measClick(); return; }       // Tool > Measurement 中は、点・線・面の選択
   if (!lastPmi) return;
   const tols = lastPmi.geometric_tolerances || [];
 
@@ -3464,15 +3539,16 @@ function expBalloonAnnotations(ir, M) {
       });
     });
     // データム記号: 下向き三角 + 短い線 + 四角に入った文字
-    lab.querySelectorAll(".bm-dtri").forEach(t => {
+    const hideDatum = document.getElementById("app").classList.contains("hide-datums");
+    if (!hideDatum) lab.querySelectorAll(".bm-dtri").forEach(t => {
       const r = t.getBoundingClientRect(), cx = (r.left + r.right) / 2;
       ir.solids.push({ layer: "DATUM", rgb: EXP_BLACK, points: [M.cpx(r.left, r.top), M.cpx(r.right, r.top), M.cpx(cx, r.bottom)] });
     });
-    lab.querySelectorAll(".bm-dstem").forEach(t => {
+    if (!hideDatum) lab.querySelectorAll(".bm-dstem").forEach(t => {
       const r = t.getBoundingClientRect(), cx = (r.left + r.right) / 2;
       ir.polylines.push({ layer: "DATUM", rgb: EXP_BLACK, points: [M.cpx(cx, r.top), M.cpx(cx, r.bottom)] });
     });
-    lab.querySelectorAll(".bm-datums .dbox").forEach(t => { expRect(ir, M, t.getBoundingClientRect(), "DATUM"); expAnyText(ir, M, t, k, "DATUM"); });
+    if (!hideDatum) lab.querySelectorAll(".bm-datums .dbox").forEach(t => { expRect(ir, M, t.getBoundingClientRect(), "DATUM"); expAnyText(ir, M, t, k, "DATUM"); });
   });
 }
 
@@ -4839,12 +4915,17 @@ function applyHiddenGraphics() {
   if (selectedDatumIndex !== null && lastPmi.datums && lastPmi.datums[selectedDatumIndex]) {
     (lastPmi.datums[selectedDatumIndex].names || []).forEach(n => names.add(n));
   }
+  if (typeof datumsVisible !== "undefined" && !datumsVisible && lastPmi) {      // データム記号を隠す(データム形体記号・データムターゲット)
+    (lastPmi.datums || []).forEach(d => (d.names || []).forEach(n => names.add(n)));
+    (lastPmi.annotations || []).filter(a => a.kind === "datum_target").forEach(a => names.add(a.name));
+  }
   showTessellatedPmi(currentTessellatedGroups, names);
 }
 
-function groupHtml(title, body, checkable, collapsed) {
+function groupHtml(title, body, checkable, collapsed, datumCheck) {
   return `<div class="grp${collapsed ? " collapsed" : ""}"><div class="grp-head"><span class="tri"></span>`
-    + (checkable ? `<input type="checkbox" class="gvis" checked>` : "")
+    + (checkable ? `<input type="checkbox" class="gvis" checked title="Show / hide on the model">` : "")
+    + (datumCheck ? `<input type="checkbox" class="dvis" ${datumsVisible ? "checked" : ""} title="Show / hide on the model">` : "")
     + `<span class="gtitle">${escapeHtml(title)}</span></div><div class="grp-body">${body}</div></div>`;
 }
 function syncGroupChecks() {
@@ -4869,7 +4950,7 @@ function renderPmi(pmi) {
   if (datums.length) {
     const order = datums.map((_, i) => i).sort((a, b) => String(datums[a].letter).localeCompare(String(datums[b].letter)));
     const rows = order.map(i => `<div class="row datum-row" data-di="${i}">${vsDatumBox(String(datums[i].letter))}</div>`).join("");
-    groups.push(groupHtml(`Datums (${datums.length})`, rows, false, true));
+    groups.push(groupHtml(`Datums (${datums.length})`, rows, false, true, true));
   }
 
   const idxs = tols.map((_, i) => i);
@@ -4925,7 +5006,26 @@ function renderPmi(pmi) {
     cb.indeterminate = false;
     applyHiddenGraphics();
   }));
+  tolListEl.querySelectorAll("input.dvis").forEach(cb => cb.addEventListener("change", () => setDatumsVisible(cb.checked)));
   syncGroupChecks();
+}
+// 3D 上のデータム記号(データム形体記号・データムターゲット・B&M のデータム四角)の表示/非表示
+var datumsVisible = true;
+function setDatumsVisible(on) {
+  datumsVisible = on;
+  document.getElementById("app").classList.toggle("hide-datums", !on);
+  tolListEl.querySelectorAll("input.dvis").forEach(c => { c.checked = on; });
+  applyHiddenGraphics();
+  bmDirty = true; bmLastSig = "";
+}
+// すべての特性(幾何公差・寸法)の 3D 上の表示/非表示
+function setAllCharacteristicsVisible(on) {
+  const tols = (lastPmi && lastPmi.geometric_tolerances) || [];
+  if (on) hiddenTol.clear(); else tols.forEach((_, i) => hiddenTol.add(i));
+  tolListEl.querySelectorAll("input.vis").forEach(c => { c.checked = on; });
+  tolListEl.querySelectorAll("input.gvis").forEach(c => { c.checked = on; c.indeterminate = false; });
+  applyHiddenGraphics();
+  bmDirty = true; bmLastSig = "";
 }
 
 function escapeHtml(s) {
@@ -5247,6 +5347,783 @@ function bmSectionMenu(it, e, closeMenu, makeMenu) {
   makeMenu(e, "Hatched Cross Section", items, bmSectionPreviewClear);
 }
 
+// ======================================================================
+// Tool > Measurement: モデルを半透明にして、ポインターを置いた点(頂点)・線(稜線)・面をハイライトし、
+// クリックした要素の ID(STEP / QIF)・座標・性質を専用ウィンドウに表示する。
+// ======================================================================
+var measMirrors = null, measShown = null, measActive = false, measData = null, measHover = null, measSel = [], measObjs = [], measSaved = null;
+const MEAS_BLUE = 0x0077ff, MEAS_ORANGE = 0xff8a00, MEAS_LINE_PX = 4;
+var measLineMats = [];
+const measWin = document.getElementById("measWin");
+const fmtN = (v, d) => (Math.abs(v) < 5e-7 ? 0 : v).toFixed(d === undefined ? 3 : d);
+const measXYZ = (p) => `(${fmtN(p[0])}, ${fmtN(p[1])}, ${fmtN(p[2])})`;
+
+// モデルの稜線(面の境界)の線分を集め、STEP / QIF の稜線に対応づける
+function measBuild() {
+  const md = currentMeshData, pos = md.positions, idx = md.indices, ranges = md.faceRanges || [];
+  const diag = bmDiag();
+  const key = (i) => `${Math.round(pos[i * 3] * 1e4)},${Math.round(pos[i * 3 + 1] * 1e4)},${Math.round(pos[i * 3 + 2] * 1e4)}`;
+  const all = new Map();
+  ranges.forEach(([start, end], f) => {
+    const es = new Map();
+    for (let t = start; t < end; t++) {
+      const v = [idx[t * 3], idx[t * 3 + 1], idx[t * 3 + 2]];
+      for (let e = 0; e < 3; e++) {
+        const a = v[e], b = v[(e + 1) % 3], ka = key(a), kb = key(b);
+        if (ka === kb) continue;
+        const k = ka < kb ? ka + "|" + kb : kb + "|" + ka;
+        const r = es.get(k);
+        if (r) r.n++; else es.set(k, { n: 1, a, b });
+      }
+    }
+    for (const [k, r] of es) if (r.n === 1) { const l = all.get(k); if (l) l.faces.push(f); else all.set(k, { a: r.a, b: r.b, faces: [f] }); }
+  });
+  const segs = [...all.values()];
+  const P = new Float32Array(segs.length * 6);
+  segs.forEach((g, i) => { for (let c = 0; c < 3; c++) { P[i * 6 + c] = pos[g.a * 3 + c]; P[i * 6 + 3 + c] = pos[g.b * 3 + c]; } });
+  // トポロジー(頂点・稜線・面ごとの稜線)
+  const topo = (lastPmi && lastPmi.topology) || { vertices: [], edges: [], face_edges: {} };
+  const edgeById = new Map(topo.edges.map((e, i) => [String(e.id), i]));
+  const faceIdOf = (f) => { const fi = md.faceInfo && md.faceInfo[f]; return fi ? String(fi.id) : null; };
+  const edgeFaces = new Map();           // 稜線 ID -> 面 ID の一覧
+  for (const [fid, es] of Object.entries(topo.face_edges || {})) for (const e of es) { const k = String(e); if (!edgeFaces.has(k)) edgeFaces.set(k, []); edgeFaces.get(k).push(fid); }
+  const tol = diag * 0.004, sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const norm = (a) => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+  const arcTest = (m, e, ccw) => {              // 点 m が、円の中心まわりに p1 -> p2 の円弧(向き ccw)の中か
+    const a = norm(e.axis || [0, 0, 1]), c = e.center;
+    const u = norm(sub(e.p1, c)), w = (() => { const x = a[1] * u[2] - a[2] * u[1], y = a[2] * u[0] - a[0] * u[2], z = a[0] * u[1] - a[1] * u[0]; return [x, y, z]; })();
+    const ang = (p) => { const d = sub(p, c); let t = Math.atan2(dot(d, w), dot(d, u)); if (t < 0) t += 2 * Math.PI; return t; };
+    let span = ang(e.p2); if (span < 1e-9) span = 2 * Math.PI;
+    let tm = ang(m);
+    if (!ccw) { span = 2 * Math.PI - span; tm = (2 * Math.PI - tm) % (2 * Math.PI); if (span < 1e-9) span = 2 * Math.PI; }
+    return tm <= span + 0.02;
+  };
+  const dist = (m, e) => {
+    if (e.type === "LINE" && e.p1 && e.p2) {
+      const d = sub(e.p2, e.p1), L2 = dot(d, d) || 1, t = Math.max(0, Math.min(1, dot(sub(m, e.p1), d) / L2));
+      const q = [e.p1[0] + d[0] * t, e.p1[1] + d[1] * t, e.p1[2] + d[2] * t];
+      return Math.hypot(m[0] - q[0], m[1] - q[1], m[2] - q[2]);
+    }
+    if (e.type === "CIRCLE" && e.center && e.radius) {
+      const a = norm(e.axis || [0, 0, 1]), d = sub(m, e.center), h = dot(d, a);
+      const rp = Math.hypot(d[0] - a[0] * h, d[1] - a[1] * h, d[2] - a[2] * h);
+      if (!(arcTest(m, e, true) || arcTest(m, e, false))) return Infinity;
+      return Math.hypot(h, rp - e.radius);
+    }
+    return Infinity;
+  };
+  const E = new Int32Array(segs.length).fill(-1);
+  segs.forEach((g, i) => {
+    const m = [(P[i * 6] + P[i * 6 + 3]) / 2, (P[i * 6 + 1] + P[i * 6 + 4]) / 2, (P[i * 6 + 2] + P[i * 6 + 5]) / 2];
+    const cand = new Set();
+    for (const f of g.faces) { const fid = faceIdOf(f); if (fid !== null) for (const e of (topo.face_edges[fid] || [])) cand.add(String(e)); }
+    let best = -1, bd = tol;
+    for (const k of cand) { const ei = edgeById.get(k); if (ei === undefined) continue; const d = dist(m, topo.edges[ei]); if (d < bd) { bd = d; best = ei; } }
+    E[i] = best;
+  });
+  // 稜線に対応づけられなかった線分は、つながった線分(両端でちょうど 2 本が会う)ごとにまとめる
+  const chainOf = new Int32Array(segs.length).fill(-1);
+  const ends = new Map();
+  segs.forEach((g, i) => { for (const v of [g.a, g.b]) { const k = key(v); if (!ends.has(k)) ends.set(k, []); ends.get(k).push(i); } });
+  let nChain = 0;
+  for (let i = 0; i < segs.length; i++) {
+    if (E[i] >= 0 || chainOf[i] >= 0) continue;
+    const stack = [i]; chainOf[i] = nChain;
+    while (stack.length) {
+      const s0 = stack.pop();
+      for (const v of [segs[s0].a, segs[s0].b]) {
+        const l = ends.get(key(v));
+        if (l.length !== 2) continue;
+        for (const j of l) if (j !== s0 && E[j] < 0 && chainOf[j] < 0 && segs[j].faces.join() === segs[s0].faces.join()) { chainOf[j] = nChain; stack.push(j); }
+      }
+    }
+    nChain++;
+  }
+  // 頂点: トポロジーがあればその頂点、なければ線分の端点のうち 3 本以上が会う点
+  let verts = topo.vertices.map(v => ({ id: v.id, p: v.p }));
+  if (!verts.length) {
+    const seen = new Map();
+    for (const [k, l] of ends) if (l.length !== 2) { const g = segs[l[0]]; const vi = (key(g.a) === k) ? g.a : g.b; seen.set(k, { id: null, p: [pos[vi * 3], pos[vi * 3 + 1], pos[vi * 3 + 2]] }); }
+    verts = [...seen.values()];
+  }
+  const adj = new Map();             // 面 -> 稜線を共有する面(トポロジーの稜線で判定。なければ境界の線分を共有する面)
+  const link = (x, y) => { if (x === y || x === undefined || y === undefined) return; if (!adj.has(x)) adj.set(x, new Set()); if (!adj.has(y)) adj.set(y, new Set()); adj.get(x).add(y); adj.get(y).add(x); };
+  const idxOfFace = new Map();
+  (md.faceInfo || []).forEach((fi, i) => { if (fi) idxOfFace.set(String(fi.id), i); });
+  for (const fids of edgeFaces.values()) for (let i = 0; i < fids.length; i++) for (let j = i + 1; j < fids.length; j++) link(idxOfFace.get(String(fids[i])), idxOfFace.get(String(fids[j])));
+  for (const g of segs) if (g.faces.length === 2) link(g.faces[0], g.faces[1]);
+  return { segs, P, E, chainOf, topo, edgeById, edgeFaces, verts, faceIdOf, adj };
+}
+
+// ---- 要素の拾い出し(ポインターの位置から、点 > 線 > 面 の順) ----
+const measRay = new THREE.Raycaster();
+function measPick(px, py) {
+  const md = measData;
+  if (!md || !currentMesh) return null;
+  const W = viewerEl.clientWidth, H = viewerEl.clientHeight;
+  measRay.setFromCamera(new THREE.Vector2(px / W * 2 - 1, -(py / H * 2 - 1)), camera);
+  currentMesh.updateMatrixWorld(true);
+  const hit = measRay.intersectObject(currentMesh, false)[0] || null;
+  const vd = bmViewDir(), cp = camera.position;
+  const depthOf = (x, y, z) => (x - cp.x) * vd.x + (y - cp.y) * vd.y + (z - cp.z) * vd.z;
+  const hitDepth = hit ? depthOf(hit.point.x, hit.point.y, hit.point.z) : null;
+  const slack = bmDiag() * 0.01;
+  const v3 = new THREE.Vector3();
+  const scr = (x, y, z) => { v3.set(x, y, z).project(camera); return [(v3.x + 1) * 0.5 * W, (1 - v3.y) * 0.5 * H]; };
+  // 点
+  let bestV = null, bd = 9;
+  for (let i = 0; i < md.verts.length; i++) {
+    const p = md.verts[i].p, s0 = scr(p[0], p[1], p[2]);
+    const d = Math.hypot(s0[0] - px, s0[1] - py);
+    if (d < bd && (hitDepth === null || depthOf(p[0], p[1], p[2]) <= hitDepth + slack)) { bd = d; bestV = i; }
+  }
+  if (bestV !== null) return { kind: "vertex", index: bestV };
+  // 線
+  let bestS = -1; bd = 6;
+  const P = md.P;
+  for (let i = 0; i < md.segs.length; i++) {
+    const a = scr(P[i * 6], P[i * 6 + 1], P[i * 6 + 2]), b = scr(P[i * 6 + 3], P[i * 6 + 4], P[i * 6 + 5]);
+    const d = distPointSegment(px, py, a[0], a[1], b[0], b[1]);
+    if (d < bd) {
+      const mx = (P[i * 6] + P[i * 6 + 3]) / 2, my = (P[i * 6 + 1] + P[i * 6 + 4]) / 2, mz = (P[i * 6 + 2] + P[i * 6 + 5]) / 2;
+      if (hitDepth === null || depthOf(mx, my, mz) <= hitDepth + slack) { bd = d; bestS = i; }
+    }
+  }
+  if (bestS >= 0) {
+    const e = md.E[bestS];
+    return e >= 0 ? { kind: "edge", edge: e } : { kind: "edge", chain: md.chainOf[bestS] };
+  }
+  // 面
+  if (hit) {
+    const ranges = currentMeshData.faceRanges || [];
+    const t = hit.faceIndex;
+    for (let f = 0; f < ranges.length; f++) if (t >= ranges[f][0] && t < ranges[f][1]) return { kind: "face", face: f, faces: measCylGroup(f) };
+  }
+  return null;
+}
+const measKey = (it) => it ? (it.kind + ":" + (it.kind === "face" && it.faces ? it.faces.join(",") : (it.index ?? it.edge ?? it.chain ?? it.face)) + (it.chain !== undefined && it.edge === undefined ? "c" : "")) : "";
+
+// 円筒面: 中心軸線(軸上の中心・向き・半径・軸方向の長さの半分)。円筒でなければ null
+const measCylCache = new Map();
+function measCylinder(f) {
+  if (measCylCache.has(f)) return measCylCache.get(f);
+  let r = null;
+  const fi = currentMeshData.faceInfo && currentMeshData.faceInfo[f];
+  if (fi && /CYLIND/i.test(fi.surface_kw || "")) {
+    try { if (!bmPos) bmBuildFaces(); const c = bmFitCylinder([currentMeshData.faceRanges[f]]); if (c && c.radius > 0) r = c; } catch (_) {}
+  }
+  measCylCache.set(f, r);
+  return r;
+}
+
+// 円筒面は、処理の都合で 2 つ(半割りなど)に分かれていることが多い。同じ軸・同じ半径で、境界を共有してつながる円筒面を 1 組にする
+const measGroupCache = new Map();
+function measCylGroup(f) {
+  if (measGroupCache.has(f)) return measGroupCache.get(f);
+  const c0 = measCylinder(f);
+  let grp = [f];
+  if (c0 && measData && measData.adj) {
+    const tolR = Math.max(0.01 * c0.radius, 1e-6), tolD = Math.max(0.03 * c0.radius, 5e-4 * bmDiag());      // 一部の面から当てはめるので、少し余裕を見る
+    const same = (b) => {
+      if (Math.abs(b.radius - c0.radius) > tolR || Math.abs(b.axis.dot(c0.axis)) < 0.998) return false;
+      const v = b.center.clone().sub(c0.center); v.addScaledVector(c0.axis, -v.dot(c0.axis));
+      return v.length() <= tolD;
+    };
+    const seen = new Set([f]), queue = [f];
+    while (queue.length) {
+      const cur = queue.shift();
+      for (const g of (measData.adj.get(cur) || [])) {
+        if (seen.has(g)) continue;
+        const cg = measCylinder(g);
+        if (cg && same(cg)) { seen.add(g); queue.push(g); }
+      }
+    }
+    grp = [...seen].sort((a, b) => a - b);
+  }
+  grp.forEach(k => measGroupCache.set(k, grp));
+  return grp;
+}
+// 円筒の組の中心軸線(組全体の軸方向の範囲)
+function measCylSpan(faces) {
+  const c0 = measCylinder(faces[0]);
+  if (!c0) return null;
+  let lo = Infinity, hi = -Infinity;
+  for (const f of faces) {
+    const c = measCylinder(f);
+    if (!c) continue;
+    const off = c.center.clone().sub(c0.center).dot(c0.axis);
+    lo = Math.min(lo, off - c.half); hi = Math.max(hi, off + c.half);
+  }
+  const p0 = c0.center.clone().addScaledVector(c0.axis, lo), p1 = c0.center.clone().addScaledVector(c0.axis, hi);
+  return { cyl: c0, p0, p1, length: hi - lo };
+}
+
+// ---- ハイライト用の図形 ----
+function measShape(it, color) {
+  const md = measData, grp = new THREE.Group();
+  if (it.kind === "vertex") {
+    const p = md.verts[it.index].p;
+    const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(p[0], p[1], p[2])]);
+    const m = new THREE.PointsMaterial({ color: 0xffffff, size: 12, sizeAttenuation: false, depthTest: false, transparent: true, map: dbgDotTex("#" + color.toString(16).padStart(6, "0"), true), alphaTest: 0.5 });
+    const pts = new THREE.Points(g, m); pts.renderOrder = 1010; grp.add(pts);
+  } else if (it.kind === "edge") {
+    const arr = [];
+    for (let i = 0; i < md.segs.length; i++) {
+      if (it.edge !== undefined ? md.E[i] === it.edge : (md.E[i] < 0 && md.chainOf[i] === it.chain)) for (let k = 0; k < 6; k++) arr.push(md.P[i * 6 + k]);
+    }
+    // 稜線のハイライトは太い線(4 px)で描く(WebGL の標準の線は 1 px 固定なので、LineSegments2 を使う)
+    const g = new LineSegmentsGeometry(); g.setPositions(arr);
+    const m = new LineMaterial({ color, linewidth: MEAS_LINE_PX, depthTest: false, transparent: true });
+    m.resolution.set(viewerEl.clientWidth || 1, viewerEl.clientHeight || 1);
+    measLineMats.push(m);
+    const l = new LineSegments2(g, m); l.renderOrder = 1009; l.computeLineDistances();
+    grp.add(l);
+  } else if (it.kind === "face") {
+    const P = currentMeshData.positions, I = currentMeshData.indices, arr = [];
+    for (const fidx of (it.faces || [it.face])) {
+      const [a, b] = currentMeshData.faceRanges[fidx];
+      for (let t = a; t < b; t++) for (let k = 0; k < 3; k++) { const vi = I[t * 3 + k] * 3; arr.push(P[vi], P[vi + 1], P[vi + 2]); }
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(arr, 3));
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthTest: false }));
+    m.renderOrder = 1008; grp.add(m);
+    const span = measCylSpan(it.faces || [it.face]);
+    if (span) {                                   // 円筒面: 中心軸線を実線で、円筒(分かれた組の全体)がある範囲だけ描く
+      const p0 = span.p0, p1 = span.p1;
+      const ag = new LineSegmentsGeometry(); ag.setPositions([p0.x, p0.y, p0.z, p1.x, p1.y, p1.z]);
+      const am = new LineMaterial({ color, linewidth: 3, depthTest: false, transparent: true });
+      am.resolution.set(viewerEl.clientWidth || 1, viewerEl.clientHeight || 1); measLineMats.push(am);
+      const al = new LineSegments2(ag, am); al.computeLineDistances(); al.renderOrder = 1011; grp.add(al);
+    }
+  }
+  grp.traverse(o => { o.frustumCulled = false; });
+  scene.add(grp);
+  return grp;
+}
+function measDispose(g) { if (!g) return; g.traverse(o => { if (o.material && measLineMats.includes(o.material)) measLineMats.splice(measLineMats.indexOf(o.material), 1); if (o.geometry) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } }); scene.remove(g); }
+
+// ---- プロパティ ----
+function measInfo(it, forHover) {      // forHover: ホバー中は簡潔に(三角形の数・トポロジー(接する稜線/面・境界の稜線・始点終点の ID)は出さない)
+  const md = measData, topo = md.topo, rows = [];
+  const unit = (bmUnitToMm || 1);
+  const add = (k, v) => rows.push([k, v]);
+  const faceTitle = (fi) => { const f = currentMeshData.faceInfo && currentMeshData.faceInfo[fi]; return f ? String(f.id) : null; };
+  if (it.kind === "vertex") {
+    const v = md.verts[it.index];
+    add("種類", "点(頂点)");
+    add("ID", v.id !== null && v.id !== undefined ? ((currentFileKind === "qif" ? "QIF " : "STEP #") + v.id) : "(IDなし)");
+    add("座標 X, Y, Z", measXYZ(v.p) + (unit !== 1 ? ` (mm: ${measXYZ(v.p.map(c => c * unit))})` : " mm"));
+    if (v.id !== null && v.id !== undefined) {
+      const es = topo.edges.filter(e => String(e.v1) === String(v.id) || String(e.v2) === String(v.id)).map(e => e.id);
+      if (es.length && !forHover) add("接する稜線", es.join(", "));
+    }
+    return { title: "点", color: MEAS_ORANGE, rows };
+  }
+  if (it.kind === "edge") {
+    let total = 0, n = 0;
+    for (let i = 0; i < md.segs.length; i++) {
+      if (it.edge !== undefined ? md.E[i] === it.edge : (md.E[i] < 0 && md.chainOf[i] === it.chain)) {
+        total += Math.hypot(md.P[i * 6 + 3] - md.P[i * 6], md.P[i * 6 + 4] - md.P[i * 6 + 1], md.P[i * 6 + 5] - md.P[i * 6 + 2]); n++;
+      }
+    }
+    add("種類", "線(稜線)");
+    if (it.edge !== undefined) {
+      const e = topo.edges[it.edge];
+      add("ID", (currentFileKind === "qif" ? "QIF " : "STEP #") + e.id);
+      add("曲線", ({ LINE: "直線", CIRCLE: "円/円弧", ELLIPSE: "楕円", BSPLINE: "自由曲線(B-spline)" }[e.type] || "その他") + (e.curve_id ? ` (${currentFileKind === "qif" ? "" : "#"}${e.curve_id})` : ""));
+      if (e.radius) add("半径", fmtN(e.radius) + " mm" + ` (直径 ${fmtN(e.radius * 2)})`);
+      if (e.center) add("中心", measXYZ(e.center));
+      if (e.axis) add("軸の向き", measXYZ(e.axis));
+      if (e.p1) add("始点", (forHover ? "" : `${(currentFileKind === "qif" ? "" : "#")}${e.v1}  `) + measXYZ(e.p1));
+      if (e.p2) add("終点", (forHover ? "" : `${(currentFileKind === "qif" ? "" : "#")}${e.v2}  `) + measXYZ(e.p2));
+      if (e.type === "LINE" && e.p1 && e.p2) add("長さ", fmtN(Math.hypot(e.p2[0] - e.p1[0], e.p2[1] - e.p1[1], e.p2[2] - e.p1[2])) + " mm");
+      else add("長さ(概算)", fmtN(total * unit) + " mm");
+      const fs = md.edgeFaces.get(String(e.id));
+      if (fs && fs.length && !forHover) add("接する面", fs.join(", "));
+    } else {
+      add("ID", "(稜線の ID を特定できません)");
+      add("長さ(概算)", fmtN(total * unit) + " mm");
+    }
+    return { title: "線", color: MEAS_ORANGE, rows };
+  }
+  // 面(円筒が 2 つに分かれているときは、組の全体)
+  const faces = it.faces || [it.face];
+  const fis = faces.map(f => currentMeshData.faceInfo && currentMeshData.faceInfo[f]);
+  const fi = fis[0];
+  const pre = currentFileKind === "qif" ? "QIF " : "STEP #";
+  add("種類", "面");
+  add("ID", fis.every(x => x) ? fis.map(x => pre + x.id).join("/") : "(IDなし)");
+  if (fi && fi.name) add("名前", fi.name);
+  if (fi) add("曲面", fi.surface + (fi.surface_kw ? ` (${fi.surface_kw})` : ""));
+  const tris = faces.reduce((n, f) => n + currentMeshData.faceRanges[f][1] - currentMeshData.faceRanges[f][0], 0);
+  if (!forHover) add("三角形の数", String(tris));
+  if (!bmPos) bmBuildFaces();
+  const stats = faces.map(f => bmFaceStats([currentMeshData.faceRanges[f]])).filter(Boolean);
+  const area = stats.reduce((n, st) => n + st.area, 0);
+  if (stats.length) {
+    add("面積", fmtN(area * unit * unit) + " mm²");
+    const cc = [0, 1, 2].map(k => stats.reduce((n, st) => n + st.area * [st.c.x, st.c.y, st.c.z][k], 0) / area);
+    add("重心", measXYZ(cc));
+    const st0 = stats[0];
+    if (faces.length === 1 && bmIsPlanar([currentMeshData.faceRanges[faces[0]]], st0)) add("法線", measXYZ([st0.n.x, st0.n.y, st0.n.z]));
+    else {
+      const span = measCylSpan(faces);
+      if (span) {
+        const cyl = span.cyl, ax = cyl.axis;
+        add("円筒の半径", fmtN(cyl.radius * unit) + " mm" + ` (直径 ${fmtN(cyl.radius * 2 * unit)})`);
+        add("中心軸線", "向き " + measXYZ([ax.x, ax.y, ax.z]));
+        add("  始点", measXYZ([span.p0.x, span.p0.y, span.p0.z]));
+        add("  終点", measXYZ([span.p1.x, span.p1.y, span.p1.z]));
+        add("  長さ", fmtN(span.length * unit) + " mm");
+      } else if (faces.length === 1) {
+        const cyl = bmFitCylinder([currentMeshData.faceRanges[faces[0]]]);
+        if (cyl) add("円筒の半径", fmtN(cyl.radius * unit) + " mm" + ` (直径 ${fmtN(cyl.radius * 2 * unit)})`);
+      }
+    }
+  }
+  const es = [...new Set(fis.flatMap(x => x ? (topo.face_edges[String(x.id)] || []) : []))];
+  if (es.length && !forHover) add("境界の稜線", es.join(", "));
+  return { title: "面", color: MEAS_ORANGE, rows };
+}
+// 先頭に空白のある項目名は、直前の項目(例: 中心軸線)の内訳として、字下げして「└」を付けて表示する
+const measTable = (rows) => `<table>${rows.map(r => { const sub = /^\s+/.test(r[0]); return `<tr><td${sub ? ' style="padding-left:18px"' : ""}>${sub ? "└ " : ""}${escapeHtml(r[0].trim())}</td><td>${escapeHtml(r[1])}</td></tr>`; }).join("")}</table>`;
+// 選択した要素の欄にポインターを乗せたら、3D モデル上の同じ要素を青でハイライトする
+var measListObj = null, measListIdx = -1;
+function measListHl(n) {
+  if (n === measListIdx) return;
+  measListIdx = n; measDispose(measListObj); measListObj = null;
+  if (n >= 0 && measSel[n]) measListObj = measShape(measSel[n].it, MEAS_BLUE);
+}
+function measRender() {
+  measListHl(-1);
+  measUpdateResultSoon();
+  const sl = document.getElementById("measSelected");
+  measTipRender();
+  if (!measSel.length) { sl.innerHTML = ""; return; }
+  // 選択した要素は、種類と ID だけを 1 行で表示し、右の ▼ を押すと、ホバーしたときと同じ内容を開く
+  sl.className = "";
+  sl.innerHTML = measSel.map((s, n) => {
+    const i = measInfo(s.it, true), id = (i.rows.find(r => r[0] === "ID") || [0, "(IDなし)"])[1], open = !!s.open;
+    return `<div class="mw-item" data-n="${n}"><div class="mw-kind"><i style="background:#ff8a00"></i><span>${escapeHtml(i.title)}　${escapeHtml(id)}</span>`
+      + `<button data-tg="${n}" title="${open ? "Close" : "Details"}" style="margin-left:auto">${open ? "▲" : "▼"}</button><button data-n="${n}" title="Remove" style="margin-left:0">&times;</button></div>`
+      + (open ? measTable(i.rows) : "") + `</div>`;
+  }).join("");
+  sl.querySelectorAll("button[data-tg]").forEach(b => b.addEventListener("click", () => { const k = parseInt(b.dataset.tg, 10); measSel[k].open = !measSel[k].open; measRender(); }));
+  sl.querySelectorAll("button[data-n]").forEach(b => b.addEventListener("click", () => { const k = parseInt(b.dataset.n, 10); measDispose(measSel[k].obj); measSel.splice(k, 1); measRender(); }));
+}
+document.getElementById("measSelected").addEventListener("mouseover", (e) => { const it = e.target.closest && e.target.closest(".mw-item"); measListHl(it ? parseInt(it.dataset.n, 10) : -1); });
+document.getElementById("measSelected").addEventListener("mouseleave", () => measListHl(-1));
+const measTip = document.getElementById("measTip");
+var measMouse = { x: 0, y: 0 };
+function measTipPlace() {                 // ポインターのやや右下。画面からはみ出すときは、左や上へ寄せる
+  if (measTip.style.display === "none") return;
+  const w = measTip.offsetWidth, h = measTip.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+  let x = measMouse.x + 18, y = measMouse.y + 10;
+  if (x + w > vw - 4) x = Math.max(4, measMouse.x - w - 14);
+  if (y + h > vh - 4) y = Math.max(4, vh - h - 4);
+  measTip.style.left = x + "px"; measTip.style.top = y + "px";
+}
+function measTipRender() {
+  if (!measActive || !measHover) { measTip.style.display = "none"; return; }
+  const i = measInfo(measHover, true);
+  measTip.innerHTML = `<div class="mw-kind"><i></i>${escapeHtml(i.title)}</div>` + measTable(i.rows);
+  measTip.style.display = "block";
+  measTipPlace();
+}
+var measHoverObj = null, measHoverKey = "", measMoveTimer = 0, currentFileKind = "step";
+function measUpdateHover(px, py) {
+  const it = measPick(px, py), k = measKey(it);
+  if (k === measHoverKey) return;
+  measHoverKey = k; measHover = it;
+  measDispose(measHoverObj); measHoverObj = it ? measShape(it, MEAS_BLUE) : null;
+  measRender();
+}
+function measClick() {
+  if (!measHover) return;
+  const k = measKey(measHover);
+  const dup = measSel.findIndex(s => measKey(s.it) === k);
+  if (dup >= 0) { measDispose(measSel[dup].obj); measSel.splice(dup, 1); }          // もう一度クリックで解除
+  else measSel.push({ it: measHover, obj: measShape(measHover, MEAS_ORANGE) });
+  measRender();
+}
+function measEnter() {
+  if (!currentMesh || !currentMeshData) { statusEl.textContent = "ファイルを開いてから Measurement を使ってください。"; document.getElementById("miMeasure").classList.remove("checked"); return; }
+  if (!bmPos) bmBuildFaces();
+  { const bb = currentMeshData.bbox; bmDiagCache = Math.hypot(bb.max[0] - bb.min[0], bb.max[1] - bb.min[1], bb.max[2] - bb.min[2]) || 1; }
+  statusEl.textContent = "計測データを準備しています…";
+  try { measData = measBuild(); } catch (e) { statusEl.textContent = "Measurement を始められませんでした: " + e.message; document.getElementById("miMeasure").classList.remove("checked"); return; }
+  measActive = true;
+  // 計測中は、ハイデンサイド用の鏡を隠す(終了したら元に戻す)
+  measMirrors = { on: bmMirrorsOn, hidden: bmMirrorHidden.slice() };
+  if (bmMirrorsOn) document.getElementById("miMirrors").click();
+  measShown = { hidden: new Set(hiddenTol), datums: datumsVisible };       // 計測中は、3D 上のデータムと特性を隠す(終了したら元に戻す)
+  setAllCharacteristicsVisible(false); setDatumsVisible(false);
+  const m = currentMesh.material;
+  measSaved = { transparent: m.transparent, opacity: m.opacity, depthWrite: m.depthWrite };
+  m.transparent = true; m.opacity = 0.32; m.depthWrite = false; m.needsUpdate = true;
+  measWin.style.display = "flex"; document.getElementById("splitMeas").style.display = "";      // Saved Views の左に並べる
+  resize(); bmDirty = true;
+  measRender();
+  statusEl.textContent = "Measurement: 点・線・面にポインターを置くとハイライト、クリックで選択(もう一度クリックで解除)";
+}
+function measExit() {
+  if (!measActive) { measWin.style.display = "none"; document.getElementById("splitMeas").style.display = "none"; resize(); return; }
+  measActive = false;
+  if (measMirrors) {                       // 鏡の表示を元に戻す(個別に消していた鏡は、消したまま)
+    if (measMirrors.on && !bmMirrorsOn) document.getElementById("miMirrors").click();
+    if (measMirrors.on) { for (let a = 0; a < 3; a++) bmMirrorHidden[a] = !!measMirrors.hidden[a]; bmSyncMirrorMenu(); }
+    measMirrors = null; bmDirty = true; bmLastSig = "";
+  }
+  if (measShown) {
+    hiddenTol.clear(); measShown.hidden.forEach(i => hiddenTol.add(i));
+    tolListEl.querySelectorAll("input.vis").forEach(c => { c.checked = !hiddenTol.has(Number(c.dataset.idx)); });
+    syncGroupChecks(); setDatumsVisible(measShown.datums); measShown = null;
+    applyHiddenGraphics(); bmDirty = true; bmLastSig = "";
+  }
+  if (currentMesh && measSaved) { const m = currentMesh.material; m.transparent = measSaved.transparent; m.opacity = measSaved.opacity; m.depthWrite = measSaved.depthWrite; m.needsUpdate = true; }
+  measDispose(measHoverObj); measHoverObj = null; measHover = null; measHoverKey = ""; measListHl(-1);
+  measSel.forEach(s => measDispose(s.obj)); measSel = [];
+  measClearResult(); measResultKey = "";
+  document.getElementById("measCylModeRow").style.display = "none";
+  measData = null; measCylCache.clear(); measGroupCache.clear();
+  measWin.style.display = "none"; document.getElementById("splitMeas").style.display = "none"; measTip.style.display = "none"; resize(); bmDirty = true;
+  document.getElementById("miMeasure").classList.remove("checked");
+  restoreStatus();
+}
+window.addEventListener("resize", () => { measLineMats.forEach(m => m.resolution.set(viewerEl.clientWidth || 1, viewerEl.clientHeight || 1)); });
+document.getElementById("miMeasure").addEventListener("click", () => {
+  const el = document.getElementById("miMeasure");
+  el.classList.toggle("checked");
+  if (el.classList.contains("checked")) measEnter(); else measExit();
+});
+document.getElementById("measClose").addEventListener("click", measExit);
+window.addEventListener("keydown", (e) => {      // Esc で Measurement を終了してウィンドウを閉じる(ほかのダイアログが開いているときは、そちらを優先)
+  if (e.key !== "Escape" || !measActive) return;
+  if (expBackdrop.style.display !== "none" || document.getElementById("errBackdrop").style.display === "flex") return;
+  e.preventDefault(); measExit();
+});
+document.getElementById("measClear").addEventListener("click", () => { measSel.forEach(s => measDispose(s.obj)); measSel = []; measRender(); });
+cv.addEventListener("pointermove", (e) => {
+  if (!measActive || e.buttons !== 0) return;
+  measMouse.x = e.clientX; measMouse.y = e.clientY; measTipPlace();
+  clearTimeout(measMoveTimer);
+  measMoveTimer = setTimeout(() => { const r = cv.getBoundingClientRect(); measUpdateHover(e.clientX - r.left, e.clientY - r.top); }, 16);
+});
+cv.addEventListener("pointerleave", () => { if (measActive) { measHoverKey = ""; measHover = null; measDispose(measHoverObj); measHoverObj = null; measRender(); } });
+// ポインターが Measurement のウィンドウに入ったら、3D モデル上のホバー表示(ハイライトと吹き出し)を消す
+["pointerenter", "pointermove", "mouseenter"].forEach(ev => measWin.addEventListener(ev, () => { if (measActive && (measHover || measHoverObj)) { measHoverKey = ""; measHover = null; measDispose(measHoverObj); measHoverObj = null; measRender(); } }));
+(function () {         // 左のつまみをドラッグして、パネルの幅を変える(変えた幅は覚えておく)
+  const sp = document.getElementById("splitMeas"), MIN_W = 260;
+  const setW = (w) => { const total = document.querySelector("main").clientWidth; w = Math.max(MIN_W, Math.min(w, Math.max(MIN_W, total - 400))); measWin.style.width = w + "px"; return w; };
+  try { const w0 = parseFloat(localStorage.getItem("measWinW")); if (w0 > 0) setW(w0); } catch (_) {}
+  sp.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    const x0 = e.clientX, w0 = measWin.offsetWidth;
+    sp.classList.add("dragging"); document.body.classList.add("col-resizing");
+    try { sp.setPointerCapture(e.pointerId); } catch (_) {}
+    const move = (ev) => { setW(w0 - (ev.clientX - x0)); resize(); bmDirty = true; };
+    const up = () => {
+      sp.classList.remove("dragging"); document.body.classList.remove("col-resizing");
+      sp.removeEventListener("pointermove", move); sp.removeEventListener("pointerup", up); sp.removeEventListener("pointercancel", up);
+      try { localStorage.setItem("measWinW", String(measWin.offsetWidth)); } catch (_) {} resize(); bmDirty = true;
+    };
+    sp.addEventListener("pointermove", move); sp.addEventListener("pointerup", up); sp.addEventListener("pointercancel", up);
+  });
+})();
+
+// ---- 2 点間の測定: 最短距離(オレンジ)と、X・Y・Z 軸に沿った距離(赤・緑・青)を、線と文字で 3D 上に描き、結果を文章で出力する ----
+var measResultObj = null, measLabels = [], measResultKey = "";
+function measUpdateResultSoon() {        // 選択が変わったときだけ作り直す(ホバーでは作り直さない)
+  const k = measSel.map(s => measKey(s.it)).join("|");
+  if (k === measResultKey) return;
+  measResultKey = k;
+  measUpdateResult();
+}
+const MEAS_AXIS = [[0xe00000, "#e00000"], [0x00a000, "#00a000"], [0x0000e0, "#0000e0"]];
+function measClearResult() {
+  document.getElementById("measCopy").disabled = true;
+  measDispose(measResultObj); measResultObj = null;
+  measLabels.forEach(l => l.el.remove()); measLabels = [];
+  document.getElementById("measOut").value = "";
+}
+function measThickLine(grp, p0, p1, color, px) {
+  const g = new LineSegmentsGeometry(); g.setPositions([p0[0], p0[1], p0[2], p1[0], p1[1], p1[2]]);
+  const m = new LineMaterial({ color, linewidth: px, depthTest: false, transparent: true });
+  m.resolution.set(viewerEl.clientWidth || 1, viewerEl.clientHeight || 1); measLineMats.push(m);
+  const l = new LineSegments2(g, m); l.computeLineDistances(); l.renderOrder = 1012; grp.add(l);
+}
+function measUpdateResult() {
+  measClearResult();
+  const isCyl2 = measActive && measSel.length === 2 && measSel.every(x => x.it.kind === "face" && measCylSpan(x.it.faces || [x.it.face]));
+  document.getElementById("measCylModeRow").style.display = isCyl2 ? "flex" : "none";      // 円筒を 2 本選んだときだけ、測り方の選択を出す
+  if (!measActive || !measData) return;
+  const unit = bmUnitToMm || 1, pre = currentFileKind === "qif" ? "QIF " : "STEP #";
+  const f = (v) => (Math.abs(v * unit) < 5e-7 ? 0 : v * unit).toFixed(3);
+  const NLc = String.fromCharCode(10);
+  if (measSel.length === 1) { measShowSingle(measSel[0].it, f, pre, NLc); return; }
+  if (measSel.length !== 2) return;
+  const vs = measSel.filter(s => s.it.kind === "vertex");
+  // ---- 点 2 つ ----
+  if (vs.length === 2) {
+    const A = measData.verts[vs[0].it.index], B = measData.verts[vs[1].it.index];
+    const idOf = (v) => (v.id !== null && v.id !== undefined ? pre + v.id : "(IDなし)");
+    measShowResult([], A.p, B.p, "最短距離", [
+      "",
+      `点1: ${idOf(A)}  (${f(A.p[0])}, ${f(A.p[1])}, ${f(A.p[2])})`,
+      `点2: ${idOf(B)}  (${f(B.p[0])}, ${f(B.p[1])}, ${f(B.p[2])})`,
+    ]);
+    return;
+  }
+  // ---- 円筒 2 つ ----
+  const cs = measSel.filter(s => s.it.kind === "face" && measCylSpan(s.it.faces || [s.it.face]));
+  if (cs.length === 2) {
+    const mode = document.getElementById("measCylMode").value;      // axis | shortest | longest
+    const sp = cs.map(c => measCylSpan(c.it.faces || [c.it.face]));
+    const ids = cs.map(c => (c.it.faces || [c.it.face]).map(fi => { const x = currentMeshData.faceInfo && currentMeshData.faceInfo[fi]; return x ? pre + x.id : "(IDなし)"; }).join("/"));
+    const a1 = sp[0].cyl.axis.clone().normalize(), a2 = sp[1].cyl.axis.clone().normalize();
+    const r1 = sp[0].cyl.radius, r2 = sp[1].cyl.radius;
+    const tail = ["", `円筒1: ${ids[0]}  直径 ${f(r1 * 2)}`, `円筒2: ${ids[1]}  直径 ${f(r2 * 2)}`];      // 距離の下に、円筒の ID と直径
+    const cosA = Math.abs(a1.dot(a2));
+    if (cosA < 0.9995) {
+      const ang = Math.acos(Math.min(1, cosA)) * 180 / Math.PI;
+      document.getElementById("measOut").value = [`中心軸線のなす角: ${ang.toFixed(3)}°`, `補角: ${(180 - ang).toFixed(3)}°`].concat(tail).join(NLc);
+      document.getElementById("measCopy").disabled = false;
+      return;
+    }
+    // 軸線の中点、軸に垂直な方向の距離 d と向き u、軸方向の重なりの中央 t
+    const m1 = sp[0].p0.clone().add(sp[0].p1).multiplyScalar(0.5), m2 = sp[1].p0.clone().add(sp[1].p1).multiplyScalar(0.5);
+    const dm = m2.clone().sub(m1), w = dm.clone().addScaledVector(a1, -dm.dot(a1)), d = w.length();
+    let u;
+    if (d > 1e-9) u = w.clone().multiplyScalar(1 / d);
+    else { u = new THREE.Vector3(1, 0, 0); if (Math.abs(a1.x) > 0.9) u.set(0, 1, 0); u.addScaledVector(a1, -u.dot(a1)).normalize(); }
+    const t2 = dm.dot(a1), h1 = sp[0].length / 2, h2 = sp[1].length / 2;
+    const lo = Math.max(-h1, t2 - h2), hi = Math.min(h1, t2 + h2), t = (lo + hi) / 2;
+    const Q1 = m1.clone().addScaledVector(a1, t), Q2 = Q1.clone().add(w);
+    let P, Q, label;
+    if (mode === "axis") { P = Q1; Q = Q2; label = "中心軸線の間の最短距離"; }
+    else if (mode === "longest") { P = Q1.clone().addScaledVector(u, -r1); Q = Q2.clone().addScaledVector(u, r2); label = "円筒面の最長距離"; }
+    else {
+      label = "円筒面の最短距離";
+      if (d >= r1 + r2) { P = Q1.clone().addScaledVector(u, r1); Q = Q2.clone().addScaledVector(u, -r2); }          // 離れている
+      else if (d <= Math.abs(r1 - r2) && r1 >= r2) { P = Q1.clone().addScaledVector(u, r1); Q = Q2.clone().addScaledVector(u, r2); }       // 円筒 2 が円筒 1 の中
+      else if (d <= Math.abs(r1 - r2)) { P = Q1.clone().addScaledVector(u, -r1); Q = Q2.clone().addScaledVector(u, -r2); }                  // 円筒 1 が円筒 2 の中
+      else { P = Q1.clone().addScaledVector(u, r1 - 1e-12); Q = P.clone(); }                                                            // 交わっている: 距離 0
+    }
+    measShowResult([], [P.x, P.y, P.z], [Q.x, Q.y, Q.z], label, tail);
+    return;
+  }
+  // ---- 直線の稜線 2 つ: 平行なら距離、そうでなければ角度 ----
+  const es = measSel.filter(s => s.it.kind === "edge");
+  if (es.length === 2) {
+    const ln = es.map(x => measLine(x.it));
+    if (!ln[0] || !ln[1]) return;
+    const ids = es.map(x => x.it.edge !== undefined ? pre + measData.topo.edges[x.it.edge].id : "(IDなし)");
+    const tail = ["", `線1: ${ids[0]}`, `線2: ${ids[1]}`];
+    const [l1, l2] = ln, d1 = l1.d, d2 = l2.d, cosA = Math.abs(d1.dot(d2));
+    if (cosA >= 0.9998) {                                    // 平行: 重なる範囲の中央で、線 1 から線 2 へ垂直に測る
+      const t2lo = l2.p0.clone().sub(l1.a).dot(d1), t2hi = l2.p1.clone().sub(l1.a).dot(d1);
+      const lo = Math.max(l1.lo, Math.min(t2lo, t2hi)), hi = Math.min(l1.hi, Math.max(t2lo, t2hi));
+      const t = (lo + hi) / 2;
+      const P = l1.a.clone().addScaledVector(d1, t), w = l2.a.clone().sub(P); w.addScaledVector(d1, -w.dot(d1));
+      const Q = P.clone().add(w);
+      measShowResult([], [P.x, P.y, P.z], [Q.x, Q.y, Q.z], "線と線の距離", tail);
+      return;
+    }
+    // 平行でない: 2 直線が最も近づく点を O として、各線の中央の側へ向かう 2 本の線と円弧で角度を示す
+    const r = l1.a.clone().sub(l2.a), b = d1.dot(d2), c = d1.dot(r), e = d2.dot(r), dn = 1 - b * b;
+    const s1 = (b * e - c) / dn, s2 = (e - b * c) / dn;
+    const O = l1.a.clone().addScaledVector(d1, s1).add(l2.a.clone().addScaledVector(d2, s2)).multiplyScalar(0.5);
+    const mid = (l) => l.p0.clone().add(l.p1).multiplyScalar(0.5);
+    const dirTo = (l) => { const u = l.d.clone(); if (mid(l).sub(O).dot(u) < 0) u.negate(); return u; };
+    const u1 = dirTo(l1), u2 = dirTo(l2);
+    const L = 0.5 * (mid(l1).sub(O).length() + mid(l2).sub(O).length());
+    measShowAngle(O, u1, u2, L, tail);
+    return;
+  }
+  // ---- 平面 2 つ: 平行なら距離、そうでなければ角度 ----
+  const fs = measSel.filter(s => s.it.kind === "face");
+  if (fs.length === 2) {
+    const pl = fs.map(x => measPlane(x.it.faces || [x.it.face]));
+    if (!pl[0] || !pl[1]) return;
+    const ids = fs.map(x => (x.it.faces || [x.it.face]).map(fi => { const q = currentMeshData.faceInfo && currentMeshData.faceInfo[fi]; return q ? pre + q.id : "(IDなし)"; }).join("/"));
+    const tail = ["", `面1: ${ids[0]}`, `面2: ${ids[1]}`];
+    const n1 = pl[0].n, n2 = pl[1].n, c1 = pl[0].c, c2 = pl[1].c, cosA = Math.abs(n1.dot(n2));
+    const m = c1.clone().add(c2).multiplyScalar(0.5);
+    if (cosA >= 0.9998) {                                   // 平行: 面と面の距離(中間の位置で、面 1 の法線方向に測る)
+      const P = m.clone().addScaledVector(n1, -m.clone().sub(c1).dot(n1));
+      const Q = P.clone().addScaledVector(n1, c2.clone().sub(P).dot(n1));
+      measShowResult([], [P.x, P.y, P.z], [Q.x, Q.y, Q.z], "面と面の距離", tail);
+      return;
+    }
+    // 平行でない: 交線の近くに点 O をとり、各面の上で交線に垂直な 2 本の線と、その間の円弧で角度を示す
+    const d = n1.clone().cross(n2).normalize();
+    const h1 = n1.dot(c1), h2 = n2.dot(c2), h3 = d.dot(m);
+    const den = n1.dot(n2.clone().cross(d));
+    const O = n2.clone().cross(d).multiplyScalar(h1).add(d.clone().cross(n1).multiplyScalar(h2)).add(n1.clone().cross(n2).multiplyScalar(h3)).multiplyScalar(1 / den);
+    const dir = (n, c) => { const u = d.clone().cross(n).normalize(); if (c.clone().sub(O).dot(u) < 0) u.negate(); return u; };
+    const u1 = dir(n1, c1), u2 = dir(n2, c2);
+    const L = 0.5 * (Math.abs(c1.clone().sub(O).dot(u1)) + Math.abs(c2.clone().sub(O).dot(u2)));
+    measShowAngle(O, u1, u2, L, tail);
+  }
+}
+// 角度の表示: 点 O から方向 u1・u2 に線を 2 本(長さ L)引き、その間に円弧と角度の文字を描く
+function measShowAngle(O, u1, u2, L, tail) {
+  const th = Math.acos(Math.max(-1, Math.min(1, u1.dot(u2)))), deg = th * 180 / Math.PI;
+  if (!(L > 1e-9)) L = 0.05 * bmDiag();
+  const grp = new THREE.Group(), pt = (v) => [v.x, v.y, v.z];
+  measThickLine(grp, pt(O), pt(O.clone().addScaledVector(u1, L)), MEAS_ORANGE, 3);
+  measThickLine(grp, pt(O), pt(O.clone().addScaledVector(u2, L)), MEAS_ORANGE, 3);
+  const r = L * 0.6, NS = 28, sn = Math.sin(th);
+  let prev = null, midPt = null;
+  for (let i = 0; i <= NS; i++) {
+    const t = i / NS, v = u1.clone().multiplyScalar(Math.sin((1 - t) * th) / sn).addScaledVector(u2, Math.sin(t * th) / sn);
+    const q = O.clone().addScaledVector(v, r);
+    if (prev) measThickLine(grp, pt(prev), pt(q), MEAS_ORANGE, 3);
+    if (i === NS / 2) midPt = q;
+    prev = q;
+  }
+  grp.traverse(o => { o.frustumCulled = false; });
+  scene.add(grp); measResultObj = grp;
+  const el = document.createElement("div");
+  el.className = "mlab"; el.style.borderColor = "#ff8a00"; el.textContent = deg.toFixed(3) + "°";
+  document.getElementById("measLabels").appendChild(el);
+  measLabels.push({ el, mid: midPt.clone() });
+  measLabelTick();
+  document.getElementById("measOut").value = [`なす角: ${deg.toFixed(3)}°`, `補角: ${(180 - deg).toFixed(3)}°`].concat(tail).join(String.fromCharCode(10));
+  document.getElementById("measCopy").disabled = false;
+}
+// 1 つだけ選んだとき: 点は座標、円筒は直径と中心軸線の両端の座標、稜線は(円/円弧なら)直径と中心、(直線なら)両端の座標と長さ
+function measShowSingle(it, f, pre, NLc) {
+  const xyz = (p) => `(${f(p[0])}, ${f(p[1])}, ${f(p[2])})`, L = [];
+  if (it.kind === "vertex") {
+    const v = measData.verts[it.index];
+    L.push(`点: ${v.id !== null && v.id !== undefined ? pre + v.id : "(IDなし)"}`, `座標: ${xyz(v.p)} mm`);
+  } else if (it.kind === "face") {
+    const faces = it.faces || [it.face], sp = measCylSpan(faces);
+    if (!sp) return;
+    const ids = faces.map(fi => { const q = currentMeshData.faceInfo && currentMeshData.faceInfo[fi]; return q ? pre + q.id : "(IDなし)"; }).join("/");
+    L.push(`円筒: ${ids}`, `直径: ${f(sp.cyl.radius * 2)} mm`, `中心軸線の始点: ${xyz([sp.p0.x, sp.p0.y, sp.p0.z])} mm`, `中心軸線の終点: ${xyz([sp.p1.x, sp.p1.y, sp.p1.z])} mm`, `長さ: ${f(sp.length)} mm`);
+  } else if (it.kind === "edge") {
+    const e = it.edge !== undefined ? measData.topo.edges[it.edge] : null, id = e ? pre + e.id : "(IDなし)";
+    if (e && e.radius && e.center) L.push(`${e.type === "CIRCLE" ? "円/円弧" : "稜線"}: ${id}`, `直径: ${f(e.radius * 2)} mm`, `中心の座標: ${xyz(e.center)} mm`);
+    else {
+      const ln = measLine(it);
+      if (!ln) return;
+      L.push(`直線: ${id}`, `始点: ${xyz([ln.p0.x, ln.p0.y, ln.p0.z])} mm`, `終点: ${xyz([ln.p1.x, ln.p1.y, ln.p1.z])} mm`, `長さ: ${f(ln.hi - ln.lo)} mm`);
+    }
+  } else return;
+  document.getElementById("measOut").value = L.join(NLc);
+  document.getElementById("measCopy").disabled = false;
+}
+// 直線の稜線(の組): 通る点・向き・端点。直線でなければ null
+function measLine(it) {
+  const md = measData, pts = [];
+  for (let i = 0; i < md.segs.length; i++) {
+    if (it.edge !== undefined ? md.E[i] === it.edge : (md.E[i] < 0 && md.chainOf[i] === it.chain)) {
+      pts.push(new THREE.Vector3(md.P[i * 6], md.P[i * 6 + 1], md.P[i * 6 + 2]), new THREE.Vector3(md.P[i * 6 + 3], md.P[i * 6 + 4], md.P[i * 6 + 5]));
+    }
+  }
+  if (pts.length < 2) return null;
+  const a = pts[0];
+  let far = a, fd = 0;
+  for (const q of pts) { const dd = q.distanceTo(a); if (dd > fd) { fd = dd; far = q; } }
+  if (fd < 1e-12) return null;
+  const d = far.clone().sub(a).normalize(), tol = Math.max(1e-6, fd * 1e-3);
+  let lo = Infinity, hi = -Infinity;
+  for (const q of pts) {
+    const v = q.clone().sub(a), t = v.dot(d);
+    if (v.addScaledVector(d, -t).length() > tol) return null;
+    lo = Math.min(lo, t); hi = Math.max(hi, t);
+  }
+  return { a, d, lo, hi, p0: a.clone().addScaledVector(d, lo), p1: a.clone().addScaledVector(d, hi) };
+}
+// 平面の面(の組): 法線と重心。平面でなければ null
+function measPlane(faces) {
+  const P = currentMeshData.positions, I = currentMeshData.indices, tris = [];
+  let nx = 0, ny = 0, nz = 0, cx = 0, cy = 0, cz = 0, A = 0;
+  for (const f of faces) {
+    const [a, b] = currentMeshData.faceRanges[f];
+    for (let t = a; t < b; t++) {
+      const i0 = I[t * 3] * 3, i1 = I[t * 3 + 1] * 3, i2 = I[t * 3 + 2] * 3;
+      const ux = P[i1] - P[i0], uy = P[i1 + 1] - P[i0 + 1], uz = P[i1 + 2] - P[i0 + 2], vx = P[i2] - P[i0], vy = P[i2 + 1] - P[i0 + 1], vz = P[i2 + 2] - P[i0 + 2];
+      const x = uy * vz - uz * vy, y = uz * vx - ux * vz, z = ux * vy - uy * vx, l = Math.hypot(x, y, z);
+      if (l < 1e-14) continue;
+      tris.push([x / l, y / l, z / l]);
+      const g = [x / l, y / l, z / l];
+      if (tris.length > 1 && g[0] * tris[0][0] + g[1] * tris[0][1] + g[2] * tris[0][2] < 0) { nx -= x; ny -= y; nz -= z; } else { nx += x; ny += y; nz += z; }
+      cx += l * (P[i0] + P[i1] + P[i2]) / 3; cy += l * (P[i0 + 1] + P[i1 + 1] + P[i2 + 1]) / 3; cz += l * (P[i0 + 2] + P[i1 + 2] + P[i2 + 2]) / 3; A += l;
+    }
+  }
+  if (!tris.length || A <= 0) return null;
+  const n = new THREE.Vector3(nx, ny, nz).normalize();
+  for (const g of tris) if (Math.abs(g[0] * n.x + g[1] * n.y + g[2] * n.z) < 0.9995) return null;
+  return { n, c: new THREE.Vector3(cx / A, cy / A, cz / A) };
+}
+// 2 点 P → Q の測定結果を、文章・線(最短距離: オレンジ、X・Y・Z 軸に沿った距離: 赤・緑・青)・文字で出す
+function measShowResult(lines, P, Qp, label, after) {
+  const unit = bmUnitToMm || 1, f = (v) => (Math.abs(v * unit) < 5e-7 ? 0 : v * unit).toFixed(3);
+  const dx = Qp[0] - P[0], dy = Qp[1] - P[1], dz = Qp[2] - P[2], d = Math.hypot(dx, dy, dz);
+  const L = lines.concat([
+    `${label}: ${f(d)} mm`,
+    `X軸に沿った距離: ${f(dx)} mm`,
+    `Y軸に沿った距離: ${f(dy)} mm`,
+    `Z軸に沿った距離: ${f(dz)} mm`,
+  ]).concat(after || []);
+  document.getElementById("measOut").value = L.join(String.fromCharCode(10));
+  document.getElementById("measCopy").disabled = false;
+  // 線: 最短距離(オレンジ)。X → Y → Z の順に軸に沿って進む折れ線(赤・緑・青)
+  const grp = new THREE.Group(), p0 = P, p1 = [Qp[0], P[1], P[2]], p2 = [Qp[0], Qp[1], P[2]], p3 = Qp;
+  if (d * unit > 1e-9) measThickLine(grp, p0, p3, MEAS_ORANGE, 3);
+  const mk = (a, b, k, len) => { if (Math.abs(len) * unit > 1e-9) measThickLine(grp, a, b, MEAS_AXIS[k][0], 3); };
+  mk(p0, p1, 0, dx); mk(p1, p2, 1, dy); mk(p2, p3, 2, dz);
+  grp.traverse(o => { o.frustumCulled = false; });
+  scene.add(grp); measResultObj = grp;
+  // 文字: 各線の中点の近くに(背景は白、線と同じ色で縁取り)
+  const labels = [];
+  if (d * unit > 1e-9) labels.push([p0, p3, d, "#ff8a00"]);
+  [[p0, p1, dx, 0], [p1, p2, dy, 1], [p2, p3, dz, 2]].forEach(([a, b, len, k]) => { if (Math.abs(len) * unit > 1e-9) labels.push([a, b, len, MEAS_AXIS[k][1]]); });
+  const box = document.getElementById("measLabels");
+  for (const [a, b, len, col] of labels) {
+    const el = document.createElement("div");
+    el.className = "mlab"; el.style.borderColor = col; el.textContent = f(Math.abs(len)) + " mm";
+    box.appendChild(el);
+    measLabels.push({ el, mid: new THREE.Vector3((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2) });
+  }
+  measLabelTick();
+}
+// 文字の位置: 線の中点を画面に投影した位置を基準に、すでに置いた文字と重ならないよう縦にずらす
+function measLabelTick() {
+  if (!measLabels || !measLabels.length) return;       // 起動直後(定義より前に呼ばれたとき)
+  const W = viewerEl.clientWidth, H = viewerEl.clientHeight, v = new THREE.Vector3(), placed = [];
+  for (const l of measLabels) {
+    v.copy(l.mid).project(camera);
+    const w = l.el.offsetWidth || 70, h = l.el.offsetHeight || 20;
+    const cx = (v.x + 1) * 0.5 * W, cy = (1 - v.y) * 0.5 * H;
+    let x = cx - w / 2, y = cy - h / 2;
+    const hit = (yy) => placed.some(r => x < r[0] + r[2] + 2 && x + w + 2 > r[0] && yy < r[1] + r[3] + 2 && yy + h + 2 > r[1]);
+    let step = 0;
+    while (hit(y) && step < 12) { step++; const off = Math.ceil(step / 2) * (h + 3) * (step % 2 ? 1 : -1); y = cy - h / 2 + off; }
+    l.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+    placed.push([x, y, w, h]);
+  }
+}
+try { const m0 = localStorage.getItem("measCylMode"); if (m0) document.getElementById("measCylMode").value = m0; } catch (_) {}
+document.getElementById("measCylMode").addEventListener("change", () => {      // 円筒の測り方を変えたら、結果を作り直す
+  try { localStorage.setItem("measCylMode", document.getElementById("measCylMode").value); } catch (_) {}
+  measUpdateResult();
+});
+// Clear Result: 測定結果(テキスト・3D 上の線と文字)を消す。選択した要素は、そのまま残す
+document.getElementById("measClearResult").addEventListener("click", () => { measClearResult(); });
+// Copy to Clipboard: 結果のテキストをクリップボードへ
+document.getElementById("measCopy").addEventListener("click", async () => {
+  const ta = document.getElementById("measOut"), btn = document.getElementById("measCopy");
+  if (!ta.value) return;
+  let ok = false;
+  try { await navigator.clipboard.writeText(ta.value); ok = true; } catch (_) { try { ta.select(); ok = document.execCommand("copy"); } catch (_2) {} }
+  btn.textContent = ok ? "Copied" : "Copy failed";
+  setTimeout(() => { btn.textContent = "Copy to Clipboard"; }, 1500);
+});
+
 // ---- アップロード処理 ----
 // ---- 進捗オーバーレイ ----
 const loadOverlay = document.getElementById("loadOverlay");
@@ -5384,6 +6261,9 @@ function antCollect() {
   L.push(el("Panels", { characteristics: String(document.getElementById("miPanel").classList.contains("checked")),
                         savedViews: String(document.getElementById("miViewsPanel").classList.contains("checked")),
                         originAxes: String(document.getElementById("miAxes").classList.contains("checked")) }));
+  { const mw = document.getElementById("measWin");        // Measurement ウィンドウの大きさ・円筒の測り方
+    const w = parseFloat(mw.style.width) || 340, h = mw.offsetHeight || 440;
+    L.push(el("MeasurementWindow", { width: Math.round(w), height: Math.round(h), cylinderMode: document.getElementById("measCylMode").value })); }
   L.push(el("DebugOverlays", { annotationAnchors: String(dbgAnchorsOn), dimensionLineEnds: String(dbgDimEndsOn) }));
   L.push(el("Mirrors", { on: String(bmMirrorsOn), hidden: bmMirrorHidden.map(Number).join(" "),
                          offsets: bmMirrorOffsets.map(v => v === null ? "" : antNum(v)).join(" ") }));
@@ -5431,6 +6311,13 @@ function antApply(xmlText) {
     if ((v = T("CharacteristicCheckboxes")) !== null && (v === "true") === app.classList.contains("hide-rowchecks")) document.getElementById("miRowChecks").click();
     if ((v = T("SortMode")) !== null && v !== sortMode) { const m = document.querySelector(`#sortMenu .menu-item[data-sort="${v}"]`); if (m) m.click(); }
     if ((v = T("NavScheme")) !== null && v !== navScheme) setNavScheme(v);
+    const mwEl = root.getElementsByTagName("MeasurementWindow")[0];
+    if (mwEl) {
+      const mw = document.getElementById("measWin"), w = parseFloat(mwEl.getAttribute("width"));
+      if (w >= 260) { mw.style.width = Math.min(w, 0.6 * window.innerWidth) + "px"; try { localStorage.setItem("measWinW", String(w)); } catch (_) {} }
+      const cm = mwEl.getAttribute("cylinderMode");
+      if (cm && document.querySelector(`#measCylMode option[value="${cm}"]`)) document.getElementById("measCylMode").value = cm;
+    }
     const pn = root.getElementsByTagName("Panels")[0];
     if (pn) {
       const want = (a) => pn.getAttribute(a) === "true";
@@ -5706,6 +6593,8 @@ async function lastFileOpen() {
 })();
 async function handleFile(file, antFile, srcPath) {
   if (!file) return;
+  measExit();                                          // 計測は、開いていたファイルのものなので終える
+  currentFileKind = /\.(qif|xml)$/i.test(file.name) ? "qif" : "step";
   antPath = srcPath || null;
   if (!antPath && await hasServer()) {            // パスの分からないファイル(ドラッグ&ドロップなど): これまでに開いたフォルダから、同じ名前・大きさのファイルを探す
     try { const r = await fetch(API_BASE + "/api/locate?name=" + encodeURIComponent(file.name) + "&size=" + file.size); if (r.ok) antPath = (await r.json()).path || null; } catch (_) {}

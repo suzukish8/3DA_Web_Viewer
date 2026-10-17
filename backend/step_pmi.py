@@ -1581,6 +1581,130 @@ def extract_saved_views(entities: dict[int, Entity]) -> list[dict]:
     return views
 
 
+def _axis2_placement(entities: dict[int, Entity], ref_id: Optional[int], unit_factor: float):
+    """AXIS2_PLACEMENT_3D から (原点, 軸の向き) を返す。"""
+    if ref_id is None or ref_id not in entities:
+        return None, None
+    for kw, args in entities[ref_id].parts:
+        if kw != "AXIS2_PLACEMENT_3D":
+            continue
+        f = _split_top_level_args(args)
+        if len(f) < 2:
+            return None, None
+        loc = _get_cartesian_point(entities, _ref(f[1]))
+        axis = None
+        if len(f) >= 3:
+            dref = _ref(f[2])
+            if dref is not None and dref in entities:
+                for k2, a2 in entities[dref].parts:
+                    if k2 == "DIRECTION":
+                        ff = _split_top_level_args(a2)
+                        if len(ff) >= 2:
+                            v = _parse_floats(ff[1])
+                            if len(v) >= 3:
+                                axis = [v[0], v[1], v[2]]
+        if loc is not None:
+            loc = [loc[0] * unit_factor, loc[1] * unit_factor, loc[2] * unit_factor]
+        return loc, axis
+    return None, None
+
+
+def extract_topology(entities: dict[int, Entity], unit_factor: float = 1.0) -> dict:
+    """計測(Tool > Measurement)用に、B-Rep の頂点・稜線(エッジ)と、面ごとの稜線の一覧を返す。
+    ID は STEP のエンティティ番号。座標は mm(unit_factor 適用済み)。"""
+    vertices = []
+    vpos: dict[int, list[float]] = {}
+    for eid, ent in entities.items():
+        for kw, args in ent.parts:
+            if kw != "VERTEX_POINT":
+                continue
+            f = _split_top_level_args(args)
+            if len(f) < 2:
+                continue
+            p = _get_cartesian_point(entities, _ref(f[1]))
+            if p is None:
+                continue
+            q = [p[0] * unit_factor, p[1] * unit_factor, p[2] * unit_factor]
+            vpos[eid] = q
+            vertices.append({"id": eid, "p": q})
+
+    edges = []
+    for eid, ent in entities.items():
+        for kw, args in ent.parts:
+            if kw != "EDGE_CURVE":
+                continue
+            f = _split_top_level_args(args)
+            if len(f) < 4:
+                continue
+            v1, v2, cref = _ref(f[1]), _ref(f[2]), _ref(f[3])
+            curve = {"type": "OTHER", "curve_id": cref}
+            if cref is not None and cref in entities:
+                ckw = None
+                cargs = ""
+                for k2, a2 in entities[cref].parts:
+                    ckw, cargs = k2, a2
+                    if k2 in ("LINE", "CIRCLE", "ELLIPSE", "SURFACE_CURVE", "SEAM_CURVE", "INTERSECTION_CURVE"):
+                        break
+                if ckw in ("SURFACE_CURVE", "SEAM_CURVE", "INTERSECTION_CURVE"):      # 3D 曲線の本体を辿る
+                    cf = _split_top_level_args(cargs)
+                    c3 = _ref(cf[1]) if len(cf) >= 2 else None
+                    if c3 is not None and c3 in entities:
+                        for k2, a2 in entities[c3].parts:
+                            ckw, cargs = k2, a2
+                            curve["curve_id"] = c3
+                            break
+                if ckw == "LINE":
+                    curve["type"] = "LINE"
+                elif ckw == "CIRCLE":
+                    curve["type"] = "CIRCLE"
+                    cf = _split_top_level_args(cargs)
+                    if len(cf) >= 3:
+                        loc, axis = _axis2_placement(entities, _ref(cf[1]), unit_factor)
+                        r = _parse_floats(cf[2])
+                        if loc is not None and r:
+                            curve.update({"center": loc, "axis": axis, "radius": r[0] * unit_factor})
+                elif ckw == "ELLIPSE":
+                    curve["type"] = "ELLIPSE"
+                elif ckw and (ckw.startswith("B_SPLINE") or ckw.startswith("RATIONAL_B_SPLINE")):
+                    curve["type"] = "BSPLINE"
+            edges.append({"id": eid, "v1": v1, "v2": v2, "p1": vpos.get(v1), "p2": vpos.get(v2), **curve})
+
+    face_edges: dict[str, list[int]] = {}
+    for fid, ent in entities.items():
+        for kw, args in ent.parts:
+            if kw not in ("ADVANCED_FACE", "FACE_SURFACE"):
+                continue
+            f = _split_top_level_args(args)
+            if len(f) < 2:
+                continue
+            es: list[int] = []
+            for bref in _refs_in(f[1]):
+                for bkw, bargs in entities.get(bref, Entity(bref, [])).parts if bref in entities else []:
+                    if bkw not in ("FACE_BOUND", "FACE_OUTER_BOUND"):
+                        continue
+                    bf = _split_top_level_args(bargs)
+                    wref = _ref(bf[1]) if len(bf) >= 2 else None
+                    if wref is None or wref not in entities:
+                        continue
+                    for wkw, wargs in entities[wref].parts:
+                        if wkw != "EDGE_LOOP":
+                            continue
+                        wf = _split_top_level_args(wargs)
+                        for oe in (_refs_in(wf[1]) if len(wf) >= 2 else []):
+                            if oe not in entities:
+                                continue
+                            for okw, oargs in entities[oe].parts:
+                                if okw == "ORIENTED_EDGE":
+                                    of = _split_top_level_args(oargs)
+                                    if len(of) >= 4:
+                                        er = _ref(of[3])
+                                        if er is not None:
+                                            es.append(er)
+            if es:
+                face_edges[str(fid)] = sorted(set(es))
+    return {"vertices": vertices, "edges": edges, "face_edges": face_edges}
+
+
 def extract_pmi(step_text: str) -> dict:
     entities = parse_entities(step_text)
     unit_factor = find_length_unit_to_mm_factor(entities)
@@ -1652,6 +1776,7 @@ def extract_pmi(step_text: str) -> dict:
         "geometric_tolerances": tolerances,
         "annotations": annotations,
         "face_infos": extract_face_infos(entities, unit_factor),
+        "topology": extract_topology(entities, unit_factor),
         "datums": datums,
         "tessellated": extract_tessellated_pmi(entities),
         "saved_views": extract_saved_views(entities),
