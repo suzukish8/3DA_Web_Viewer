@@ -888,7 +888,7 @@ let currentMeshData = null;
 let currentTessellatedGroups = [];
 let selectedTolIndex = null;
 
-var viewShiftPx = 0, viewShiftPy = 0, viewRefH = 0, viewAnchor = null;      // 半透明のパネル・メニューバーを 3D 画面に重ねているとき、モデルの中心が画面の中心からずれる量(px)
+var viewShiftPx = 0, viewShiftPy = 0, viewRefH = 0, viewAnchor = null, viewOvlL = 0, viewOvlR = 0, viewOvlT = 0;      // viewOvl*: 3D 画面に重ねている半透明のパネル・メニューバーの幅・高さ(px)      // 半透明のパネル・メニューバーを 3D 画面に重ねているとき、モデルの中心が画面の中心からずれる量(px)
 function resize() {
   const w = viewerEl.clientWidth, h = viewerEl.clientHeight;
   renderer.setSize(w, h, false);
@@ -907,6 +907,7 @@ function resize() {
   if (!viewAnchor) viewAnchor = { x: vr.left + dl + refW / 2, y: vr.top + dt + refH / 2 };
   const cx = viewAnchor.x - vr.left, cy = viewAnchor.y - vr.top;
   viewShiftPx = cx - w / 2; viewShiftPy = cy - h / 2; viewRefH = refH;
+  viewOvlL = dl ? pl.offsetWidth : 0; viewOvlR = dr ? pr.offsetWidth : 0; viewOvlT = dt;
   {                                      // General tolerance の枠は、パネルを半透明にして 3D 画面が広がっても、画面上の位置を変えない
     const gn = document.getElementById("generalNotes"), pv = window.__ovlPrev || (window.__ovlPrev = { l: 0, t: 0 });
     gn.style.setProperty("--ovl-r", dr + "px");
@@ -2620,7 +2621,8 @@ function bmLayout() {
       bmMeasureItem(it); bmApplyScale(it);
     } }
 
-  const marginX = W * BM_EDGE_MARGIN, top = 8, bottom = H - 8;
+  // 左右のアノテーションの列は、3D 画面に重ねている半透明のパネル(特性・Saved Views)・メニューバーと重ならない範囲に置く
+  const marginX = W * BM_EDGE_MARGIN, top = 8 + viewOvlT, bottom = H - 8;
   const placed = new Set();
 
   const layoutSide = (list, side) => {
@@ -2630,9 +2632,9 @@ function bmLayout() {
     // 左列: 枠の右端を一直線に揃える(右揃え) / 右列: 枠の左端を揃える(左揃え)
     let edgeShared;                             // 揃えた枠端の x
     if (side === "left") {
-      edgeShared = marginX + Math.max(...list.map(v => v.it.sfr));       // どのラベルも左端が marginX 以上
+      edgeShared = viewOvlL + marginX + Math.max(...list.map(v => v.it.sfr));       // どのラベルも左端が marginX 以上(左のパネルの右から)
     } else {
-      edgeShared = W - marginX - Math.max(...list.map(v => v.it.sw - v.it.sfl));
+      edgeShared = W - viewOvlR - marginX - Math.max(...list.map(v => v.it.sw - v.it.sfl));
     }
     const shoulderEnd = side === "left" ? edgeShared + shoulder : edgeShared - shoulder;
     const anchors = {};
@@ -2848,7 +2850,7 @@ function bmTick(now) {
   if (annotationStyle !== "balloon") return;
   const sig = [camera.position.x.toFixed(3), camera.position.y.toFixed(3), camera.position.z.toFixed(3),
                camera.quaternion.x.toFixed(4), camera.quaternion.y.toFixed(4), camera.quaternion.z.toFixed(4),
-               camera.zoom.toFixed(4), viewerEl.clientWidth, viewerEl.clientHeight,
+               camera.zoom.toFixed(4), viewerEl.clientWidth, viewerEl.clientHeight, viewOvlL, viewOvlR, viewOvlT,
                selectedTolIndex, hiddenTol.size, bmMirrorsOn, bmFcfUnits.toFixed(5)].join("|");
   if (!bmDirty && sig === bmLastSig) return;
   if (now - bmLastRun < 40) return;          // 25fps 上限
