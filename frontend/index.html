@@ -24,6 +24,10 @@
   /* メニューバー (3DA Viewer風: File / View / Help) */
   #menubar { display: flex; align-items: stretch; background: var(--panel); border-bottom: 1px solid var(--panel-border);
     font-size: 13px; user-select: none; position: relative; z-index: 20; }
+  /* メニューバーも、右クリックで半透明にできる(3D 画面の上端に重ねる) */
+  #app { position: relative; }
+  #app.menubar-trans #menubar { background: rgba(243,244,247,0.34); border-bottom: 1px solid rgba(150,158,172,0.45); }
+  #app.menubar-trans #viewer { margin-top: calc(-1 * var(--mbh, 30px)); }       /* 3D 画面だけをメニューバーの下まで広げる(左右のパネルは動かさない) */
   .menu { position: relative; }
   .menu > .menu-title { padding: 6px 12px; cursor: pointer; }
   .menu.open > .menu-title, .menu > .menu-title:hover { background: #e3e6ec; }
@@ -106,7 +110,9 @@
   #viewsPanel > * { min-width: max-content; }       /* 狭くしたときは、内容を切らずに水平スクロールバーで見る */
   #viewsHead { display: flex; align-items: center; padding: 8px 10px; font-size: 13px; font-weight: 600;
     border-bottom: 1px solid var(--panel-border); }
-  #viewsHead span { flex: 1 1 auto; }
+  #viewsHead span { flex: 0 0 auto; }
+  #viewsHead #viewsSave { width: auto; margin-left: 8px; padding: 0 8px; line-height: 20px; font-size: 16px; border: 1px solid var(--panel-border); border-radius: 4px; background: #fff; cursor: pointer; }
+  #viewsHead #viewsClose { margin-left: auto; }
   #viewsClose { border: none; background: transparent; font-size: 20px; line-height: 1; color: var(--text-dim);
     cursor: pointer; padding: 2px 6px; border-radius: 4px; }
   #viewsClose:hover { background: #e3e6ec; color: var(--text); }
@@ -121,12 +127,12 @@
   .view-row .vdel { border: none; background: transparent; color: var(--text-dim); cursor: pointer; font-size: 15px;
     line-height: 1; padding: 0 4px; border-radius: 3px; }
   .view-row .vdel:hover { background: #e3e6ec; color: var(--text); }
-  #viewsFoot { padding: 8px; border-top: 1px solid var(--panel-border); }
+  #viewsFoot { display: none !important; }       /* 保存ボタンは、見出しの「+」へ移した */
   #viewsSave { width: 100%; padding: 6px; border: 1px solid var(--panel-border); border-radius: 5px; background: #fff;
     font-size: 13px; cursor: pointer; }
   #viewsSave:hover { background: #eaf1fb; }
   /* General tolerance などの一般注記: 3D モデル上には描かず、画面右下に画面へ正対して表示する */
-  #generalNotes { position: absolute; right: 12px; bottom: 12px; z-index: 6; max-width: 46%; max-height: 45%; overflow: auto; padding: 8px 10px;
+  #generalNotes { position: absolute; right: calc(12px + var(--ovl-r, 0px)); bottom: 12px; z-index: 6; max-width: 420px; max-height: 45%; overflow: auto; padding: 8px 10px;
     margin: 0; background: rgba(255,255,255,var(--gn-a,1)); border: 1px solid var(--panel-border); border-radius: 6px;       /* 保存ビューとは別の窓。パネルの下端に揃える */
     box-shadow: 0 1px 4px rgba(0,0,0,.12); display: none; flex-direction: column; gap: 8px; }
   .gnote .gline { white-space: pre-wrap; margin: 1px 0; }
@@ -142,6 +148,8 @@
   #generalNotes .gfoot { display: flex; align-items: center; gap: 6px; width: 100%; padding-top: 4px; margin-top: 2px; border-top: 1px solid rgba(150,158,172,0.4); font-size: 11px; color: var(--text-dim); }
   #generalNotes .gfoot input[type=range] { flex: 1; min-width: 60px; }
   #generalNotes.collapsed .gfoot { display: none; }
+  #generalNotes.in-panel { position: static; margin: auto 8px 8px; max-width: none; max-height: 45%; min-width: 0 !important; align-self: stretch; }          /* Saved Views のパネルの中(下端)に納める */
+  #generalNotes.in-panel .ghead { cursor: default; }
   #generalNotes .ghead { display: flex; align-items: center; gap: 8px; cursor: grab; user-select: none; touch-action: none; }
   #generalNotes .gtitle2 { display: inline; font-size: 12px; font-weight: 600; color: var(--text); }
   #generalNotes.collapsed .gtitle2 { display: inline; }
@@ -333,8 +341,49 @@
     background: rgba(255,255,255,0.8); padding: 4px 8px; border-radius: 4px; pointer-events: none; }
 
   #panel { width: 320px; max-width: 42vw; background: var(--panel); border-right: 1px solid var(--panel-border);
-    overflow-y: auto; overflow-x: auto; padding: 10px; flex-shrink: 0; position: relative; }
+    overflow: hidden; padding: 0; flex-shrink: 0; position: relative; display: flex; flex-direction: column; }
+  #panelScroll { scrollbar-width: thin; scrollbar-color: rgba(110,120,140,0.4) transparent; }
+  #panelScroll::-webkit-scrollbar { width: 8px; height: 8px; background: transparent; }
+  #panelScroll::-webkit-scrollbar-track { background: transparent; }
+  #panelScroll::-webkit-scrollbar-thumb { background: rgba(110,120,140,0.35); border-radius: 4px; }
+  #panelScroll::-webkit-scrollbar-thumb:hover { background: rgba(110,120,140,0.6); }
+  #panelScroll::-webkit-scrollbar-corner { background: transparent; }
+  #panelScroll { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 10px; }       /* 特性・データムの一覧: 断面の一覧とは別にスクロールする */
   /* Tool > Measurement の専用ウィンドウ */
+  /* 特性・データム欄のタブ(表示モードを複数持てる。タブの複製で増やす) */
+  #panelTabs { flex: 0 0 auto; z-index: 4; display: flex; flex-wrap: wrap; gap: 3px; align-items: center; margin: 0; padding: 5px 30px 0 8px;
+    background: var(--panel); border-bottom: 1px solid var(--panel-border); }
+  #panelTabs .ptab { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 12px; border: 1px solid #c9ced6; border-bottom: none; border-radius: 5px 5px 0 0;
+    background: #eef1f6; color: var(--text-dim); cursor: pointer; user-select: none; }
+  #panelTabs .ptab.active { background: #fff; color: var(--text); font-weight: 600; border-color: #9aa4b5; }
+  #panelTabs .ptab .px { font-size: 13px; line-height: 1; color: #8a93a3; padding: 0 1px; border-radius: 3px; }
+  #panelTabs .ptab .px:hover { background: #dfe4ee; color: var(--text); }
+  #panelTabs .ptab.drop-before { box-shadow: inset 3px 0 0 #1e78ff; } #panelTabs .ptab.drop-after { box-shadow: inset -3px 0 0 #1e78ff; }
+  #panelTabs .padd { padding: 1px 7px; font-size: 13px; border: 1px solid #c9ced6; border-radius: 4px; background: #fff; cursor: pointer; margin-left: 4px; }
+  #panelTabs .padd:hover { background: #eaf1fb; }
+  #app.panel-trans #panelTabs { background: transparent; }
+  /* 半透明のとき(3D 画面に重ねているとき)は、パネルの縁をドラッグして幅を変える */
+  .edge-grip { display: none; position: absolute; top: 0; bottom: 0; width: 7px; cursor: col-resize; z-index: 9; }
+  .edge-grip.edge-r { right: 0; } .edge-grip.edge-l { left: 0; }
+  .edge-grip:hover, .edge-grip.dragging { background: rgba(11,111,214,0.3); }
+  #app.panel-trans #panelEdge, #app.views-trans #viewsEdge { display: block; }
+  /* Saved Views の欄も、右クリックで半透明にできる(3D 画面の右に重ねる) */
+  #app.views-trans #viewsPanel { position: absolute; right: 0; top: 0; bottom: 0; z-index: 8; background: rgba(243,244,247,0.34); border-left: 1px solid rgba(150,158,172,0.45); }
+  #app.views-trans #splitRight { display: none; }
+  #app.views-trans #viewsHead { background: transparent; }
+  #app.views-trans #viewsSave { background: rgba(255,255,255,0.4); }
+  /* 保存した断面(特性欄の下。タブごとに有効/無効を切り替える) */
+  #cutSplit { flex: 0 0 6px; cursor: row-resize; background: transparent; position: relative; z-index: 5; margin-top: -3px; }
+  #cutSplit::after { content: ""; position: absolute; left: 0; right: 0; top: 2px; height: 2px; background: var(--panel-border); }
+  #cutSplit:hover::after, #cutSplit.dragging::after { background: rgba(11,111,214,0.55); }
+  #cutList { flex: 0 0 auto; max-height: 38%; overflow: auto; margin: 0; padding: 6px 10px 8px; border-top: 2px solid var(--panel-border); background: rgba(0,0,0,0.02); }       /* 断面があるときは、パネルを上下に分け、断面の一覧は常に見える */
+  #cutList .cut-head { font-size: 11px; font-weight: 600; color: var(--text-dim); margin-bottom: 3px; }
+  #cutList .cut-row { display: flex; align-items: center; gap: 6px; padding: 2px 2px; border-radius: 4px; font-size: 12px; }
+  #cutList .cut-row:hover { background: rgba(120,160,230,0.18); }
+  #cutList .cut-row .cn { flex: 1 1 auto; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #cutList .cut-row .cn small { color: var(--text-dim); margin-left: 6px; }
+  #cutList .cut-row .cx { border: none; background: transparent; color: #8a93a3; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 4px; border-radius: 3px; }
+  #cutList .cut-row .cx:hover { background: #dfe4ee; color: var(--text); }
   /* Tool > Section Cut の窓 */
   #secWin { position: absolute; left: 12px; top: 12px; z-index: 9; width: 330px; display: none; background: rgba(255,255,255,0.96);
     border: 1px solid var(--panel-border); border-radius: 6px; box-shadow: 0 3px 14px rgba(0,0,0,.25); font-size: 12px; }
@@ -347,7 +396,7 @@
   #secWin .sec-lab { width: 70px; color: var(--text-dim); flex: 0 0 auto; }
   #secWin .sec-row input[type=range] { flex: 1 1 90px; min-width: 70px; }
   #secWin .sec-row input[type=number] { width: 64px; }
-  #secWin .sec-opts { gap: 10px; } #secWin .sec-opts button { margin-left: auto; font-size: 12px; padding: 1px 8px; border: 1px solid #c9ced6; background: #fff; border-radius: 4px; cursor: pointer; }
+  #secWin .sec-opts { gap: 10px; } #secWin .sec-opts button:first-of-type { margin-left: auto; } #secWin .sec-opts button { font-size: 12px; padding: 1px 8px; border: 1px solid #c9ced6; background: #fff; border-radius: 4px; cursor: pointer; }
   #secWin .sec-note { font-size: 11px; color: var(--text-dim); line-height: 1.35; }
   /* アノテーションを選んだとき、その中心から広がる円(大きなモデルでも、どこが選ばれたか分かるように) */
   .ripple { position: absolute; border-radius: 50%; border: 3px solid rgba(0,40,160,1); box-shadow: 0 0 6px rgba(0,40,160,0.55);
@@ -560,6 +609,9 @@
     <div class="menu-title"><u>F</u>ile</div>
     <div class="menu-items">
       <div class="menu-item" id="miOpen">Open...</div>
+      <div class="menu-item has-sub" id="miRecent">Recent Files
+        <div class="submenu" id="recentMenu"><div class="menu-item" style="color:#9aa0aa">(No recent files)</div></div>
+      </div>
       <div class="menu-item" id="miAntSave">Save Settings (.ant)</div>
       <div class="menu-item" id="miAntLink">Link .ant Folder...</div>
       <div class="menu-sep"></div>
@@ -638,7 +690,7 @@
           <div class="menu-item radio" data-scheme="catia">CATIA (V5)</div>
           <div class="menu-item radio" data-scheme="nx">NX</div>
           <div class="menu-item radio" data-scheme="creo">Creo</div>
-          <div class="menu-item radio checked" data-scheme="solidworks">SOLIDWORKS (Default)</div>
+          <div class="menu-item radio checked" data-scheme="solidworks">SOLIDWORKS</div>
         </div>
       </div>
       <div class="menu-item checkable checked" id="miRipple" title="アノテーションを選んだとき、その中心から円が広がって、位置を知らせる">Highlight Ripple Animation</div>
@@ -673,8 +725,11 @@
   <main>
     <div id="panel">
       <button id="panelClose" title="Close" aria-label="Close">&times;</button>
-      <div id="tolList"></div>
-      <div id="datumList"></div>
+      <div class="edge-grip edge-r" id="panelEdge" title="ドラッグして幅を変える"></div>
+      <div id="panelTabs"></div>
+      <div id="panelScroll"><div id="tolList"></div><div id="datumList"></div></div>
+      <div id="cutSplit" title="ドラッグして、特性の一覧と断面の一覧の大きさを調整(ダブルクリックで元に戻す)" style="display:none"></div>
+      <div id="cutList"></div>
       <div id="symSizeBar" title="Characteristics / Datums の記号の大きさ(FCF Height とは別)">
         <span id="symSizeOld" style="display:none"><label for="symSizeNum">Symbol Height:</label>
         <input type="range" id="symSizeSlider" min="6" max="20" step="1" value="20">
@@ -702,7 +757,7 @@
           <div class="sec-row"><span class="sec-lab">Rotate X</span><input type="range" id="secRxR" min="-180" max="180" step="1" value="0"><input type="number" id="secRx" step="1" value="0"><span>&deg;</span></div>
           <div class="sec-row"><span class="sec-lab">Rotate Y</span><input type="range" id="secRyR" min="-180" max="180" step="1" value="0"><input type="number" id="secRy" step="1" value="0"><span>&deg;</span></div>
           <div class="sec-row"><span class="sec-lab">Rotate Z</span><input type="range" id="secRzR" min="-180" max="180" step="1" value="0"><input type="number" id="secRz" step="1" value="0"><span>&deg;</span></div>
-          <div class="sec-row sec-opts"><label><input type="checkbox" id="secClip" checked> Cut away one side</label><label><input type="checkbox" id="secFlip"> Flip side</label><label><input type="checkbox" id="secHatch" checked> Hatching</label><button type="button" id="secReset">Reset</button></div>
+          <div class="sec-row sec-opts"><label><input type="checkbox" id="secClip" checked> Cut away one side</label><label><input type="checkbox" id="secFlip"> Flip side</label><label><input type="checkbox" id="secHatch" checked> Hatching</label><button type="button" id="secSave" title="いまの断面を作成する(名前を付けて、左パネルのタブに出る)。作成後、この窓は閉じる">断面を作成</button><button type="button" id="secReset">Reset</button></div>
           <div class="sec-note">平面を「基準面を距離だけ動かす → X → Y → Z 軸の順に、座標軸まわりに回す」で決めます(回転の中心は原点)。</div>
         </div>
       </div>
@@ -732,9 +787,10 @@
 </div>
     <div class="splitter" id="splitRight" title="Drag to resize"></div>
     <div id="viewsPanel" style="display:none">
-      <div id="viewsHead" style="display:none"><span>Saved Views</span><button id="viewsClose" title="Close" aria-label="Close">&times;</button></div>
+      <div class="edge-grip edge-l" id="viewsEdge" title="ドラッグして幅を変える"></div>
+      <div id="viewsHead" style="display:none"><span>Saved Views</span><button id="viewsSave" type="button" title="Save Current View..." aria-label="Save Current View">+</button><button id="viewsClose" title="Close" aria-label="Close">&times;</button></div>
       <div id="viewsList" style="display:none"></div>
-      <div id="viewsFoot" style="display:none"><button id="viewsSave">Save Current View...</button></div>
+      <div id="viewsFoot" style="display:none"></div>
     </div>
   </main>
   <div id="statusbar">
@@ -828,17 +884,47 @@ let currentMeshData = null;
 let currentTessellatedGroups = [];
 let selectedTolIndex = null;
 
+var viewShiftPx = 0, viewShiftPy = 0, viewRefH = 0, viewAnchor = null;      // 半透明のパネル・メニューバーを 3D 画面に重ねているとき、モデルの中心が画面の中心からずれる量(px)
 function resize() {
   const w = viewerEl.clientWidth, h = viewerEl.clientHeight;
   renderer.setSize(w, h, false);
-  const aspect = w / h;
+  // 特性・Saved Views のパネルを半透明にして 3D 画面に重ねたとき、画面が広がってもモデルの位置・大きさが動かないよう、
+  // 不透明のとき(パネルが横に並んでいるとき)と同じ範囲を基準にして、広がった分だけ余白を足す
+  const app = document.getElementById("app"), pl = document.getElementById("panel"), pr = document.getElementById("viewsPanel");
+  const dl = app.classList.contains("panel-trans") && pl.style.display !== "none" ? pl.offsetWidth + 5 : 0;          // +5 は、パネルと 3D 画面の間の仕切りの幅
+  const dr = app.classList.contains("views-trans") && pr.style.display !== "none" ? pr.offsetWidth + 5 : 0;
+  const mb = document.getElementById("menubar");
+  app.style.setProperty("--mbh", mb.offsetHeight + "px");
+  const dt = app.classList.contains("menubar-trans") ? mb.offsetHeight : 0;
+  const refW = Math.max(100, w - dl - dr), refH = Math.max(100, h - dt);
+  // モデルの中心を置く画面上の位置(絶対座標)は、パネルの幅を変えても(仕切りのドラッグ)、パネルを半透明にしても動かさない。
+  // ファイルを開いたとき・Fit to View・ウィンドウの大きさを変えたときに、画面の中心(不透明のときの 3D 画面の中心)へ置き直す
+  const vr = viewerEl.getBoundingClientRect();
+  if (!viewAnchor) viewAnchor = { x: vr.left + dl + refW / 2, y: vr.top + dt + refH / 2 };
+  const cx = viewAnchor.x - vr.left, cy = viewAnchor.y - vr.top;
+  viewShiftPx = cx - w / 2; viewShiftPy = cy - h / 2; viewRefH = refH;
+  {                                      // General tolerance の枠は、パネルを半透明にして 3D 画面が広がっても、画面上の位置を変えない
+    const gn = document.getElementById("generalNotes"), pv = window.__ovlPrev || (window.__ovlPrev = { l: 0, t: 0 });
+    gn.style.setProperty("--ovl-r", dr + "px");
+    if (gn.style.left !== "") gn.style.left = (parseFloat(gn.style.left) + (dl - pv.l)) + "px";
+    if (gn.style.top !== "") gn.style.top = (parseFloat(gn.style.top) + (dt - pv.t)) + "px";
+    pv.l = dl; pv.t = dt;
+  }
+  const aspect = w / refH;
   camera.left = -frustumSize * aspect / 2;
   camera.right = frustumSize * aspect / 2;
   camera.top = frustumSize / 2;
   camera.bottom = -frustumSize / 2;
+  const offX = w / 2 - cx, offY = refH / 2 - cy;
+  if (Math.abs(offX) < 0.5 && Math.abs(offY) < 0.5 && h === refH) camera.clearViewOffset(); else camera.setViewOffset(w, refH, offX, offY, w, h);
   camera.updateProjectionMatrix();
 }
-window.addEventListener("resize", resize);
+let viewWinPrev = { w: window.innerWidth, h: window.innerHeight };
+window.addEventListener("resize", () => {      // ウィンドウの大きさが変わったら、モデルの中心の位置も、同じ割合で動かす
+  if (viewAnchor) { viewAnchor.x *= window.innerWidth / viewWinPrev.w; viewAnchor.y *= window.innerHeight / viewWinPrev.h; }
+  viewWinPrev = { w: window.innerWidth, h: window.innerHeight };
+  resize();
+});
 resize();
 
 function animate(now) {
@@ -1349,7 +1435,15 @@ function updateViewsColumn() {
   const on = miViewsPanel.classList.contains("checked"), gOn = miGeneral.classList.contains("checked");
   const hasGen = typeof generalNoteNames !== "undefined" && generalNoteNames.size > 0;
   for (const id of ["viewsHead", "viewsList", "viewsFoot"]) document.getElementById(id).style.display = on ? "" : "none";
-  if (typeof generalNotesEl !== "undefined") generalNotesEl.style.display = gOn && hasGen ? "flex" : "none";
+  if (typeof generalNotesEl !== "undefined") {
+    const target = on ? viewsPanelEl : viewerEl;               // Saved Views のパネルが出ているときは、その中に納める
+    if (generalNotesEl.parentElement !== target) {
+      target.appendChild(generalNotesEl);
+      generalNotesEl.classList.toggle("in-panel", on);
+      if (on) window.__genDefaultPos(); else if (window.__genRestore) setTimeout(window.__genRestore, 0);
+    }
+    generalNotesEl.style.display = gOn && hasGen ? "flex" : "none";
+  }
   viewsPanelEl.style.display = on ? "" : "none";                          // 右の列は Saved Views だけ(General tolerance は 3D 画面に重ねる枠)
   resize();
 }
@@ -3045,6 +3139,20 @@ document.getElementById("miDesignators").addEventListener("click", () => {
     el.style.width = w + "px"; el.style.maxWidth = "none";
     return w;
   }
+  // 半透明で 3D 画面に重ねているときの、パネルの縁のドラッグ(同じ幅の設定を使う)
+  const edge = (gid, panel, key, sign) => {
+    const g = document.getElementById(gid);
+    g.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      const x0 = e.clientX, w0 = panel.offsetWidth;
+      g.classList.add("dragging"); try { g.setPointerCapture(e.pointerId); } catch (_) {}
+      const move = (ev) => { setWidth(panel, w0 + sign * (ev.clientX - x0)); resize(); bmDirty = true; };
+      const up = () => { g.classList.remove("dragging"); g.removeEventListener("pointermove", move); g.removeEventListener("pointerup", up); g.removeEventListener("pointercancel", up); store(key, panel.offsetWidth); resize(); bmDirty = true; };
+      g.addEventListener("pointermove", move); g.addEventListener("pointerup", up); g.addEventListener("pointercancel", up);
+    });
+  };
+  edge("panelEdge", panelL, "panelLeftW", 1);
+  edge("viewsEdge", panelR, "panelRightW", -1);
   const wl = load("panelLeftW"), wr = load("panelRightW");
   if (wl) setWidth(panelL, wl);
   if (wr) setWidth(panelR, wr);
@@ -3421,14 +3529,14 @@ function expMapper() {
   const W = viewerEl.clientWidth, H = viewerEl.clientHeight;
   const right = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 0);
   const up = new THREE.Vector3().setFromMatrixColumn(camera.matrix, 1);
-  const pxPerUnit = H / (frustumSize / camera.zoom);
+  const pxPerUnit = (viewRefH || H) / (frustumSize / camera.zoom);
   const t = controls.target;
   const tx = t.dot(right), ty = t.dot(up), u2mm = bmUnitToMm || 1;
   const vr = viewerEl.getBoundingClientRect();
   const M = {
     W, H, right, up, pxPerUnit, u2mm,
     world: (p) => [p.dot(right) * u2mm, p.dot(up) * u2mm],
-    px: (x, y) => [(tx + (x - W / 2) / pxPerUnit) * u2mm, (ty - (y - H / 2) / pxPerUnit) * u2mm],
+    px: (x, y) => [(tx + (x - (W / 2 + viewShiftPx)) / pxPerUnit) * u2mm, (ty - (y - (H / 2 + viewShiftPy)) / pxPerUnit) * u2mm],
     cpx: (x, y) => M.px(x - vr.left, y - vr.top),     // ブラウザ画面(client)座標 -> 図面 mm。3D 画面の左上を原点にそろえてから変換する
     pxLen: (l) => (l / pxPerUnit) * u2mm,
   };
@@ -5137,50 +5245,47 @@ function gnFcfCells(line) {
 // ノート本文に "general tolerance" を含むものは、3D 上には描かず、画面右下に正対して表示する。
 const generalNoteNames = new Set();
 const generalNotesEl = document.getElementById("generalNotes");
-// General tolerance の枠は、見出しをドラッグして 3D 画面の中で動かせる(位置は覚えておく)
+// General tolerance の枠: Saved Views のパネルが出ているときは、その中(下端)に納める。出ていないときは、3D 画面の右下。
+// 右下に置くときは、見出しをドラッグして動かせる。位置は「右端・下端からの距離」で持つので、特性パネルの幅には左右されない。
 (function () {
-  let d = null;
-  const clamp = () => {
-    const vr = viewerEl.getBoundingClientRect(), r = generalNotesEl.getBoundingClientRect();
-    if (generalNotesEl.style.left === "") return;
-    const x = Math.min(Math.max(0, r.left - vr.left), Math.max(0, vr.width - r.width)), y = Math.min(Math.max(0, r.top - vr.top), Math.max(0, vr.height - r.height));
-    generalNotesEl.style.left = x + "px"; generalNotesEl.style.top = y + "px";
+  let d = null, gp = null;                 // gp: 動かした位置(右端・下端からの距離 px)。null なら既定の右下
+  const inPanel = () => generalNotesEl.classList.contains("in-panel");
+  const ovlR = () => parseFloat(generalNotesEl.style.getPropertyValue("--ovl-r")) || 0;      // 右のパネルを重ねているときの余白(resize で設定)
+  const place = (r, b) => {
+    const vr = viewerEl.getBoundingClientRect(), g = generalNotesEl.getBoundingClientRect();
+    r = Math.min(Math.max(0, r), Math.max(0, vr.width - ovlR() - g.width)); b = Math.min(Math.max(0, b), Math.max(0, vr.height - g.height));
+    gp = { r, b };
+    generalNotesEl.style.left = ""; generalNotesEl.style.top = "";
+    generalNotesEl.style.right = `calc(${r}px + var(--ovl-r, 0px))`; generalNotesEl.style.bottom = b + "px";
   };
-  const place = (fx, fy) => {
-    const vr = viewerEl.getBoundingClientRect(), r = generalNotesEl.getBoundingClientRect();
-    generalNotesEl.style.right = "auto"; generalNotesEl.style.bottom = "auto";
-    generalNotesEl.style.left = Math.min(Math.max(0, fx * vr.width), Math.max(0, vr.width - r.width)) + "px";
-    generalNotesEl.style.top = Math.min(Math.max(0, fy * vr.height), Math.max(0, vr.height - r.height)) + "px";
-  };
+  window.__genHasPos = () => gp !== null;
+  window.__genDefaultPos = () => { gp = null; generalNotesEl.style.right = ""; generalNotesEl.style.bottom = ""; generalNotesEl.style.left = ""; generalNotesEl.style.top = ""; };
   generalNotesEl.addEventListener("pointerdown", (e) => {
     const head = e.target.closest && e.target.closest(".ghead");
-    if (!head || e.target.tagName === "BUTTON" || e.button !== 0) return;
+    if (inPanel() || !head || e.target.tagName === "BUTTON" || e.button !== 0) return;
     const r = generalNotesEl.getBoundingClientRect(), vr = viewerEl.getBoundingClientRect();
-    d = { dx: e.clientX - r.left, dy: e.clientY - r.top };
-    generalNotesEl.style.right = "auto"; generalNotesEl.style.bottom = "auto";
-    generalNotesEl.style.left = (r.left - vr.left) + "px"; generalNotesEl.style.top = (r.top - vr.top) + "px";
+    d = { dx: e.clientX - r.left, dy: e.clientY - r.top, w: r.width, h: r.height };
+    place(vr.right - r.right - ovlR(), vr.bottom - r.bottom);
     try { generalNotesEl.setPointerCapture(e.pointerId); } catch (_) {}
     head.style.cursor = "grabbing"; e.preventDefault();
   });
   generalNotesEl.addEventListener("pointermove", (e) => {
     if (!d) return;
-    const vr = viewerEl.getBoundingClientRect(), r = generalNotesEl.getBoundingClientRect();
-    const x = Math.min(Math.max(0, e.clientX - d.dx - vr.left), Math.max(0, vr.width - r.width));
-    const y = Math.min(Math.max(0, e.clientY - d.dy - vr.top), Math.max(0, vr.height - r.height));
-    generalNotesEl.style.left = x + "px"; generalNotesEl.style.top = y + "px";
+    const vr = viewerEl.getBoundingClientRect();
+    const left = e.clientX - d.dx, top = e.clientY - d.dy;
+    place(vr.right - (left + d.w) - ovlR(), vr.bottom - (top + d.h));
   });
   const end = () => {
     if (!d) return;
     d = null;
     const h = generalNotesEl.querySelector(".ghead"); if (h) h.style.cursor = "";
-    const vr = viewerEl.getBoundingClientRect();
-    try { localStorage.setItem("genPos", JSON.stringify({ x: parseFloat(generalNotesEl.style.left) / vr.width, y: parseFloat(generalNotesEl.style.top) / vr.height })); } catch (_) {}
+    if (gp) { try { localStorage.setItem("genPos", JSON.stringify(gp)); } catch (_) {} }
   };
   generalNotesEl.addEventListener("pointerup", end); generalNotesEl.addEventListener("pointercancel", end);
-  window.addEventListener("resize", () => { clamp(); });
-  generalNotesEl.dataset.restorePos = "1";
-  window.__genRestore = () => {          // 前回の位置を戻す(ファイルを開いたあと)
-    try { const q = JSON.parse(localStorage.getItem("genPos") || "null"); if (q && isFinite(q.x) && isFinite(q.y)) place(q.x, q.y); } catch (_) {}
+  window.addEventListener("resize", () => { if (!inPanel() && gp) place(gp.r, gp.b); });
+  window.__genRestore = () => {          // 前回の位置を戻す(右下に置くとき)
+    if (inPanel()) return;
+    try { const q = JSON.parse(localStorage.getItem("genPos") || "null"); if (q && isFinite(q.r) && isFinite(q.b)) place(q.r, q.b); } catch (_) {}
   };
 })();
 function isGeneralTolerance(text) {
@@ -5213,6 +5318,7 @@ function setupGeneralNotes(pmi) {
   const rg = foot.querySelector("input"), pct = foot.querySelector(".gpct");
   let a0 = 100;
   try { const v = parseFloat(localStorage.getItem("genOpacity")); if (v >= 10 && v <= 100) a0 = v; } catch (_) {}
+  window.__setGenOpacity = (v) => { if (v >= 10 && v <= 100) { setA(v); try { localStorage.setItem("genOpacity", String(v)); } catch (_) {} } };
   const setA = (v) => { rg.value = String(v); pct.textContent = Math.round(v) + "%"; generalNotesEl.style.setProperty("--gn-a", (v / 100).toFixed(2)); };
   setA(a0);
   rg.addEventListener("input", () => { setA(parseFloat(rg.value)); try { localStorage.setItem("genOpacity", rg.value); } catch (_) {} });
@@ -5225,13 +5331,13 @@ function setupGeneralNotes(pmi) {
   };
   btn.addEventListener("click", () => {
     let near = false;
-    if (!generalCollapsed && generalNotesEl.style.left !== "") {          // 最小化するとき、右下付近にあれば、ぴったり右下へ寄せる
+    if (!generalCollapsed && !generalNotesEl.classList.contains("in-panel") && window.__genHasPos && window.__genHasPos()) {          // 最小化するとき、右下付近にあれば、ぴったり右下へ寄せる
       const vr = viewerEl.getBoundingClientRect(), r = generalNotesEl.getBoundingClientRect();
       near = vr.right - r.right <= 120 && vr.bottom - r.bottom <= 120;
     }
     generalCollapsed = !generalCollapsed; apply();
     if (near && generalCollapsed) {
-      generalNotesEl.style.left = ""; generalNotesEl.style.top = ""; generalNotesEl.style.right = ""; generalNotesEl.style.bottom = "";      // 既定(右下から 12px)に戻す
+      window.__genDefaultPos();      // 既定(右下から 12px)に戻す
       try { localStorage.removeItem("genPos"); } catch (_) {}
     }
   });
@@ -6355,10 +6461,12 @@ function secClear() {
   secObjs.forEach(o => { scene.remove(o); o.geometry.dispose(); o.material.dispose(); });
   secObjs = [];
 }
-function secApplyClip(plane) {         // モデルの面と稜線を、平面で切り取る(null で元に戻す)
+let secSavedClips = [];                // 有効な保存断面の切り取り平面
+function secApplyClip(plane) {         // モデルの面と稜線を、平面で切り取る(null で元に戻す)。編集中の平面 + 有効な保存断面の平面を合わせる
   secClipPlane = plane;
-  renderer.localClippingEnabled = !!plane;
-  for (const m of [currentMesh && currentMesh.material, currentEdges && currentEdges.material]) { if (m) { m.clippingPlanes = plane ? [plane] : []; m.needsUpdate = true; } }
+  const planes = (plane ? [plane] : []).concat(secSavedClips);
+  renderer.localClippingEnabled = planes.length > 0;
+  for (const m of [currentMesh && currentMesh.material, currentEdges && currentEdges.material]) { if (m) { m.clippingPlanes = planes; m.needsUpdate = true; } }
 }
 function secUpdate() {
   if (!secOn || !currentMeshData) return;
@@ -6445,7 +6553,109 @@ function secExit() {
   secClear(); secApplyClip(null);
   secWin.style.display = "none"; secEl("miSection").classList.remove("checked");
 }
+// ---- 保存した断面: 名前を付けて保存し、特性欄の下の一覧で、タブごとに有効/無効を切り替える ----
+let savedCuts = [], savedCutSeq = 1, cutEnabled = new Set(), cutObjs = [];
+function cutParams() {                 // 編集中の窓の値
+  return { plane: secEl("secWin").querySelector('input[name="secPlane"]:checked').value, dist: parseFloat(secEl("secDist").value) || 0,
+           rx: parseFloat(secEl("secRx").value) || 0, ry: parseFloat(secEl("secRy").value) || 0, rz: parseFloat(secEl("secRz").value) || 0,
+           clip: secEl("secClip").checked, flip: secEl("secFlip").checked, hatch: secEl("secHatch").checked };
+}
+function cutBasis(c) {                 // 保存した断面の、平面の向き・位置
+  const B0 = BM_SECTION_BASIS[c.plane], R = secRot(c.rx, c.ry, c.rz), rv = (a) => new THREE.Vector3(a[0], a[1], a[2]).applyMatrix4(R);
+  const n = rv(B0.n), uu = rv(B0.u), vv = rv(B0.v), d = c.dist / (bmUnitToMm || 1);
+  return { n, uu, vv, d, origin: n.clone().multiplyScalar(d) };
+}
+function cutClear() {
+  cutObjs.forEach(o => { scene.remove(o); o.geometry.dispose(); o.material.dispose(); });
+  cutObjs = []; secSavedClips = [];
+}
+function cutRender() {                 // 有効な保存断面を、3D 上に描く(切り口の輪郭・ハッチング・半透明の平面・切り取り)
+  cutClear();
+  if (!currentMeshData || !currentMesh) { secApplyClip(secClipPlane); return; }
+  if (!bmPos) bmBuildFaces();
+  const col = bmSectionColor ? bmSectionColor() : new THREE.Color(0x203040);
+  for (const c of savedCuts) {
+    if (!cutEnabled.has(c.id)) continue;
+    const B = cutBasis(c);
+    const res = bmSectionCompute(B.origin, { n: [B.n.x, B.n.y, B.n.z], u: [B.uu.x, B.uu.y, B.uu.z], v: [B.vv.x, B.vv.y, B.vv.z] }, null, !c.hatch);
+    for (const arr of [res.outline, res.hatch]) {
+      if (!arr || !arr.length) continue;
+      const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(arr, 3));
+      const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: col, depthTest: false, transparent: true }));
+      l.renderOrder = 1005; l.frustumCulled = false; scene.add(l); cutObjs.push(l);
+    }
+    // 保存した断面には、断面作成用の平面(半透明の面・縁)は出さない。切り口の輪郭・ハッチングと切り取りだけ
+    if (c.clip) { const sgn = c.flip ? 1 : -1; secSavedClips.push(new THREE.Plane(B.n.clone().multiplyScalar(sgn), -sgn * B.d)); }
+  }
+  secApplyClip(secClipPlane);
+}
+function cutListRender() {
+  const box = document.getElementById("cutList");
+  const sp = document.getElementById("cutSplit");
+  if (!savedCuts.length) { box.style.display = "none"; sp.style.display = "none"; box.innerHTML = ""; return; }
+  box.style.display = ""; sp.style.display = "";
+  box.innerHTML = `<div class="cut-head">Sections (${savedCuts.length})</div>`;
+  for (const c of savedCuts) {
+    const row = document.createElement("div");
+    row.className = "cut-row";
+    const axis = c.plane === "YZ" ? "X" : c.plane === "ZX" ? "Y" : "Z";
+    row.innerHTML = `<input type="checkbox" ${cutEnabled.has(c.id) ? "checked" : ""} title="このタブで、この断面を表示する"><span class="cn" title="クリック: 断面の窓で開いて調整する">${escapeHtml(c.name)}<small>${axis} ${c.dist}mm${c.rx || c.ry || c.rz ? " " + c.rx + "/" + c.ry + "/" + c.rz + "°" : ""}</small></span><button class="cx" title="この断面を削除">&times;</button>`;
+    row.querySelector("input").addEventListener("change", (e) => { if (e.target.checked) cutEnabled.add(c.id); else cutEnabled.delete(c.id); panelTabSave(); cutRender(); });
+    row.querySelector(".cn").addEventListener("click", () => cutEdit(c));
+    row.querySelector(".cx").addEventListener("click", () => {
+      if (!confirm(`断面「${c.name}」を削除しますか?(すべてのタブから消えます)`)) return;
+      savedCuts = savedCuts.filter(x => x.id !== c.id);
+      (panelTabs || []).forEach(t => { t.cuts = (t.cuts || []).filter(id => id !== c.id); });
+      cutEnabled.delete(c.id); cutListRender(); cutRender();
+    });
+    box.appendChild(row);
+  }
+}
+function cutEdit(c) {                  // 保存した断面を、断面の窓に読み込む
+  if (!secOn) secEnter();
+  if (!secOn) return;
+  secWin.querySelector(`input[name="secPlane"][value="${c.plane}"]`).checked = true;
+  for (const [id, v] of [["secDist", c.dist], ["secDistR", c.dist], ["secRx", c.rx], ["secRxR", c.rx], ["secRy", c.ry], ["secRyR", c.ry], ["secRz", c.rz], ["secRzR", c.rz]]) secEl(id).value = String(v);
+  secEl("secClip").checked = c.clip; secEl("secFlip").checked = c.flip; secEl("secHatch").checked = c.hatch;
+  secUpdate();
+}
+function cutSaveCurrent() {            // 名前を付けて保存して、いまのタブで有効にする
+  if (!secOn) return;
+  const def = "Section " + savedCutSeq;
+  const name = prompt("断面の名前", def);
+  if (name === null) return;
+  const c = Object.assign({ id: savedCutSeq++, name: name.trim() || def }, cutParams());
+  savedCuts.push(c); cutEnabled.add(c.id);
+  panelTabSave(); cutListRender();
+  secExit();                             // 作成したら、窓を閉じる(編集用の表示は消え、保存した断面が表示される)
+  cutRender();
+  statusEl.textContent = `断面「${c.name}」を作成しました(左のパネルのタブの下。タブごとに有効/無効を切り替えられます)`;
+}
+(function () {         // 特性の一覧と断面の一覧の間の仕切り: ドラッグで、断面の一覧の高さを変える(覚えておく)
+  const sp = document.getElementById("cutSplit"), box = document.getElementById("cutList"), panel = document.getElementById("panel");
+  const setH = (h) => {
+    const max = Math.max(60, panel.clientHeight - document.getElementById("panelTabs").offsetHeight - 80);
+    h = Math.max(40, Math.min(max, h));
+    box.style.maxHeight = "none"; box.style.height = h + "px"; return h;
+  };
+  try { const h0 = parseFloat(localStorage.getItem("cutListH")); if (h0 > 0) setH(h0); } catch (_) {}
+  sp.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    const y0 = e.clientY, h0 = box.getBoundingClientRect().height;
+    sp.classList.add("dragging"); try { sp.setPointerCapture(e.pointerId); } catch (_) {}
+    const move = (ev) => setH(h0 - (ev.clientY - y0));
+    const up = () => {
+      sp.classList.remove("dragging");
+      sp.removeEventListener("pointermove", move); sp.removeEventListener("pointerup", up); sp.removeEventListener("pointercancel", up);
+      try { localStorage.setItem("cutListH", String(box.getBoundingClientRect().height)); } catch (_) {}
+    };
+    sp.addEventListener("pointermove", move); sp.addEventListener("pointerup", up); sp.addEventListener("pointercancel", up);
+  });
+  sp.addEventListener("dblclick", () => { box.style.height = ""; box.style.maxHeight = ""; try { localStorage.removeItem("cutListH"); } catch (_) {} });
+})();
+function cutsReset() { savedCuts = []; savedCutSeq = 1; cutEnabled = new Set(); cutClear(); cutListRender(); }
 secEl("miSection").addEventListener("click", () => { if (secOn) secExit(); else secEnter(); });
+secEl("secSave").addEventListener("click", cutSaveCurrent);
 secEl("secClose").addEventListener("click", secExit);
 [["secDistR", "secDist"], ["secRxR", "secRx"], ["secRyR", "secRy"], ["secRzR", "secRz"]].forEach(([rid, nid]) => {
   secEl(rid).addEventListener("input", () => { secEl(nid).value = secEl(rid).value; secSoon(); });
@@ -6981,6 +7191,13 @@ function antCollect() {
   L.push(el("SortMode", {}, sortMode));
   L.push(el("NavScheme", {}, navScheme));
   L.push(el("HighlightRipple", {}, String(rippleOn)));
+  {                                        // パネル・メニューバーの見た目(半透明・幅・断面の一覧の高さ・General tolerance の透明度)
+    const ap = document.getElementById("app"), pl = document.getElementById("panel"), pr = document.getElementById("viewsPanel"), cl = document.getElementById("cutList");
+    const gr = document.querySelector("#generalNotes .gfoot input");
+    L.push(el("PanelStyle", { characteristicsTranslucent: String(ap.classList.contains("panel-trans")), savedViewsTranslucent: String(ap.classList.contains("views-trans")),
+      menuBarTranslucent: String(ap.classList.contains("menubar-trans")), leftWidth: Math.round(pl.offsetWidth), rightWidth: Math.round(pr.offsetWidth),
+      sectionListHeight: cl.style.height ? Math.round(cl.getBoundingClientRect().height) : "", generalOpacity: gr ? gr.value : "" }));
+  }
   L.push(el("Panels", { characteristics: String(document.getElementById("miPanel").classList.contains("checked")),
                         savedViews: String(document.getElementById("miViewsPanel").classList.contains("checked")),
                         originAxes: String(document.getElementById("miAxes").classList.contains("checked")) }));
@@ -6991,6 +7208,11 @@ function antCollect() {
   L.push(el("Mirrors", { on: String(bmMirrorsOn), hidden: bmMirrorHidden.map(Number).join(" "),
                          offsets: bmMirrorOffsets.map(v => v === null ? "" : antNum(v)).join(" ") }));
   L.push(el("HiddenCharacteristics", {}, [...hiddenTol].sort((a, b) => a - b).join(" ")));
+  if (panelTabs) {                        // 特性・データム欄のタブ(表示モード)
+    panelTabSave();
+    L.push(el("SavedCuts", {}, savedCuts.map(c => el("Cut", { id: c.id, name: c.name, plane: c.plane, dist: antNum(c.dist), rx: antNum(c.rx), ry: antNum(c.ry), rz: antNum(c.rz), clip: String(c.clip), flip: String(c.flip), hatch: String(c.hatch) })).join("")));
+    L.push(el("PanelTabs", { active: panelTabActive }, panelTabs.map(t => el("Tab", { name: t.name, sort: t.sort, datums: String(t.datums !== false), hidden: (t.hidden || []).join(" "), cuts: (t.cuts || []).join(" ") })).join("")));
+  }
   // アンカーの位置・寸法線の端点(既定から変えたものだけ)
   const anchors = [], dims = [];
   for (const it of bmItems) {
@@ -7035,6 +7257,22 @@ function antApply(xmlText) {
     if ((v = T("SortMode")) !== null && v !== sortMode) { const m = document.querySelector(`#sortMenu .menu-item[data-sort="${v}"]`); if (m) m.click(); }
     if ((v = T("NavScheme")) !== null && v !== navScheme) setNavScheme(v);
     if ((v = T("HighlightRipple")) !== null) setRipple(v === "true");
+    {                                      // パネル・メニューバーの見た目
+      const ps = root.getElementsByTagName("PanelStyle")[0];
+      if (ps) {
+        const b = (n) => ps.getAttribute(n), num = (n) => { const x = parseFloat(b(n)); return isFinite(x) && x > 0 ? x : null; };
+        const lw = num("leftWidth"), rw = num("rightWidth"), sh = num("sectionListHeight"), go = num("generalOpacity");
+        const pl = document.getElementById("panel"), pr = document.getElementById("viewsPanel"), cl = document.getElementById("cutList");
+        if (lw && pl.style.display !== "none") { pl.style.width = lw + "px"; pl.style.maxWidth = "none"; try { localStorage.setItem("panelLeftW", String(lw)); } catch (_) {} }
+        if (rw && pr.style.display !== "none") { pr.style.width = rw + "px"; pr.style.maxWidth = "none"; try { localStorage.setItem("panelRightW", String(rw)); } catch (_) {} }
+        if (sh) { cl.style.maxHeight = "none"; cl.style.height = sh + "px"; try { localStorage.setItem("cutListH", String(sh)); } catch (_) {} }
+        if (go && window.__setGenOpacity) window.__setGenOpacity(go);
+        if (b("characteristicsTranslucent") !== null && window.__setPanelTranslucent) window.__setPanelTranslucent(b("characteristicsTranslucent") === "true");
+        if (b("savedViewsTranslucent") !== null && window.__setViewsTrans) window.__setViewsTrans(b("savedViewsTranslucent") === "true");
+        if (b("menuBarTranslucent") !== null && window.__setMenubarTrans) window.__setMenubarTrans(b("menuBarTranslucent") === "true");
+        resize();
+      }
+    }
     const mwEl = root.getElementsByTagName("MeasurementWindow")[0];
     if (mwEl) {
       const mw = document.getElementById("measWin"), w = parseFloat(mwEl.getAttribute("width"));
@@ -7067,6 +7305,22 @@ function antApply(xmlText) {
     hiddenTol.clear(); hid.forEach(i => hiddenTol.add(i));
     tolListEl.querySelectorAll("input.vis").forEach(cb => { cb.checked = !hiddenTol.has(parseInt(cb.dataset.idx, 10)); });
     syncGroupChecks(); applyHiddenGraphics();
+    {                                       // 特性・データム欄のタブ
+      const scEl = root.getElementsByTagName("SavedCuts")[0];
+      if (scEl) {
+        savedCuts = [...scEl.getElementsByTagName("Cut")].map(e => ({ id: parseInt(e.getAttribute("id"), 10), name: e.getAttribute("name") || "Section", plane: ["YZ", "ZX", "XY"].includes(e.getAttribute("plane")) ? e.getAttribute("plane") : "XY",
+          dist: parseFloat(e.getAttribute("dist")) || 0, rx: parseFloat(e.getAttribute("rx")) || 0, ry: parseFloat(e.getAttribute("ry")) || 0, rz: parseFloat(e.getAttribute("rz")) || 0,
+          clip: e.getAttribute("clip") !== "false", flip: e.getAttribute("flip") === "true", hatch: e.getAttribute("hatch") !== "false" })).filter(c => isFinite(c.id));
+        savedCutSeq = savedCuts.reduce((m, c) => Math.max(m, c.id), 0) + 1;
+      }
+      const ptEl = root.getElementsByTagName("PanelTabs")[0];
+      if (ptEl) {
+        const tabs = [...ptEl.getElementsByTagName("Tab")].map(e => ({
+          name: e.getAttribute("name") || "1", sort: ["designator", "datum", "type"].includes(e.getAttribute("sort")) ? e.getAttribute("sort") : "designator",
+          datums: e.getAttribute("datums") !== "false", hidden: (e.getAttribute("hidden") || "").split(/\s+/).filter(Boolean).map(Number), cuts: (e.getAttribute("cuts") || "").split(/\s+/).filter(Boolean).map(Number) }));
+        if (tabs.length) { panelTabs = tabs; panelTabLoad(Math.max(0, Math.min(tabs.length - 1, parseInt(ptEl.getAttribute("active"), 10) || 0))); }
+      }
+    }
     // アンカー・寸法線の端点
     const byId = new Map(bmItems.map(it => [String(it.idxs[0]), it]));
     for (const a of root.getElementsByTagName("Anchor")) {
@@ -7250,7 +7504,57 @@ function lastFileDb() {
     rq.onerror = () => rej(rq.error);
   });
 }
+// ---- 最近開いたファイル(新しい順に最大 12 件): 名前・開いた日時・パス(サーバーで開いたもの)・パスの無いものはファイルの中身 ----
+const RECENT_MAX = 12;
+async function recentGet() {
+  try {
+    const db = await lastFileDb();
+    const rec = await new Promise((res, rej) => { const rq = db.transaction("kv").objectStore("kv").get("recentFiles"); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); });
+    db.close();
+    return Array.isArray(rec) ? rec : [];
+  } catch (_) { return []; }
+}
+async function recentAdd(file, srcPath) {
+  try {
+    const list = await recentGet();
+    const key = (r) => (r.path ? "p:" + r.path : "n:" + r.name + ":" + r.size);
+    const me = { name: file.name, size: file.size, time: Date.now(), path: srcPath || null, blob: srcPath ? null : file };
+    const out = [me].concat(list.filter(r => key(r) !== key(me))).slice(0, RECENT_MAX);
+    let bytes = 0;                                              // 中身を持つのは、合計 300 MB まで(古いものから外す。名前は残す)
+    for (const r of out) { if (r.blob) { bytes += r.blob.size || 0; if (bytes > 300 * 1024 * 1024) r.blob = null; } }
+    const db = await lastFileDb();
+    await new Promise((res, rej) => { const tx = db.transaction("kv", "readwrite"); tx.objectStore("kv").put(out, "recentFiles"); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+    db.close();
+  } catch (_) { /* 保存できなくても、ファイルを開く動作には影響しない */ }
+  recentRefreshMenu();
+}
+async function recentOpen(r) {
+  try {
+    if (r.path && await hasServer()) {
+      const fr = await fetch(API_BASE + "/api/file?path=" + encodeURIComponent(r.path));
+      if (fr.ok) { handleFile(new File([await fr.blob()], r.name), null, r.path); return; }
+    }
+    if (r.blob) { handleFile(new File([r.blob], r.name), null, r.path || null); return; }
+    statusEl.textContent = `「${r.name}」は開けませんでした(ファイルが見つからないか、サーバーが動いていません)。`;
+  } catch (e) { statusEl.textContent = "ファイルを開けませんでした: " + (e.message || e); }
+}
+function recentFmt(r) { const d = new Date(r.time); const p2 = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}/${p2(d.getMonth() + 1)}/${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`; }
+async function recentRefreshMenu() {          // File > Recent Files の中身
+  const box = document.getElementById("recentMenu");
+  if (!box) return;
+  const list = await recentGet();
+  box.innerHTML = "";
+  if (!list.length) { const e = document.createElement("div"); e.className = "menu-item"; e.style.color = "#9aa0aa"; e.textContent = "(No recent files)"; box.appendChild(e); return; }
+  list.forEach(r => {
+    const it = document.createElement("div");
+    it.className = "menu-item"; it.textContent = r.name; it.title = (r.path || r.name) + "  " + recentFmt(r);
+    it.addEventListener("click", () => { closeMenus(); recentOpen(r); });
+    box.appendChild(it);
+  });
+}
+setTimeout(recentRefreshMenu, 0);
 async function lastFileSave(file, srcPath) {
+  recentAdd(file, srcPath);
   try {
     const db = await lastFileDb();
     await new Promise((res, rej) => { const tx = db.transaction("kv", "readwrite"); tx.objectStore("kv").put({ name: file.name, blob: file, path: srcPath || null }, "lastFile"); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
@@ -7285,6 +7589,25 @@ async function lastFileOpen() {
     }
     for (const it of items) {
       if (it.node) { menu.appendChild(it.node()); continue; }
+      if (it.sub) {                                   // 右へポイントすると、子の項目が出る
+        const row = document.createElement("div");
+        row.style.cssText = "padding:5px 14px;white-space:nowrap;cursor:default;position:relative;display:flex;justify-content:space-between;gap:14px";
+        row.innerHTML = `<span>\u3000 ${escapeHtml(it.text)}</span><span>\u25B8</span>`;
+        const sub = document.createElement("div");
+        sub.style.cssText = "display:none;position:absolute;left:100%;top:-3px;min-width:200px;max-height:60vh;overflow:auto;background:rgba(255,255,255,0.88);border:1px solid rgba(150,158,172,0.7);border-radius:4px;box-shadow:0 3px 12px rgba(0,0,0,.2);padding:3px 0;z-index:100001";
+        for (const si of it.sub) {
+          const r2 = document.createElement("div");
+          r2.textContent = si.text; r2.title = si.title || "";
+          r2.style.cssText = "padding:5px 14px;white-space:nowrap;" + (si.fn ? "cursor:pointer;" : "color:#9aa0aa;");
+          if (si.fn) { r2.onmouseenter = () => { r2.style.background = "rgba(120,160,230,0.35)"; }; r2.onmouseleave = () => { r2.style.background = ""; }; r2.onclick = (e) => { e.stopPropagation(); close(); si.fn(); }; }
+          sub.appendChild(r2);
+        }
+        row.appendChild(sub);
+        row.onmouseenter = () => { row.style.background = "rgba(120,160,230,0.35)"; sub.style.display = "block"; };
+        row.onmouseleave = () => { row.style.background = ""; sub.style.display = "none"; };
+        menu.appendChild(row);
+        continue;
+      }
       const row = document.createElement("div");
       row.textContent = (it.checked ? "\u2713 " : "\u3000 ") + it.text;
       row.style.cssText = "padding:5px 14px;white-space:nowrap;" + (it.fn ? "cursor:pointer;" : "color:#9aa0aa;");
@@ -7297,8 +7620,9 @@ async function lastFileOpen() {
     }
     document.body.appendChild(menu);
   }
-  let panelTranslucent = false;            // 特性・データムの欄を半透明にする(既定は不透明。ブラウザに覚えておく)
-  try { panelTranslucent = localStorage.getItem("panelTrans") === "1"; } catch (_) {}
+  let panelTranslucent = true;            // 特性・データムの欄を半透明にする(既定は半透明。ブラウザに覚えておく)
+  panelTranslucent = true;           // 既定は半透明
+  try { panelTranslucent = localStorage.getItem("panelTrans") !== "0"; } catch (_) {}
   const setPanelTranslucent = (on) => {
     panelTranslucent = on;
     document.getElementById("app").classList.toggle("panel-trans", on);
@@ -7306,6 +7630,7 @@ async function lastFileOpen() {
     resize(); bmDirty = true;
   };
   window.__setPanelTranslucent = setPanelTranslucent;
+  window.__panelTransState = () => panelTranslucent;
   document.getElementById("app").classList.toggle("panel-trans", panelTranslucent);
   setTimeout(() => { resize(); bmDirty = true; }, 0);
   const hiddenPanelItems = () => {         // 非表示のパネルを表示する項目(View / Option メニューの項目と同じ動作)
@@ -7338,6 +7663,37 @@ async function lastFileOpen() {
     } });
     makeMenu(e, "Characteristics Sort", items);
   });
+  window.__makeMenu = makeMenu;           // タブの右クリックメニューでも使う
+  let viewsTrans = true;                  // Saved Views の欄を半透明にする(既定は半透明。ブラウザに覚えておく)
+  viewsTrans = true;                // 既定は半透明
+  try { viewsTrans = localStorage.getItem("viewsTrans") !== "0"; } catch (_) {}
+  window.__setViewsTrans = (on) => setViewsTrans(on);
+  const setViewsTrans = (on) => {
+    viewsTrans = on;
+    document.getElementById("app").classList.toggle("views-trans", on);
+    try { localStorage.setItem("viewsTrans", on ? "1" : "0"); } catch (_) {}
+    resize(); bmDirty = true;
+  };
+  document.getElementById("app").classList.toggle("views-trans", viewsTrans);
+  let menubarTrans = true;                // メニューバーを半透明にする(既定は半透明。ブラウザに覚えておく)
+  menubarTrans = true;              // 既定は半透明
+  try { menubarTrans = localStorage.getItem("menubarTrans") !== "0"; } catch (_) {}
+  window.__setMenubarTrans = (on) => setMenubarTrans(on);
+  const setMenubarTrans = (on) => {
+    menubarTrans = on;
+    document.getElementById("app").classList.toggle("menubar-trans", on);
+    try { localStorage.setItem("menubarTrans", on ? "1" : "0"); } catch (_) {}
+    resize(); bmDirty = true;
+  };
+  document.getElementById("app").classList.toggle("menubar-trans", menubarTrans);
+  document.getElementById("menubar").addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    makeMenu(e, "Menu Bar", [{ text: "Translucent Menu Bar", checked: menubarTrans, fn: () => setMenubarTrans(!menubarTrans) }]);
+  });
+  viewsPanelEl.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    makeMenu(e, "Saved Views", [{ text: "Translucent Panel", checked: viewsTrans, fn: () => setViewsTrans(!viewsTrans) }]);
+  });
   viewerEl.addEventListener("contextmenu", async (e) => {
     if (currentMesh) {                              // モデルを表示中: 引出線の黒丸(アンカー)の上なら Hatched Cross Section のメニュー。それ以外は従来どおり
       if (annotationStyle === "balloon") {
@@ -7357,7 +7713,9 @@ async function lastFileOpen() {
       db.close();
       name = rec && rec.name;
     } catch (_) {}
-    makeMenu(e, null, [name ? { text: `最後に開いたファイルを開く: ${name}`, fn: () => lastFileOpen() } : { text: "最後に開いたファイルはありません" }].concat(hiddenPanelItems().filter(x => x.fn)));
+    const recents = await recentGet();
+    const recentItem = { text: "最近開いたファイル", sub: recents.length ? recents.map(r => ({ text: r.name, title: (r.path || r.name) + "  " + recentFmt(r), fn: () => recentOpen(r) })) : [{ text: "(最近開いたファイルはありません)" }] };
+    makeMenu(e, null, [name ? { text: `最後に開いたファイルを開く: ${name}`, fn: () => lastFileOpen() } : { text: "最後に開いたファイルはありません" }, recentItem].concat(hiddenPanelItems().filter(x => x.fn)));
   });
 })();
 // ---- Source パネル: 3DA B&M Viewer(Windows 版)の「QIF/STEP Source Panel」と同じ ----
@@ -7699,6 +8057,7 @@ document.getElementById("miSource").addEventListener("click", () => srcSetVisibl
 setTimeout(() => { try { if (localStorage.getItem("srcPanel") === "1") srcSetVisible(true); } catch (_) {} }, 0);
 async function handleFile(file, antFile, srcPath) {
   if (!file) return;
+  viewAnchor = null; resize();                         // モデルの中心を、画面の中心へ置き直す
   secExit();                                           // 断面も、開いていたファイルのものなので終える
   measExit();                                          // 計測は、開いていたファイルのものなので終える
   currentFileKind = /\.(qif|xml)$/i.test(file.name) ? "qif" : "step";
@@ -7734,6 +8093,7 @@ async function handleFile(file, antFile, srcPath) {
     showMesh(data.mesh);
     setProgress(0.98); await nextFrame();
     renderPmi(data.pmi);
+    panelTabsReset();                                      // 特性・データム欄のタブ(.ant があれば、あとで復元する)
     setupGeneralNotes(data.pmi);
     bmSetup(data.pmi);
     bmInitFcf(data.pmi.unit_factor_to_mm);
@@ -7800,15 +8160,120 @@ function setPanelVisible(on) {
 }
 miPanel.addEventListener("click", () => setPanelVisible(!miPanel.classList.contains("checked")));
 document.getElementById("panelClose").addEventListener("click", () => setPanelVisible(false));
+// ---- 特性・データム欄のタブ: 表示モード(並び替え・個別の表示/非表示・データムの表示)を、タブごとに持つ ----
+//  タブの名前は、基本は番号(1, 2, 3 ...)。「⧉」で、いまのタブを複製して増やす。結果は .ant に保存する。
+let panelTabs = null, panelTabActive = 0, ptSuppressClick = false;
+const panelTabsEl = document.getElementById("panelTabs");
+function panelTabNew() { return { name: "1", sort: sortMode, hidden: [...hiddenTol], datums: datumsVisible, cuts: [...cutEnabled] }; }
+function panelTabNextName() {
+  const used = new Set((panelTabs || []).map(t => t.name));
+  for (let n = 1; ; n++) if (!used.has(String(n))) return String(n);
+}
+function panelTabsReset() {                 // ファイルを開いたとき: タブは 1 つ(いまの表示モード)から始める。保存した断面も、ファイルごと
+  cutsReset();
+  panelTabs = [panelTabNew()]; panelTabs[0].name = "1"; panelTabActive = 0;
+  panelTabsRender();
+}
+function panelTabSave() {
+  if (!panelTabs || !panelTabs[panelTabActive]) return;
+  const t = panelTabs[panelTabActive];
+  t.sort = sortMode; t.hidden = [...hiddenTol].sort((a, b) => a - b); t.datums = datumsVisible; t.cuts = [...cutEnabled];
+}
+function panelTabLoad(i) {
+  if (!panelTabs || !panelTabs[i]) return;
+  panelTabActive = i;
+  const t = panelTabs[i];
+  if (t.sort !== sortMode || true) {          // 並び替えを合わせて、一覧を作り直す(作り直すと、個別の表示/非表示は初期化される)
+    sortMode = t.sort;
+    document.querySelectorAll("#sortMenu .menu-item").forEach(x => x.classList.toggle("checked", x.dataset.sort === sortMode));
+    if (lastPmi) { const keep = selectedTolIndex; selectedTolIndex = null; renderPmi(lastPmi); if (keep !== null && false) selectTolerance(keep, lastPmi.geometric_tolerances); }
+  }
+  hiddenTol.clear(); (t.hidden || []).forEach(x => hiddenTol.add(x));
+  tolListEl.querySelectorAll("input.vis").forEach(cb => { cb.checked = !hiddenTol.has(parseInt(cb.dataset.idx, 10)); });
+  syncGroupChecks();
+  setDatumsVisible(t.datums !== false);
+  cutEnabled = new Set((t.cuts || []).filter(id => savedCuts.some(c => c.id === id)));        // このタブで有効な断面
+  cutListRender(); cutRender();
+  applyHiddenGraphics(); bmDirty = true; bmLastSig = "";
+  panelTabsRender();
+}
+function panelTabsRender() {
+  panelTabsEl.innerHTML = "";
+  if (!panelTabs) return;
+  panelTabs.forEach((t, i) => {
+    const d = document.createElement("div");
+    d.className = "ptab" + (i === panelTabActive ? " active" : "");
+    d.title = "クリック: 切り替え / ドラッグ: 順番を変える / 右クリック: コピー・削除";
+    const nm = document.createElement("span"); nm.textContent = t.name; d.appendChild(nm);
+    d.addEventListener("contextmenu", (e) => {          // 右クリック: コピーする / 削除する
+      e.preventDefault();
+      e.stopPropagation();                               // 特性パネルの右クリックメニューは出さない
+      if (!window.__makeMenu) return;
+      window.__makeMenu(e, `タブ「${t.name}」`, [
+        { text: "コピーする", fn: () => panelTabDuplicate(i) },
+        panelTabs.length > 1 ? { text: "削除する", fn: () => { if (confirm(`タブ「${t.name}」を削除しますか?`)) panelTabClose(i); } } : { text: "削除する(最後のタブは削除できません)" },
+        { text: "名前を変える", fn: () => { const v = prompt("タブの名前", t.name); if (v !== null && v.trim()) { t.name = v.trim(); panelTabsRender(); } } } ]);
+    });
+    d.addEventListener("click", () => { if (ptSuppressClick) return; if (i !== panelTabActive) { panelTabSave(); panelTabLoad(i); } });
+    d.addEventListener("pointerdown", (e) => {          // ドラッグで、タブの順番を変える
+      if (e.button !== 0 || (e.target.classList && e.target.classList.contains("px"))) return;
+      const startX = e.clientX, els = [...panelTabsEl.querySelectorAll(".ptab")];
+      let dragging = false, to = i;
+      const mark = () => { els.forEach(el => el.classList.remove("drop-before", "drop-after")); if (to < els.length) els[to].classList.add("drop-before"); else els[els.length - 1].classList.add("drop-after"); };
+      const move = (ev) => {
+        if (!dragging && Math.abs(ev.clientX - startX) < 5) return;
+        dragging = true; d.style.opacity = "0.55";
+        to = els.findIndex(el => { const r = el.getBoundingClientRect(); return ev.clientX < r.left + r.width / 2; });
+        if (to < 0) to = els.length;
+        mark();
+      };
+      const up = () => {
+        window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
+        if (!dragging) return;
+        ptSuppressClick = true; setTimeout(() => { ptSuppressClick = false; }, 0);
+        panelTabSave();
+        const activeObj = panelTabs[panelTabActive], [mv] = panelTabs.splice(i, 1);
+        if (to > i) to--;
+        panelTabs.splice(to, 0, mv);
+        panelTabActive = panelTabs.indexOf(activeObj);
+        panelTabsRender();
+      };
+      window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+    });
+    d.addEventListener("dblclick", () => { const v = prompt("タブの名前", t.name); if (v !== null && v.trim()) { t.name = v.trim(); panelTabsRender(); } });
+    panelTabsEl.appendChild(d);
+  });
+  const add = document.createElement("div");
+  add.className = "padd"; add.textContent = "+"; add.title = "いまのタブを複製して、新しいタブを作る(表示モードを増やす)";
+  add.addEventListener("click", () => panelTabDuplicate(panelTabActive));
+  panelTabsEl.appendChild(add);
+}
+function panelTabDuplicate(i) {            // タブ i を複製して、新しいタブ(番号)を作り、そこへ切り替える
+  panelTabSave();
+  const src = panelTabs[i];
+  panelTabs.push({ name: panelTabNextName(), sort: src.sort, hidden: [...(src.hidden || [])], datums: src.datums, cuts: [...(src.cuts || [])] });
+  panelTabLoad(panelTabs.length - 1);
+}
+function panelTabClose(i) {
+  if (!panelTabs || panelTabs.length < 2) return;
+  panelTabSave();
+  panelTabs.splice(i, 1);
+  const next = Math.min(i === panelTabActive ? Math.max(0, i - 1) : (i < panelTabActive ? panelTabActive - 1 : panelTabActive), panelTabs.length - 1);
+  panelTabLoad(next);
+}
 document.querySelectorAll("#sortMenu .menu-item").forEach(el => el.addEventListener("click", () => {
   sortMode = el.dataset.sort;
   document.querySelectorAll("#sortMenu .menu-item").forEach(x => x.classList.toggle("checked", x === el));
   if (lastPmi) {
-    const keep = selectedTolIndex;
+    const keep = selectedTolIndex, keepHidden = [...hiddenTol];        // 並び替えても、個別の表示/非表示は保つ
     selectedTolIndex = null;
     renderPmi(lastPmi);
+    keepHidden.forEach(x => hiddenTol.add(x));
+    tolListEl.querySelectorAll("input.vis").forEach(cb => { cb.checked = !hiddenTol.has(parseInt(cb.dataset.idx, 10)); });
+    syncGroupChecks(); applyHiddenGraphics();
     if (keep !== null) selectTolerance(keep, lastPmi.geometric_tolerances);
   }
+  panelTabSave();
 }));
 // File > Open...: このパソコンで動いているサーバーがあれば、サーバー側でファイルを開くダイアログを出して、パスを受け取る
 // (そうすれば .ant を元のファイルと同じフォルダへ、毎回の指定なしで保存できる)。サーバーが無いときは、ブラウザのダイアログ。
@@ -7827,7 +8292,7 @@ document.getElementById("miOpen").addEventListener("click", async () => {
   }
   fileInput.click();
 });
-document.getElementById("miFit").addEventListener("click", () => { if (lastBBox) fitCameraToBBox(lastBBox.min, lastBBox.max, true); });   // Fit to View: カメラの回転は変えない
+document.getElementById("miFit").addEventListener("click", () => { viewAnchor = null; resize(); if (lastBBox) fitCameraToBBox(lastBBox.min, lastBBox.max, true); });   // Fit to View: カメラの回転は変えない
 // Help > About: プログラムの最終ビルド日時 = 画面を作っているファイル(index.html / visio_style.js)の最終更新日時(サーバーの Last-Modified)
 async function lastBuildTime() {
   let best = 0;
