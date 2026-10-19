@@ -126,8 +126,8 @@
     font-size: 13px; cursor: pointer; }
   #viewsSave:hover { background: #eaf1fb; }
   /* General tolerance などの一般注記: 3D モデル上には描かず、画面右下に画面へ正対して表示する */
-  #generalNotes { position: static; flex: 0 1 auto; min-height: 0; max-height: 45%; overflow: auto; padding: 8px 10px;
-    margin: auto 8px 8px; background: #fff; border: 1px solid var(--panel-border); border-radius: 6px;       /* 保存ビューとは別の窓。パネルの下端に揃える */
+  #generalNotes { position: absolute; right: 12px; bottom: 12px; z-index: 6; max-width: 46%; max-height: 45%; overflow: auto; padding: 8px 10px;
+    margin: 0; background: rgba(255,255,255,var(--gn-a,1)); border: 1px solid var(--panel-border); border-radius: 6px;       /* 保存ビューとは別の窓。パネルの下端に揃える */
     box-shadow: 0 1px 4px rgba(0,0,0,.12); display: none; flex-direction: column; gap: 8px; }
   .gnote .gline { white-space: pre-wrap; margin: 1px 0; }
   .gnote .gline .fcf { margin: 2px 0; }
@@ -135,7 +135,14 @@
     padding: 2px 4px; font-size: 12px; line-height: 1.45; color: var(--text); white-space: pre-wrap;
     font-family: "Segoe UI", "Meiryo", sans-serif; user-select: text; }
   #generalNotes { align-items: flex-start; gap: 2px; }
-  #generalNotes .ghead { display: flex; align-items: center; gap: 8px; }
+  #generalNotes .fcf { background: rgba(255,255,255,var(--gn-a,1)); }
+  #generalNotes .ghead, #generalNotes .gbody { opacity: var(--gn-a, 1); }      /* 透明度は、文字・枠線にも効かせる(スライダー自体は、操作できるよう不透明のまま) */
+  #generalNotes.collapsed .ghead { opacity: 1; }
+  #generalNotes.collapsed { background: rgba(255,255,255,0.3); border-color: rgba(150,158,172,0.5); }      /* 最小化のときは、スライダーに関係なく半透明 */
+  #generalNotes .gfoot { display: flex; align-items: center; gap: 6px; width: 100%; padding-top: 4px; margin-top: 2px; border-top: 1px solid rgba(150,158,172,0.4); font-size: 11px; color: var(--text-dim); }
+  #generalNotes .gfoot input[type=range] { flex: 1; min-width: 60px; }
+  #generalNotes.collapsed .gfoot { display: none; }
+  #generalNotes .ghead { display: flex; align-items: center; gap: 8px; cursor: grab; user-select: none; touch-action: none; }
   #generalNotes .gtitle2 { display: inline; font-size: 12px; font-weight: 600; color: var(--text); }
   #generalNotes.collapsed .gtitle2 { display: inline; }
   #generalNotes .gbtn { pointer-events: auto; width: 20px; height: 20px; line-height: 16px; padding: 0; font-size: 14px;
@@ -313,7 +320,13 @@
     max-height: 6.2em; overflow-y: auto; line-height: 1.4; }
   #status:empty { display: none; }
 
-  main { flex: 1 1 auto; display: flex; min-height: 0; }
+  main { flex: 1 1 auto; display: flex; min-height: 0; position: relative; }
+  /* 特性・データムの欄を半透明にする(右クリックメニュー Translucent Panel): 3D 画面の左に重ねて、後ろのモデルを透かす */
+  #app.panel-trans #panel { position: absolute; left: 0; top: 0; bottom: 0; z-index: 8; background: rgba(243,244,247,0.34); border-right: 1px solid rgba(150,158,172,0.45); }
+  #app.panel-trans #splitLeft { display: none; }
+  #app.panel-trans #panel .fcf { background: rgba(255,255,255,0.35); }
+  #app.panel-trans #panel .dbox { background: rgba(255,255,255,0.35); }
+  #app.panel-trans #panel .grp-head { background: transparent; }
   #viewer { flex: 1 1 auto; position: relative; min-width: 0; }
   #viewer canvas { display: block; width: 100%; height: 100%; }
   #viewerHint { position: absolute; top: 10px; left: 10px; font-size: 12px; color: var(--text-dim);
@@ -322,6 +335,54 @@
   #panel { width: 320px; max-width: 42vw; background: var(--panel); border-right: 1px solid var(--panel-border);
     overflow-y: auto; overflow-x: auto; padding: 10px; flex-shrink: 0; position: relative; }
   /* Tool > Measurement の専用ウィンドウ */
+  /* Tool > Section Cut の窓 */
+  #secWin { position: absolute; left: 12px; top: 12px; z-index: 9; width: 330px; display: none; background: rgba(255,255,255,0.96);
+    border: 1px solid var(--panel-border); border-radius: 6px; box-shadow: 0 3px 14px rgba(0,0,0,.25); font-size: 12px; }
+  #secWin .sec-head { display: flex; align-items: center; padding: 6px 8px; font-weight: 600; background: #eef1f6; border-bottom: 1px solid #d5dae3; border-radius: 6px 6px 0 0; cursor: move; user-select: none; }
+  #secWin .sec-head span { flex: 1 1 auto; }
+  #secClose { border: none; background: transparent; font-size: 16px; line-height: 1; cursor: pointer; padding: 1px 6px; border-radius: 4px; color: var(--text-dim); }
+  #secClose:hover { background: #dfe4ee; color: var(--text); }
+  #secWin .sec-body { padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+  #secWin .sec-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  #secWin .sec-lab { width: 70px; color: var(--text-dim); flex: 0 0 auto; }
+  #secWin .sec-row input[type=range] { flex: 1 1 90px; min-width: 70px; }
+  #secWin .sec-row input[type=number] { width: 64px; }
+  #secWin .sec-opts { gap: 10px; } #secWin .sec-opts button { margin-left: auto; font-size: 12px; padding: 1px 8px; border: 1px solid #c9ced6; background: #fff; border-radius: 4px; cursor: pointer; }
+  #secWin .sec-note { font-size: 11px; color: var(--text-dim); line-height: 1.35; }
+  /* アノテーションを選んだとき、その中心から広がる円(大きなモデルでも、どこが選ばれたか分かるように) */
+  .ripple { position: absolute; border-radius: 50%; border: 3px solid rgba(0,40,160,1); box-shadow: 0 0 6px rgba(0,40,160,0.55);
+    pointer-events: none; z-index: 7; transform: translate(-50%, -50%) scale(0); animation: rippleGrow 2.4s ease-out forwards; }
+  @keyframes rippleGrow { 0% { transform: translate(-50%, -50%) scale(0.02); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
+  /* STEP/QIF Source パネル(Windows 版の QIF/STEP Source Panel と同じ) */
+  #srcWin { width: 460px; max-width: 70vw; flex: 0 0 auto; display: none; flex-direction: column; position: relative; overflow: hidden;
+    background: var(--panel); border-left: 1px solid var(--panel-border); font-size: 12px; }
+  #srcWin .src-head { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--panel-border); background: #eef1f6; }
+  #srcWin .src-head span { font-weight: 600; white-space: nowrap; margin-right: 4px; }
+  #srcWin .src-head input { flex: 1 1 60px; min-width: 40px; font-size: 12px; padding: 2px 4px; }
+  #srcWin .src-head button { font-size: 12px; padding: 1px 8px; border: 1px solid #c9ced6; background: #fff; border-radius: 4px; cursor: pointer; }
+  #srcWin .src-head button:hover { background: #eaf1fb; }
+  #srcClose { border: none !important; background: transparent !important; font-size: 18px !important; line-height: 1; color: var(--text-dim); padding: 0 6px !important; }
+  #srcScroll { flex: 1 1 auto; min-height: 0; overflow: auto; position: relative; background: #fff;
+    font-family: Consolas, "Courier New", monospace; font-size: 12px; line-height: 16px; }
+  #srcSpacer { position: absolute; left: 0; top: 0; width: 1px; }
+  #srcRows { position: absolute; left: 0; top: 0; min-width: 100%; }
+  #srcRows .srow { display: flex; height: 16px; white-space: pre; cursor: default; }
+  #srcRows .srow:hover { background: #f3f7fd; }
+  #srcRows .srow.hl { background: #dcebff; box-shadow: inset 3px 0 0 #1e78ff; }
+  #srcRows .sln { position: sticky; left: 0; flex: 0 0 auto; min-width: 54px; padding: 0 8px 0 6px; text-align: right; color: #8a93a3; background: #f6f7f9; border-right: 1px solid #e3e6ec; user-select: none; }
+  #srcRows .stx { padding-left: 8px; }
+  #srcRows mark { background: #ffd54a; color: inherit; }
+  .sc-k { color: #7a1fa2; } .sc-a { color: #1360b8; } .sc-s { color: #1b7f3a; } .sc-c { color: #8a93a3; }
+  #srcTreeWrap { flex: 1 1 auto; min-height: 0; flex-direction: column; background: #fff; }
+  #srcTree { flex: 1 1 60%; min-height: 0; overflow: auto; font-family: Consolas, "Courier New", monospace; font-size: 12px; padding: 2px 0; }
+  #srcTree .trow { white-space: nowrap; cursor: pointer; line-height: 18px; }
+  #srcTree .trow:hover { background: #f3f7fd; }
+  #srcTree .trow.sel { background: #dcebff; box-shadow: inset 3px 0 0 #1e78ff; }
+  #srcTree .tg { display: inline-block; width: 14px; color: #6b7384; font-size: 9px; }
+  #srcTree .tn { color: #7a1fa2; } #srcTree .ta { color: #1360b8; } #srcTree .tc { color: #8a93a3; }
+  #srcNode { flex: 0 0 34%; min-height: 60px; margin: 0; overflow: auto; border-top: 1px solid var(--panel-border); background: #f6f7f9;
+    padding: 4px 8px; font-family: Consolas, "Courier New", monospace; font-size: 11px; line-height: 14px; white-space: pre; }
+  #srcInfo { padding: 3px 10px; font-size: 11px; color: var(--text-dim); border-top: 1px solid var(--panel-border); }
   /* Saved Views と同じように、画面に固定したパネルとして、3D ビューの右・Saved Views の左に並べる */
   #measWin { width: 340px; max-width: 60vw; flex: 0 0 auto; display: none; flex-direction: column; position: relative; overflow: hidden;
     background: var(--panel); border-left: 1px solid var(--panel-border); font-size: 12px; }
@@ -542,7 +603,9 @@
           </div>
           <div class="menu-item checkable" id="miDesignators">Designators</div>
           <div class="menu-item checkable" id="miRowChecks">Individual Characteristic Show/Hide</div>
-          <div class="menu-item checkable checked" id="miViewsPanel">Saved Views Panel</div>
+          <div class="menu-item checkable" id="miViewsPanel">Saved Views Panel</div>
+          <div class="menu-item checkable checked" id="miGeneral">General Tolerance Panel</div>
+          <div class="menu-item checkable" id="miSource">STEP/QIF Source Panel</div>
           <div class="menu-item checkable" id="miAxes">Origin Axes</div>
         </div>
       </div>
@@ -560,17 +623,11 @@
       </div>
     </div>
   </div>
-  <div class="menu" id="menuDebug">
-    <div class="menu-title"><u>D</u>ebug</div>
-    <div class="menu-items">
-      <div class="menu-item checkable" id="miDbgAnchors">Show Annotation Anchors</div>
-      <div class="menu-item checkable" id="miDbgDimEnds">Show Dimension Line Ends</div>
-    </div>
-  </div>
   <div class="menu" id="menuTool">
     <div class="menu-title"><u>T</u>ool</div>
     <div class="menu-items">
       <div class="menu-item checkable" id="miMeasure">Measurement</div>
+      <div class="menu-item checkable" id="miSection">Section Cut...</div>
     </div>
   </div>
   <div class="menu" id="menuOption">
@@ -584,6 +641,7 @@
           <div class="menu-item radio checked" data-scheme="solidworks">SOLIDWORKS (Default)</div>
         </div>
       </div>
+      <div class="menu-item checkable checked" id="miRipple" title="アノテーションを選んだとき、その中心から円が広がって、位置を知らせる">Highlight Ripple Animation</div>
       <div class="menu-item" id="miSecBrightness" title="Hatched Cross Section の色: モデルの色より何 % 明るく(+)/暗く(-)するか">Section Color Brightness...</div>
     </div>
   </div>
@@ -591,6 +649,13 @@
     <div class="menu-title"><u>H</u>elp</div>
     <div class="menu-items">
       <div class="menu-item" id="miAbout">About</div>
+    </div>
+  </div>
+  <div class="menu" id="menuDebug">
+    <div class="menu-title"><u>D</u>ebug</div>
+    <div class="menu-items">
+      <div class="menu-item checkable" id="miDbgAnchors">Show Annotation Anchors</div>
+      <div class="menu-item checkable" id="miDbgDimEnds">Show Dimension Line Ends</div>
     </div>
   </div>
   <div id="bmControls">
@@ -626,7 +691,30 @@
       <div id="measLabels"></div>
       <div id="measTip"></div>
       <div id="bmLayer"><svg id="bmSvg" xmlns="http://www.w3.org/2000/svg"></svg><div id="bmLabels"></div></div>
+      <div id="secWin">
+        <div class="sec-head"><span>Section Cut</span><button id="secClose" type="button" title="Close" aria-label="Close">&times;</button></div>
+        <div class="sec-body">
+          <div class="sec-row"><span class="sec-lab">Base plane</span>
+            <label><input type="radio" name="secPlane" value="YZ"> X (YZ plane)</label>
+            <label><input type="radio" name="secPlane" value="ZX"> Y (ZX plane)</label>
+            <label><input type="radio" name="secPlane" value="XY" checked> Z (XY plane)</label></div>
+          <div class="sec-row"><span class="sec-lab">Distance</span><input type="range" id="secDistR" step="0.1"><input type="number" id="secDist" step="0.1" value="0"><span>mm</span></div>
+          <div class="sec-row"><span class="sec-lab">Rotate X</span><input type="range" id="secRxR" min="-180" max="180" step="1" value="0"><input type="number" id="secRx" step="1" value="0"><span>&deg;</span></div>
+          <div class="sec-row"><span class="sec-lab">Rotate Y</span><input type="range" id="secRyR" min="-180" max="180" step="1" value="0"><input type="number" id="secRy" step="1" value="0"><span>&deg;</span></div>
+          <div class="sec-row"><span class="sec-lab">Rotate Z</span><input type="range" id="secRzR" min="-180" max="180" step="1" value="0"><input type="number" id="secRz" step="1" value="0"><span>&deg;</span></div>
+          <div class="sec-row sec-opts"><label><input type="checkbox" id="secClip" checked> Cut away one side</label><label><input type="checkbox" id="secFlip"> Flip side</label><label><input type="checkbox" id="secHatch" checked> Hatching</label><button type="button" id="secReset">Reset</button></div>
+          <div class="sec-note">平面を「基準面を距離だけ動かす → X → Y → Z 軸の順に、座標軸まわりに回す」で決めます(回転の中心は原点)。</div>
+        </div>
+      </div>
+      <div id="generalNotes"></div>      <!-- General tolerance などの一般注記: 3D 画面の右下に、枠だけを半透明で重ねる -->
       <div id="dropOverlay">ここにSTEPファイルをドロップ</div>
+    </div>
+    <div class="splitter" id="splitSrc" title="Drag to resize" style="display:none"></div>
+    <div id="srcWin">
+      <div class="src-head"><span id="srcTitle">STEP Source</span><input id="srcFind" type="text" placeholder="Find in source..." spellcheck="false"><button id="srcFindPrev" type="button" title="Previous">&#9650;</button><button id="srcFindBtn" type="button" title="Next (Enter)">Find</button><button id="srcModeBtn" type="button" title="QIF Structure Tree" style="display:none">Structure</button><button id="srcClose" type="button" title="Close" aria-label="Close">&times;</button></div>
+      <div id="srcScroll"><div id="srcSpacer"></div><div id="srcRows"></div></div>
+      <div id="srcTreeWrap" style="display:none"><div id="srcTree"></div><pre id="srcNode"></pre></div>
+      <div id="srcInfo"></div>
     </div>
     <div class="splitter" id="splitMeas" title="Drag to resize" style="display:none"></div>
     <div id="measWin">
@@ -643,11 +731,10 @@
   </div>
 </div>
     <div class="splitter" id="splitRight" title="Drag to resize"></div>
-    <div id="viewsPanel">
-      <div id="viewsHead"><span>Saved Views</span><button id="viewsClose" title="Close" aria-label="Close">&times;</button></div>
-      <div id="viewsList"></div>
-      <div id="viewsFoot"><button id="viewsSave">Save Current View...</button></div>
-      <div id="generalNotes"></div>      <!-- General tolerance などの一般注記: 3D 画面には出さず、ここ(保存ビューの下)に出す -->
+    <div id="viewsPanel" style="display:none">
+      <div id="viewsHead" style="display:none"><span>Saved Views</span><button id="viewsClose" title="Close" aria-label="Close">&times;</button></div>
+      <div id="viewsList" style="display:none"></div>
+      <div id="viewsFoot" style="display:none"><button id="viewsSave">Save Current View...</button></div>
     </div>
   </main>
   <div id="statusbar">
@@ -1256,11 +1343,25 @@ document.getElementById("viewsSave").addEventListener("click", saveCurrentViewPr
 
 // パネルの表示/非表示 (View > Show Saved Views Panel / 右上の x)
 const miViewsPanel = document.getElementById("miViewsPanel");
-function setViewsPanelVisible(on) {
-  miViewsPanel.classList.toggle("checked", on);
-  viewsPanelEl.style.display = on ? "" : "none";
+// Saved Views と General tolerance は別々の窓(同じ列に並ぶ)。表示/非表示も別々に切り替える
+const miGeneral = document.getElementById("miGeneral");
+function updateViewsColumn() {
+  const on = miViewsPanel.classList.contains("checked"), gOn = miGeneral.classList.contains("checked");
+  const hasGen = typeof generalNoteNames !== "undefined" && generalNoteNames.size > 0;
+  for (const id of ["viewsHead", "viewsList", "viewsFoot"]) document.getElementById(id).style.display = on ? "" : "none";
+  if (typeof generalNotesEl !== "undefined") generalNotesEl.style.display = gOn && hasGen ? "flex" : "none";
+  viewsPanelEl.style.display = on ? "" : "none";                          // 右の列は Saved Views だけ(General tolerance は 3D 画面に重ねる枠)
   resize();
 }
+function setViewsPanelVisible(on) {
+  miViewsPanel.classList.toggle("checked", on);
+  updateViewsColumn();
+}
+function setGeneralVisible(on) {
+  miGeneral.classList.toggle("checked", on);
+  updateViewsColumn();
+}
+miGeneral.addEventListener("click", () => setGeneralVisible(!miGeneral.classList.contains("checked")));
 miViewsPanel.addEventListener("click", () => setViewsPanelVisible(!miViewsPanel.classList.contains("checked")));
 document.getElementById("viewsClose").addEventListener("click", () => setViewsPanelVisible(false));
 rebuildSavedViewsMenu();
@@ -1467,6 +1568,19 @@ function bmMeasureItem(it) {
   it.frameL = isFinite(fl) ? fl : 0;
   it.frameR = isFinite(fr) ? fr : it.w;
   it.frameCy = topCy !== null ? topCy : (it.coreH || it.h) / 2;
+  // データム三角記号(と縦線・データム四角)は、一番下の公差記入枠の幅の中央に置く
+  const wrap = it.el.querySelector(".bm-datums-wrap"), dat = wrap && wrap.querySelector(".bm-datums");
+  if (wrap && dat) {
+    wrap.style.justifyContent = ""; wrap.style.paddingLeft = ""; wrap.style.paddingRight = "";
+    const boxes = Array.from(it.el.querySelectorAll(".bm-core .fcf, .bm-core .ted")).filter(n => n.offsetParent !== null);
+    let last = null;
+    for (const n of boxes) if (!last || n.getBoundingClientRect().top > last.getBoundingClientRect().top) last = n;
+    if (last) {
+      const wr = wrap.getBoundingClientRect(), r = last.getBoundingClientRect(), dw = dat.getBoundingClientRect().width;
+      const center = ((r.left + r.right) / 2 - wr.left) / kk, left = Math.max(0, center - dw / kk / 2);
+      wrap.style.justifyContent = "flex-start"; wrap.style.paddingLeft = left + "px"; wrap.style.paddingRight = "0";
+    }
+  }
 }
 function bmMeasure() {
   for (const it of bmItems) {
@@ -4711,6 +4825,7 @@ function selectTolerance(idx, tolerances) {
   if (selectedTolIndex === idx) {
     // 同じカードをもう一度押したら選択解除 -> 通常表示(オレンジ)に戻す
     selectedTolIndex = null;
+    if (typeof srcClearHl === "function") srcClearHl();
     applyHiddenGraphics();
     return;
   }
@@ -4719,6 +4834,7 @@ function selectTolerance(idx, tolerances) {
   if (card) card.classList.add("selected");
 
   const tol = tolerances[idx];
+  if (typeof srcShowTol === "function") srcShowTol(tol);   // Source パネルの、この特性のエンティティの行を示す
   statusEl.textContent = describeTolerance(tol);          // ファイル情報の欄を、この特性の詳細で上書き
   statusEl.title = statusEl.textContent;
   highlightFace(tol.face_triangle_ranges);
@@ -4729,6 +4845,120 @@ function selectTolerance(idx, tolerances) {
   }
   // 選択中の注記はベース(オレンジ)側から除外し、水色ハイライトとの二重描画によるチラつきを防ぐ
   applyHiddenGraphics();
+  rippleForTolerance(idx, tol);
+}
+
+// ---- ハイライトの波紋: 選んだアノテーションの中心から円が広がる(Option > Highlight Ripple Animation で有効/無効) ----
+let rippleOn = true, rippleAllowed = false;      // 波紋は、特性欄・データム欄のクリックで選んだときだけ(3D 画面のクリックでは出さない)
+try { if (localStorage.getItem("ripple") === "0") rippleOn = false; } catch (_) {}
+function setRipple(on) {
+  rippleOn = on;
+  document.getElementById("miRipple").classList.toggle("checked", on);
+  try { localStorage.setItem("ripple", on ? "1" : "0"); } catch (_) {}
+}
+document.getElementById("miRipple").addEventListener("click", () => setRipple(!rippleOn));
+document.getElementById("miRipple").classList.toggle("checked", rippleOn);
+function rippleAt(px, py) {
+  if (!rippleOn || !isFinite(px) || !isFinite(py)) return;
+  const W = viewerEl.clientWidth, H = viewerEl.clientHeight, d = Math.max(70, Math.min(W, H) * 0.22);
+  for (let k = 0; k < 3; k++) {              // 少しずつ遅らせた 3 本の輪
+    const r = document.createElement("div");
+    r.className = "ripple";
+    r.style.cssText = `left:${px}px;top:${py}px;width:${d}px;height:${d}px;animation-delay:${k * 0.6}s`;
+    viewerEl.appendChild(r);
+    setTimeout(() => r.remove(), 2400 + k * 600 + 150);
+  }
+}
+function rippleWorldToPx(x, y, z) {
+  const v = new THREE.Vector3(x, y, z).project(camera);
+  return [(v.x + 1) / 2 * viewerEl.clientWidth, (1 - v.y) / 2 * viewerEl.clientHeight];
+}
+function rippleForTolerance(idx, tol) {
+  if (!rippleOn || !rippleAllowed || !tol) return;
+  try {
+    let p = null;
+    if (annotationStyle === "balloon") {               // Balloon & Mirror: その特性の枠の中心
+      const vr = viewerEl.getBoundingClientRect();
+      for (const it of bmItems) {
+        const m = (it.members || []).find(q => q.idx === idx);
+        if (m && it.el.style.visibility !== "hidden") { const r = m.row.getBoundingClientRect(); if (r.width) p = [r.left + r.width / 2 - vr.left, r.top + r.height / 2 - vr.top]; break; }
+      }
+    } else if (annotationStyle === "original") {          // Graphic PMI: 3D 上の注記の線の外接箱の中心
+      const g = (currentTessellatedGroups || []).find(q => q.name === tol.name);
+      if (g) {
+        const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+        for (const pl of g.polylines) for (const q of pl) for (let k = 0; k < 3; k++) { if (q[k] < lo[k]) lo[k] = q[k]; if (q[k] > hi[k]) hi[k] = q[k]; }
+        if (isFinite(lo[0])) p = rippleWorldToPx((lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2);
+      }
+    }
+    if (!p) {                                            // どちらでもなければ、指している点(アンカー)
+      const ap = (tol.anchor_points || tol.points || [])[0];
+      if (ap) p = rippleWorldToPx(ap[0], ap[1], ap[2]);
+    }
+    if (p) rippleAt(p[0], p[1]);
+  } catch (_) {}
+}
+
+// 面が STEP に結ばれていないデータム: データム記号の引出線がさす点にいちばん近い面(表面にのっている点)を、関連づいた形体とみなす
+function faceRangesNearPoints(points) {
+  const md = currentMeshData;
+  if (!md || !md.faceRanges || !points || !points.length) return [];
+  const P = md.positions, I = md.indices, bb = md.bbox;
+  const diag = Math.hypot(bb.max[0] - bb.min[0], bb.max[1] - bb.min[1], bb.max[2] - bb.min[2]) || 1, tol = diag * 2e-3;
+  const dist2 = (q, a, b, c) => {            // 点 q と三角形 abc の最短距離の 2 乗
+    const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], ac = [c[0] - a[0], c[1] - a[1], c[2] - a[2]], aq = [q[0] - a[0], q[1] - a[1], q[2] - a[2]];
+    const dot = (u, v) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+    const d1 = dot(ab, aq), d2 = dot(ac, aq);
+    let r;
+    if (d1 <= 0 && d2 <= 0) r = a;
+    else {
+      const bq = [q[0] - b[0], q[1] - b[1], q[2] - b[2]], d3 = dot(ab, bq), d4 = dot(ac, bq);
+      const cq = [q[0] - c[0], q[1] - c[1], q[2] - c[2]], d5 = dot(ab, cq), d6 = dot(ac, cq);
+      const vc = d1 * d4 - d3 * d2, vb = d5 * d2 - d1 * d6, va = d3 * d6 - d5 * d4;
+      if (d3 >= 0 && d4 <= d3) r = b;
+      else if (vc <= 0 && d1 >= 0 && d3 <= 0) { const t = d1 / (d1 - d3); r = [a[0] + t * ab[0], a[1] + t * ab[1], a[2] + t * ab[2]]; }
+      else if (d6 >= 0 && d5 <= d6) r = c;
+      else if (vb <= 0 && d2 >= 0 && d6 <= 0) { const t = d2 / (d2 - d6); r = [a[0] + t * ac[0], a[1] + t * ac[1], a[2] + t * ac[2]]; }
+      else if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0) { const t = (d4 - d3) / ((d4 - d3) + (d5 - d6)); r = [b[0] + t * (c[0] - b[0]), b[1] + t * (c[1] - b[1]), b[2] + t * (c[2] - b[2])]; }
+      else { const den = 1 / (va + vb + vc), v = vb * den, w = vc * den; r = [a[0] + ab[0] * v + ac[0] * w, a[1] + ab[1] * v + ac[1] * w, a[2] + ab[2] * v + ac[2] * w]; }
+    }
+    const dx = q[0] - r[0], dy = q[1] - r[1], dz = q[2] - r[2];
+    return dx * dx + dy * dy + dz * dz;
+  };
+  const tri = (t, k) => { const i = I[t * 3 + k] * 3; return [P[i], P[i + 1], P[i + 2]]; };
+  const per = [];
+  md.faceRanges.forEach((rg, fi) => {
+    let m = Infinity;
+    for (let t = rg[0]; t < rg[1]; t++) {
+      const a = tri(t, 0), b = tri(t, 1), c = tri(t, 2);
+      for (const q of points) { const d = dist2(q, a, b, c); if (d < m) m = d; }
+    }
+    per.push(m);
+  });
+  const best = Math.min(...per);
+  if (!(Math.sqrt(best) <= tol)) return [];
+  return md.faceRanges.filter((rg, fi) => Math.sqrt(per[fi]) <= Math.sqrt(best) + tol * 0.05);
+}
+function rippleForDatum(d) {
+  if (!rippleOn || !rippleAllowed || !d) return;
+  try {
+    let p = null;
+    if (annotationStyle === "balloon") {               // Balloon & Mirror: そのデータム四角の中心
+      const vr = viewerEl.getBoundingClientRect();
+      for (const box of document.querySelectorAll(`#bmLabels .bm-label .bm-datums .dbox[data-l="${String(d.letter).replace(/"/g, "")}"]`)) {
+        if (box.closest(".bm-label").style.visibility === "hidden") continue;
+        const r = box.getBoundingClientRect();
+        if (r.width) { p = [r.left + r.width / 2 - vr.left, r.top + r.height / 2 - vr.top]; break; }
+      }
+    } else if (annotationStyle === "original") {          // Graphic PMI: データム記号の線の外接箱の中心
+      const names = new Set(d.names || []);
+      const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+      for (const g of currentTessellatedGroups || []) if (names.has(g.name)) for (const pl of g.polylines) for (const q of pl) for (let k = 0; k < 3; k++) { if (q[k] < lo[k]) lo[k] = q[k]; if (q[k] > hi[k]) hi[k] = q[k]; }
+      if (isFinite(lo[0])) p = rippleWorldToPx((lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2);
+    }
+    if (!p) { const ap = (d.anchor_points || [])[0]; if (ap) p = rippleWorldToPx(ap[0], ap[1], ap[2]); }
+    if (p) rippleAt(p[0], p[1]);
+  } catch (_) {}
 }
 
 // データム(データム形体記号)の選択: 対応する面と記号をハイライトする
@@ -4753,11 +4983,14 @@ function selectDatum(di) {
   const row = tolListEl.querySelector(`.datum-row[data-di="${di}"]`);
   if (row) row.classList.add("selected");
   const d = datums[di];
+  rippleForDatum(d);
   // 同じ文字のデータムターゲット(E1,E2,E3 など)も一緒にハイライトする
   const targets = ((lastPmi && lastPmi.annotations) || []).filter(a => a.kind === "datum_target" && a.datum_letter === d.letter);
   const targetNames = targets.map(t => t.name);
   selectedAnnExtra = targetNames.concat(d.names || []);
-  const ranges = (d.face_triangle_ranges || []).slice();
+  let ranges = (d.face_triangle_ranges || []).slice();
+  let viaPoint = false;
+  if (!ranges.length && (d.target_points || []).length) { ranges = faceRangesNearPoints(d.target_points); viaPoint = ranges.length > 0; }
   targets.forEach(t => ranges.push(...(t.face_triangle_ranges || [])));
   highlightFace(ranges);
   highlightAnnotation(selectedAnnExtra);
@@ -4765,7 +4998,7 @@ function selectDatum(di) {
   // 詳細: データム文字、データム形体の面数、データムターゲット、このデータムを参照する特性の件数
   const refTols = ((lastPmi && lastPmi.geometric_tolerances) || []).filter(t => (t.datum_refs || []).some(r => r.replace(/[^A-Za-z]/g, "").includes(d.letter))).length;
   const info = [`データム ${d.letter}`];
-  info.push((d.face_triangle_ranges || []).length ? `データム形体: ${(d.face_triangle_ranges || []).length} 面` : "データム形体の面: なし");
+  info.push((d.face_triangle_ranges || []).length ? `データム形体: ${(d.face_triangle_ranges || []).length} 面` : viaPoint ? `データム形体: ${ranges.length} 面(記号の指す位置から)` : "データム形体の面: なし");
   if (targets.length) info.push(`データムターゲット: ${targets.map(t => t.name).join(", ")} (${targets.length} 個)`);
   if ((d.names || []).length) info.push(`データム形体記号: ${d.names.join(", ")}`);
   info.push(`参照している特性: ${refTols} 件`);
@@ -4904,6 +5137,52 @@ function gnFcfCells(line) {
 // ノート本文に "general tolerance" を含むものは、3D 上には描かず、画面右下に正対して表示する。
 const generalNoteNames = new Set();
 const generalNotesEl = document.getElementById("generalNotes");
+// General tolerance の枠は、見出しをドラッグして 3D 画面の中で動かせる(位置は覚えておく)
+(function () {
+  let d = null;
+  const clamp = () => {
+    const vr = viewerEl.getBoundingClientRect(), r = generalNotesEl.getBoundingClientRect();
+    if (generalNotesEl.style.left === "") return;
+    const x = Math.min(Math.max(0, r.left - vr.left), Math.max(0, vr.width - r.width)), y = Math.min(Math.max(0, r.top - vr.top), Math.max(0, vr.height - r.height));
+    generalNotesEl.style.left = x + "px"; generalNotesEl.style.top = y + "px";
+  };
+  const place = (fx, fy) => {
+    const vr = viewerEl.getBoundingClientRect(), r = generalNotesEl.getBoundingClientRect();
+    generalNotesEl.style.right = "auto"; generalNotesEl.style.bottom = "auto";
+    generalNotesEl.style.left = Math.min(Math.max(0, fx * vr.width), Math.max(0, vr.width - r.width)) + "px";
+    generalNotesEl.style.top = Math.min(Math.max(0, fy * vr.height), Math.max(0, vr.height - r.height)) + "px";
+  };
+  generalNotesEl.addEventListener("pointerdown", (e) => {
+    const head = e.target.closest && e.target.closest(".ghead");
+    if (!head || e.target.tagName === "BUTTON" || e.button !== 0) return;
+    const r = generalNotesEl.getBoundingClientRect(), vr = viewerEl.getBoundingClientRect();
+    d = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+    generalNotesEl.style.right = "auto"; generalNotesEl.style.bottom = "auto";
+    generalNotesEl.style.left = (r.left - vr.left) + "px"; generalNotesEl.style.top = (r.top - vr.top) + "px";
+    try { generalNotesEl.setPointerCapture(e.pointerId); } catch (_) {}
+    head.style.cursor = "grabbing"; e.preventDefault();
+  });
+  generalNotesEl.addEventListener("pointermove", (e) => {
+    if (!d) return;
+    const vr = viewerEl.getBoundingClientRect(), r = generalNotesEl.getBoundingClientRect();
+    const x = Math.min(Math.max(0, e.clientX - d.dx - vr.left), Math.max(0, vr.width - r.width));
+    const y = Math.min(Math.max(0, e.clientY - d.dy - vr.top), Math.max(0, vr.height - r.height));
+    generalNotesEl.style.left = x + "px"; generalNotesEl.style.top = y + "px";
+  });
+  const end = () => {
+    if (!d) return;
+    d = null;
+    const h = generalNotesEl.querySelector(".ghead"); if (h) h.style.cursor = "";
+    const vr = viewerEl.getBoundingClientRect();
+    try { localStorage.setItem("genPos", JSON.stringify({ x: parseFloat(generalNotesEl.style.left) / vr.width, y: parseFloat(generalNotesEl.style.top) / vr.height })); } catch (_) {}
+  };
+  generalNotesEl.addEventListener("pointerup", end); generalNotesEl.addEventListener("pointercancel", end);
+  window.addEventListener("resize", () => { clamp(); });
+  generalNotesEl.dataset.restorePos = "1";
+  window.__genRestore = () => {          // 前回の位置を戻す(ファイルを開いたあと)
+    try { const q = JSON.parse(localStorage.getItem("genPos") || "null"); if (q && isFinite(q.x) && isFinite(q.y)) place(q.x, q.y); } catch (_) {}
+  };
+})();
 function isGeneralTolerance(text) {
   return /general[\s_\-]*toleranc/i.test(text || "");
 }
@@ -4918,19 +5197,44 @@ function setupGeneralNotes(pmi) {
   title.textContent = "General tolerance";
   const btn = document.createElement("button");
   btn.className = "gbtn";
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "gbtn"; closeBtn.textContent = "\u00D7"; closeBtn.title = "Close";
+  closeBtn.addEventListener("click", () => setGeneralVisible(false));
   head.appendChild(title);
   head.appendChild(btn);
+  head.appendChild(closeBtn);
   const body = document.createElement("div");
   body.className = "gbody";
   generalNotesEl.appendChild(head);
   generalNotesEl.appendChild(body);
+  const foot = document.createElement("div");           // 最下部: 透明度のスライダー
+  foot.className = "gfoot";
+  foot.innerHTML = '<span>Opacity</span><input type="range" min="10" max="100" step="1"><span class="gpct"></span>';
+  const rg = foot.querySelector("input"), pct = foot.querySelector(".gpct");
+  let a0 = 100;
+  try { const v = parseFloat(localStorage.getItem("genOpacity")); if (v >= 10 && v <= 100) a0 = v; } catch (_) {}
+  const setA = (v) => { rg.value = String(v); pct.textContent = Math.round(v) + "%"; generalNotesEl.style.setProperty("--gn-a", (v / 100).toFixed(2)); };
+  setA(a0);
+  rg.addEventListener("input", () => { setA(parseFloat(rg.value)); try { localStorage.setItem("genOpacity", rg.value); } catch (_) {} });
+  generalNotesEl.appendChild(foot);
 
   const apply = () => {
     generalNotesEl.classList.toggle("collapsed", generalCollapsed);
     btn.textContent = generalCollapsed ? "+" : "–";          // + (元に戻す) / – (縮小)
     btn.title = generalCollapsed ? "Restore" : "Minimize";
   };
-  btn.addEventListener("click", () => { generalCollapsed = !generalCollapsed; apply(); });
+  btn.addEventListener("click", () => {
+    let near = false;
+    if (!generalCollapsed && generalNotesEl.style.left !== "") {          // 最小化するとき、右下付近にあれば、ぴったり右下へ寄せる
+      const vr = viewerEl.getBoundingClientRect(), r = generalNotesEl.getBoundingClientRect();
+      near = vr.right - r.right <= 120 && vr.bottom - r.bottom <= 120;
+    }
+    generalCollapsed = !generalCollapsed; apply();
+    if (near && generalCollapsed) {
+      generalNotesEl.style.left = ""; generalNotesEl.style.top = ""; generalNotesEl.style.right = ""; generalNotesEl.style.bottom = "";      // 既定(右下から 12px)に戻す
+      try { localStorage.removeItem("genPos"); } catch (_) {}
+    }
+  });
   apply();
 
   const shown = new Set();      // 同じ本文の一般注記は 1 回だけ表示する(3D 上は全て非表示)
@@ -4962,7 +5266,8 @@ function setupGeneralNotes(pmi) {
     div.title = a.name;
     body.appendChild(div);
   }
-  generalNotesEl.style.display = generalNoteNames.size ? "flex" : "none";
+  updateViewsColumn();
+  if (window.__genRestore) setTimeout(window.__genRestore, 0);
 }
 
 // ---- PMIパネル描画 ----
@@ -5187,12 +5492,13 @@ function renderPmi(pmi) {
     h.closest(".grp").classList.toggle("collapsed");
   }));
   tolListEl.querySelectorAll(".datum-row").forEach(row => {
-    row.addEventListener("click", () => selectDatum(Number(row.dataset.di)));
+    row.addEventListener("click", () => { rippleAllowed = true; try { selectDatum(Number(row.dataset.di)); } finally { rippleAllowed = false; } });
   });
   tolListEl.querySelectorAll(".pmi-card").forEach(card => {
     card.addEventListener("click", (e) => {
       if (e.target.classList.contains("vis")) return;
-      selectTolerance(Number(card.dataset.idx), tols);
+      rippleAllowed = true;
+      try { selectTolerance(Number(card.dataset.idx), tols); } finally { rippleAllowed = false; }
     });
   });
   tolListEl.querySelectorAll("input.vis").forEach(cb => cb.addEventListener("change", () => {
@@ -5307,7 +5613,7 @@ function bmClipSegDisc(a0, b0, a1, b1, R) {
 }
 function bmSectionCompute(origin, plane, radius, outlineOnly) {
   if (!bmPos) bmBuildFaces();
-  const B = BM_SECTION_BASIS[plane], n = B.n, u = B.u, v = B.v;
+  const B = typeof plane === "string" ? BM_SECTION_BASIS[plane] : plane, n = B.n, u = B.u, v = B.v;
   const P = bmPos, I = bmIdx, o = [origin.x, origin.y, origin.z];
   const dist = (k) => (P[k] - o[0]) * n[0] + (P[k + 1] - o[1]) * n[1] + (P[k + 2] - o[2]) * n[2];
   const segs = [];                                  // [a0, b0, a1, b1](平面内の座標)
@@ -5951,6 +6257,7 @@ function measClick() {
   measRender();
 }
 function measEnter() {
+  if (typeof secExit === "function") secExit();             // 断面は終えてから(同時には使わない)
   if (!currentMesh || !currentMeshData) { statusEl.textContent = "ファイルを開いてから Measurement を使ってください。"; document.getElementById("miMeasure").classList.remove("checked"); return; }
   if (!bmPos) bmBuildFaces();
   { const bb = currentMeshData.bbox; bmDiagCache = Math.hypot(bb.max[0] - bb.min[0], bb.max[1] - bb.min[1], bb.max[2] - bb.min[2]) || 1; }
@@ -6035,6 +6342,217 @@ cv.addEventListener("pointerleave", () => { if (measActive) { measHoverKey = "";
   });
 })();
 
+// ---- Tool > Section Cut: X・Y・Z 平面に平行で、指定の距離にある断面 + X・Y・Z 軸まわりに回した断面 ----
+const secWin = document.getElementById("secWin");
+let secOn = false, secObjs = [], secTimer = 0, secClipPlane = null, secGizmo = null, secHover = null, secDrag = null;
+const secEl = (id) => document.getElementById(id);
+function secRot(rx, ry, rz) {            // 先に X 軸、次に Y 軸、最後に Z 軸まわり(世界座標軸まわり、原点が中心)
+  const m = new THREE.Matrix4().makeRotationZ(rz * Math.PI / 180).multiply(new THREE.Matrix4().makeRotationY(ry * Math.PI / 180)).multiply(new THREE.Matrix4().makeRotationX(rx * Math.PI / 180));
+  return m;
+}
+function secClear() {
+  secGizmo = null;
+  secObjs.forEach(o => { scene.remove(o); o.geometry.dispose(); o.material.dispose(); });
+  secObjs = [];
+}
+function secApplyClip(plane) {         // モデルの面と稜線を、平面で切り取る(null で元に戻す)
+  secClipPlane = plane;
+  renderer.localClippingEnabled = !!plane;
+  for (const m of [currentMesh && currentMesh.material, currentEdges && currentEdges.material]) { if (m) { m.clippingPlanes = plane ? [plane] : []; m.needsUpdate = true; } }
+}
+function secUpdate() {
+  if (!secOn || !currentMeshData) return;
+  const u2 = bmUnitToMm || 1;
+  const base = secEl("secWin").querySelector('input[name="secPlane"]:checked').value, B0 = BM_SECTION_BASIS[base];
+  const R = secRot(parseFloat(secEl("secRx").value) || 0, parseFloat(secEl("secRy").value) || 0, parseFloat(secEl("secRz").value) || 0);
+  const rv = (a) => new THREE.Vector3(a[0], a[1], a[2]).applyMatrix4(R);
+  const n = rv(B0.n), uu = rv(B0.u), vv = rv(B0.v), d = (parseFloat(secEl("secDist").value) || 0) / u2;
+  const origin = n.clone().multiplyScalar(d);
+  secClear();
+  const res = bmSectionCompute(origin, { n: [n.x, n.y, n.z], u: [uu.x, uu.y, uu.z], v: [vv.x, vv.y, vv.z] }, null, !secEl("secHatch").checked);
+  const col = bmSectionColor ? bmSectionColor() : new THREE.Color(0x203040);
+  for (const [arr, w] of [[res.outline, 1], [res.hatch, 1]]) {
+    if (!arr || !arr.length) continue;
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(arr, 3));
+    const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: col, depthTest: false, transparent: true }));
+    l.renderOrder = 1005; l.frustumCulled = false; scene.add(l); secObjs.push(l);
+  }
+  {                                      // 断面を示す半透明の平面: モデルの外接矩形(平面内の広がり)の 1.5 倍
+    const bb = currentMeshData.bbox, cx = (bb.min[0] + bb.max[0]) / 2, cy = (bb.min[1] + bb.max[1]) / 2, cz = (bb.min[2] + bb.max[2]) / 2;
+    const diag = Math.hypot(bb.max[0] - bb.min[0], bb.max[1] - bb.min[1], bb.max[2] - bb.min[2]) || 1;
+    const rel = new THREE.Vector3(cx, cy, cz).sub(origin), pu = rel.dot(uu), pv = rel.dot(vv);
+    let uMin = Infinity, uMax = -Infinity, vMin = Infinity, vMax = -Infinity;
+    for (const x of [bb.min[0], bb.max[0]]) for (const y of [bb.min[1], bb.max[1]]) for (const z of [bb.min[2], bb.max[2]]) {
+      const q = new THREE.Vector3(x, y, z).sub(origin), a = q.dot(uu), b = q.dot(vv);
+      if (a < uMin) uMin = a; if (a > uMax) uMax = a; if (b < vMin) vMin = b; if (b > vMax) vMax = b;
+    }
+    const halfU = Math.max((uMax - uMin) / 2 * 1.5, diag * 0.02), halfV = Math.max((vMax - vMin) / 2 * 1.5, diag * 0.02), mu = (uMin + uMax) / 2, mv = (vMin + vMax) / 2;
+    const corner = (a, b) => origin.clone().addScaledVector(uu, mu + a * halfU).addScaledVector(vv, mv + b * halfV);
+    const cs = [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)], pos = new Float32Array(12);
+    cs.forEach((c, i) => { pos[i * 3] = c.x; pos[i * 3 + 1] = c.y; pos[i * 3 + 2] = c.z; });
+    const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.BufferAttribute(pos, 3)); pg.setIndex([0, 1, 2, 0, 2, 3]);
+    const pm = new THREE.Mesh(pg, new THREE.MeshBasicMaterial({ color: 0x3d8bff, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false }));
+    pm.renderOrder = 1004; pm.frustumCulled = false; scene.add(pm); secObjs.push(pm);
+    const bg = new THREE.BufferGeometry(); bg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const bl = new THREE.LineLoop(bg, new THREE.LineBasicMaterial({ color: 0x1e6ae0, transparent: true, opacity: 0.9, depthTest: false }));
+    bl.renderOrder = 1006; bl.frustumCulled = false; scene.add(bl); secObjs.push(bl);
+    secGizmo = { corners: cs, planeLine: bl, n: n.clone(), origin: origin.clone(), diag, axes: [], rings: [] };
+    // 回転の軸(いま回している順に合わせた軸: X は Z·Y で回したもの、Y は Z で回したもの、Z はそのまま)と、軸まわりの回転ハンドル(輪)
+    const Rzy = new THREE.Matrix4().makeRotationZ((parseFloat(secEl("secRz").value) || 0) * Math.PI / 180).multiply(new THREE.Matrix4().makeRotationY((parseFloat(secEl("secRy").value) || 0) * Math.PI / 180));
+    const Rz = new THREE.Matrix4().makeRotationZ((parseFloat(secEl("secRz").value) || 0) * Math.PI / 180);
+    const axDirs = [new THREE.Vector3(1, 0, 0).applyMatrix4(Rzy), new THREE.Vector3(0, 1, 0).applyMatrix4(Rz), new THREE.Vector3(0, 0, 1)];
+    const cols = [0xe03030, 0x20a020, 0x2050e0], bc = new THREE.Vector3(cx, cy, cz);
+    axDirs.forEach((ax, k) => {
+      const t = bc.dot(ax), c0 = ax.clone().multiplyScalar(t), L = diag * 0.7;
+      const ag = new THREE.BufferGeometry().setFromPoints([c0.clone().addScaledVector(ax, -L), c0.clone().addScaledVector(ax, L)]);
+      const al = new THREE.Line(ag, new THREE.LineBasicMaterial({ color: cols[k], transparent: true, opacity: 0.85, depthTest: false }));
+      al.renderOrder = 1006; al.frustumCulled = false; scene.add(al); secObjs.push(al);
+      const e1 = Math.abs(ax.x) < 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+      const f1 = ax.clone().cross(e1).normalize(), f2 = ax.clone().cross(f1).normalize(), rr = diag * 0.2, pts = [];
+      const cc = c0.clone().addScaledVector(ax, L);          // 輪は軸の端(+側)に置く
+      for (let m = 0; m < 72; m++) { const a = m / 72 * 2 * Math.PI; pts.push(cc.clone().addScaledVector(f1, rr * Math.cos(a)).addScaledVector(f2, rr * Math.sin(a))); }
+      const rg = new THREE.BufferGeometry().setFromPoints(pts);
+      const rl = new THREE.LineLoop(rg, new THREE.LineBasicMaterial({ color: cols[k], transparent: true, opacity: 0.95, depthTest: false }));
+      rl.renderOrder = 1006; rl.frustumCulled = false; scene.add(rl); secObjs.push(rl);
+      secGizmo.axes.push({ dir: ax.clone(), line: al, color: cols[k] });
+      secGizmo.rings.push({ axis: k, pts, center: cc, dir: ax.clone(), line: rl, color: cols[k] });
+    });
+  }
+  if (secEl("secClip").checked) {       // 法線の側(n·p > d)を切り取る。「Flip side」で逆側
+    const flip = secEl("secFlip").checked, sgn = flip ? 1 : -1;
+    secApplyClip(new THREE.Plane(n.clone().multiplyScalar(sgn), -sgn * d));
+  } else secApplyClip(null);
+  statusEl.textContent = `Section Cut: ${base === "YZ" ? "X" : base === "ZX" ? "Y" : "Z"} 平面に平行、距離 ${secEl("secDist").value} mm、回転 X ${secEl("secRx").value}° / Y ${secEl("secRy").value}° / Z ${secEl("secRz").value}°`;
+}
+function secSoon() { clearTimeout(secTimer); secTimer = setTimeout(secUpdate, 40); }
+function secRange() {                 // 距離の動かせる範囲: モデルの外接矩形の対角(mm)
+  if (!currentMeshData) return;
+  const bb = currentMeshData.bbox, u2 = bmUnitToMm || 1, diag = Math.hypot(bb.max[0] - bb.min[0], bb.max[1] - bb.min[1], bb.max[2] - bb.min[2]) * u2;
+  const r = Math.ceil(diag * 1.5);
+  secEl("secDistR").min = String(-r); secEl("secDistR").max = String(r);
+}
+function secEnter() {
+  if (!currentMesh || !currentMeshData) { statusEl.textContent = "ファイルを開いてから Section Cut を使ってください"; secEl("miSection").classList.remove("checked"); return; }
+  measExit();
+  secOn = true; secEl("miSection").classList.add("checked"); secWin.style.display = "block";
+  secRange();
+  if (!bmPos) bmBuildFaces();
+  secUpdate();
+}
+function secExit() {
+  if (!secOn && secWin.style.display === "none") return;
+  secOn = false; clearTimeout(secTimer); secDrag = null; secHover = null; cv.style.cursor = "";
+  secClear(); secApplyClip(null);
+  secWin.style.display = "none"; secEl("miSection").classList.remove("checked");
+}
+secEl("miSection").addEventListener("click", () => { if (secOn) secExit(); else secEnter(); });
+secEl("secClose").addEventListener("click", secExit);
+[["secDistR", "secDist"], ["secRxR", "secRx"], ["secRyR", "secRy"], ["secRzR", "secRz"]].forEach(([rid, nid]) => {
+  secEl(rid).addEventListener("input", () => { secEl(nid).value = secEl(rid).value; secSoon(); });
+  secEl(nid).addEventListener("input", () => { secEl(rid).value = secEl(nid).value; secSoon(); });
+});
+secWin.querySelectorAll('input[name="secPlane"], #secClip, #secFlip, #secHatch').forEach(e => e.addEventListener("change", secSoon));
+secEl("secReset").addEventListener("click", () => {
+  for (const id of ["secDist", "secDistR", "secRx", "secRxR", "secRy", "secRyR", "secRz", "secRzR"]) secEl(id).value = "0";
+  secUpdate();
+});
+(function () {           // 見出しをドラッグして、窓を動かす
+  const head = secWin.querySelector(".sec-head");
+  let d = null;
+  head.addEventListener("pointerdown", (e) => { if (e.target.tagName === "BUTTON") return; const r = secWin.getBoundingClientRect(); d = { x: e.clientX - r.left, y: e.clientY - r.top }; try { head.setPointerCapture(e.pointerId); } catch (_) {} e.preventDefault(); });
+  head.addEventListener("pointermove", (e) => {
+    if (!d) return;
+    const vr = viewerEl.getBoundingClientRect(), r = secWin.getBoundingClientRect();
+    secWin.style.left = Math.min(Math.max(0, e.clientX - d.x - vr.left), Math.max(0, vr.width - r.width)) + "px";
+    secWin.style.top = Math.min(Math.max(0, e.clientY - d.y - vr.top), Math.max(0, vr.height - r.height)) + "px";
+  });
+  head.addEventListener("pointerup", () => { d = null; });
+})();
+
+// ---- 断面の平面・回転ハンドルを、3D 画面の上でドラッグして動かす ----
+//  平面の縁: ポインターが矢印になり、ドラッグで平面を法線方向に動かす(Distance が変わる)
+//  色つきの輪: ドラッグで、その軸のまわりに平面を回す(Rotate X / Y / Z が変わる)
+function secPx(v) {
+  const q = v.clone().project(camera), r = cv.getBoundingClientRect();
+  return [(q.x + 1) / 2 * r.width, (1 - q.y) / 2 * r.height];
+}
+function secSegDist(px, py, a, b) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy;
+  let t = l2 ? ((px - a[0]) * dx + (py - a[1]) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (a[0] + t * dx), py - (a[1] + t * dy));
+}
+function secPolyDist(px, py, pts, closed) {
+  const q = pts.map(secPx); let m = Infinity;
+  for (let i = 0; i < q.length - (closed ? 0 : 1); i++) m = Math.min(m, secSegDist(px, py, q[i], q[(i + 1) % q.length]));
+  return m;
+}
+function secPick(px, py) {
+  if (!secOn || !secGizmo) return null;
+  const RR = 14, RP = 24;                // 当たり判定の幅(px): 輪と平面の縁。つかみやすいよう広めにしてある
+  let best = null, bd = RR;
+  for (const r of secGizmo.rings) { const d = secPolyDist(px, py, r.pts, true); if (d < bd) { bd = d; best = { type: "ring", ring: r }; } }
+  if (best) return best;
+  const d = secPolyDist(px, py, secGizmo.corners, true);
+  return d < RP ? { type: "plane" } : null;
+}
+function secSetHover(h) {
+  const key = h ? (h.type === "ring" ? "r" + h.ring.axis : "plane") : "";
+  if (key === (secHover ? (secHover.type === "ring" ? "r" + secHover.ring.axis : "plane") : "")) return;
+  secHover = h;
+  if (secGizmo) {                       // ホバー中のものを太く(濃く)見せる
+    secGizmo.planeLine.material.color.set(h && h.type === "plane" ? 0x0a3fbf : 0x1e6ae0);
+    for (const r of secGizmo.rings) r.line.material.color.set(h && h.type === "ring" && h.ring.axis === r.axis ? 0xffa500 : r.color);
+  }
+  cv.style.cursor = h ? (h.type === "plane" ? "move" : "grab") : "";
+}
+function secDragStart(h, px, py) {
+  if (h.type === "plane") {
+    const u2 = bmUnitToMm || 1, step = secGizmo.diag * 0.1, a = secPx(secGizmo.origin), b = secPx(secGizmo.origin.clone().addScaledVector(secGizmo.n, step));
+    const sv = [b[0] - a[0], b[1] - a[1]], len = Math.hypot(sv[0], sv[1]);
+    secDrag = { type: "plane", x: px, y: py, d0: parseFloat(secEl("secDist").value) || 0, dir: len > 4 ? [sv[0] / len, sv[1] / len] : null, pxPerMm: len > 4 ? len / step / u2 : 0, diag: secGizmo.diag * u2 };
+  } else {
+    const c = secPx(h.ring.center), ids = ["secRx", "secRy", "secRz"], fw = new THREE.Vector3(); camera.getWorldDirection(fw);
+    secDrag = { type: "ring", axis: h.ring.axis, cx: c[0], cy: c[1], last: Math.atan2(-(py - c[1]), px - c[0]), sign: h.ring.dir.dot(fw) < 0 ? 1 : -1, id: ids[h.ring.axis], v0: parseFloat(secEl(ids[h.ring.axis]).value) || 0 };
+  }
+  cv.style.cursor = h.type === "plane" ? "move" : "grabbing";
+}
+function secSetField(id, rid, v) { secEl(id).value = String(Math.round(v * 100) / 100); secEl(rid).value = secEl(id).value; }
+function secDragMove(px, py) {
+  if (!secDrag) return;
+  if (secDrag.type === "plane") {
+    const dx = px - secDrag.x, dy = py - secDrag.y;
+    const dmm = secDrag.dir ? (dx * secDrag.dir[0] + dy * secDrag.dir[1]) / secDrag.pxPerMm : -dy * secDrag.diag / 500;
+    const v = secDrag.d0 + dmm;
+    secSetField("secDist", "secDistR", v);
+  } else {
+    const ang = Math.atan2(-(py - secDrag.cy), px - secDrag.cx);
+    let d = ang - secDrag.last; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+    secDrag.last = ang;
+    let v = (parseFloat(secEl(secDrag.id).value) || 0) + secDrag.sign * d * 180 / Math.PI;
+    while (v > 180) v -= 360; while (v < -180) v += 360;
+    secSetField(secDrag.id, secDrag.id + "R", v);
+  }
+  if (!secDrag.raf) secDrag.raf = requestAnimationFrame(() => { if (secDrag) { secDrag.raf = 0; secUpdate(); } });
+}
+cv.addEventListener("pointerdown", (e) => {
+  if (!secOn || e.button !== 0) return;
+  const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, h = secPick(px, py);
+  if (!h) return;
+  e.stopImmediatePropagation(); e.preventDefault();
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  secDragStart(h, px, py);
+}, true);
+cv.addEventListener("pointermove", (e) => {
+  if (!secOn) return;
+  const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  if (secDrag) { e.stopImmediatePropagation(); secDragMove(px, py); return; }
+  if (e.buttons) return;
+  secSetHover(secPick(px, py));
+}, true);
+const secDragEnd = () => { if (secDrag) { const raf = secDrag.raf; secDrag = null; if (raf) cancelAnimationFrame(raf); secUpdate(); cv.style.cursor = secHover ? (secHover.type === "plane" ? "move" : "grab") : ""; } };
+cv.addEventListener("pointerup", secDragEnd, true);
+cv.addEventListener("pointercancel", secDragEnd, true);
+window.addEventListener("keydown", (e) => { if (e.key === "Escape" && secOn && !document.querySelector("#expBackdrop[style*='flex']")) { secExit(); } });
 // ---- 2 点間の測定: 最短距離(オレンジ)と、X・Y・Z 軸に沿った距離(赤・緑・青)を、線と文字で 3D 上に描き、結果を文章で出力する ----
 var measResultObj = null, measLabels = [], measResultKey = "";
 function measUpdateResultSoon() {        // 選択が変わったときだけ作り直す(ホバーでは作り直さない)
@@ -6462,6 +6980,7 @@ function antCollect() {
   L.push(el("SectionRadiusMM", {}, String(bmSectionRadiusMm)));
   L.push(el("SortMode", {}, sortMode));
   L.push(el("NavScheme", {}, navScheme));
+  L.push(el("HighlightRipple", {}, String(rippleOn)));
   L.push(el("Panels", { characteristics: String(document.getElementById("miPanel").classList.contains("checked")),
                         savedViews: String(document.getElementById("miViewsPanel").classList.contains("checked")),
                         originAxes: String(document.getElementById("miAxes").classList.contains("checked")) }));
@@ -6515,6 +7034,7 @@ function antApply(xmlText) {
     if ((v = T("CharacteristicCheckboxes")) !== null && (v === "true") === app.classList.contains("hide-rowchecks")) document.getElementById("miRowChecks").click();
     if ((v = T("SortMode")) !== null && v !== sortMode) { const m = document.querySelector(`#sortMenu .menu-item[data-sort="${v}"]`); if (m) m.click(); }
     if ((v = T("NavScheme")) !== null && v !== navScheme) setNavScheme(v);
+    if ((v = T("HighlightRipple")) !== null) setRipple(v === "true");
     const mwEl = root.getElementsByTagName("MeasurementWindow")[0];
     if (mwEl) {
       const mw = document.getElementById("measWin"), w = parseFloat(mwEl.getAttribute("width"));
@@ -6527,6 +7047,7 @@ function antApply(xmlText) {
       const want = (a) => pn.getAttribute(a) === "true";
       if (pn.hasAttribute("characteristics")) clickIf("miPanel", want("characteristics"));
       if (pn.hasAttribute("savedViews")) clickIf("miViewsPanel", want("savedViews"));
+      // General tolerance の表示状態は、保存しない・復元しない(非表示のまま終了しても、次回の起動では必ず表示する)
       if (pn.hasAttribute("originAxes")) clickIf("miAxes", want("originAxes"));
     }
     if ((v = T("Style")) !== null && v !== annotationStyle) setAnnotationStyle(v);
@@ -6776,6 +7297,22 @@ async function lastFileOpen() {
     }
     document.body.appendChild(menu);
   }
+  let panelTranslucent = false;            // 特性・データムの欄を半透明にする(既定は不透明。ブラウザに覚えておく)
+  try { panelTranslucent = localStorage.getItem("panelTrans") === "1"; } catch (_) {}
+  const setPanelTranslucent = (on) => {
+    panelTranslucent = on;
+    document.getElementById("app").classList.toggle("panel-trans", on);
+    try { localStorage.setItem("panelTrans", on ? "1" : "0"); } catch (_) {}
+    resize(); bmDirty = true;
+  };
+  window.__setPanelTranslucent = setPanelTranslucent;
+  document.getElementById("app").classList.toggle("panel-trans", panelTranslucent);
+  setTimeout(() => { resize(); bmDirty = true; }, 0);
+  const hiddenPanelItems = () => {         // 非表示のパネルを表示する項目(View / Option メニューの項目と同じ動作)
+    const defs = [["miPanel", "Characteristics Panel"], ["miViewsPanel", "Saved Views Panel"], ["miGeneral", "General Tolerance Panel"], ["miSource", "STEP/QIF Source Panel"]];
+    const items = defs.filter(([id]) => !document.getElementById(id).classList.contains("checked")).map(([id, text]) => ({ text: "Show " + text, fn: () => document.getElementById(id).click() }));
+    return items.length ? items : [{ text: "(All panels are shown)" }];
+  };
   panelEl.addEventListener("contextmenu", (e) => {         // 特性のパネルを右クリック: Characteristics Sort の 3 つを選べる
     e.preventDefault();
     const items = [["designator", "By Designator (Default)"], ["datum", "By Datum Reference Frame"], ["type", "By Type"]].map(([k, text]) => ({
@@ -6783,6 +7320,9 @@ async function lastFileOpen() {
     items.push({ node: () => { const d = document.createElement("div"); d.style.cssText = "border-top:1px solid #e3e6ec;margin:3px 0 0"; return d; } });
     const miD = document.getElementById("miDesignators");      // Show Designators(View メニューの Designators と同じ)
     items.push({ text: "Show Designators", checked: miD.classList.contains("checked"), fn: () => miD.click() });
+    const miR = document.getElementById("miRowChecks");      // Individual Characteristic Show/Hide(Option メニューの項目と同じ)
+    items.push({ text: "Individual Characteristic Show/Hide", checked: miR.classList.contains("checked"), fn: () => miR.click() });
+    items.push({ text: "Translucent Panel", checked: panelTranslucent, fn: () => setPanelTranslucent(!panelTranslucent) });
     items.push({ node: () => {        // Symbol Height: Characteristics / Datums の記号の大きさ(px)
       const sl = document.getElementById("symSizeSlider"), nm = document.getElementById("symSizeNum");
       const w = document.createElement("div");
@@ -6802,8 +7342,10 @@ async function lastFileOpen() {
     if (currentMesh) {                              // モデルを表示中: 引出線の黒丸(アンカー)の上なら Hatched Cross Section のメニュー。それ以外は従来どおり
       if (annotationStyle === "balloon") {
         const it = bmAnchorAt(e.clientX, e.clientY);
-        if (it) { e.preventDefault(); bmSectionMenu(it, e, close, makeMenu); }
+        if (it) { e.preventDefault(); bmSectionMenu(it, e, close, makeMenu); return; }
       }
+      e.preventDefault();                           // 何もないところ: 非表示になっているパネルを出す項目
+      makeMenu(e, "Show Panel", hiddenPanelItems());
       return;
     }
     e.preventDefault();
@@ -6815,11 +7357,349 @@ async function lastFileOpen() {
       db.close();
       name = rec && rec.name;
     } catch (_) {}
-    makeMenu(e, null, [name ? { text: `最後に開いたファイルを開く: ${name}`, fn: () => lastFileOpen() } : { text: "最後に開いたファイルはありません" }]);
+    makeMenu(e, null, [name ? { text: `最後に開いたファイルを開く: ${name}`, fn: () => lastFileOpen() } : { text: "最後に開いたファイルはありません" }].concat(hiddenPanelItems().filter(x => x.fn)));
   });
 })();
+// ---- Source パネル: 3DA B&M Viewer(Windows 版)の「QIF/STEP Source Panel」と同じ ----
+//  開いているファイルの元の文章(STEP / QIF)を、行番号つきで表示する。検索(Find)、色分け、
+//  そして特性との相互ハイライト: 特性を選ぶとそのエンティティの行を示し、ソースの行をクリックするとその特性を選ぶ。
+const srcWin = document.getElementById("srcWin"), srcScroll = document.getElementById("srcScroll"), srcRows = document.getElementById("srcRows");
+const srcSpacer = document.getElementById("srcSpacer"), srcTitle = document.getElementById("srcTitle"), srcFindEl = document.getElementById("srcFind"), srcInfo = document.getElementById("srcInfo");
+const SRC_LH = 16;
+let srcLines = null, srcKind = "step", srcFile = null, srcVisible = false, srcHl = null, srcMatch = null, srcIdx = null, srcMaxLen = 0, srcLoadToken = 0;
+function srcEsc(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function srcColorLine(t) {
+  if (t.length > 3000) t = t.slice(0, 3000) + " ...";
+  if (srcKind === "qif") {
+    const re = /(<!--.*?-->)|(<\/?[A-Za-z_][\w:.-]*)|([A-Za-z_][\w:.-]*)(=)|("[^"]*")/g;
+    let out = "", last = 0, m;
+    while ((m = re.exec(t))) {
+      out += srcEsc(t.slice(last, m.index)); last = re.lastIndex;
+      if (m[1]) out += `<span class="sc-c">${srcEsc(m[1])}</span>`;
+      else if (m[2]) out += `<span class="sc-k">${srcEsc(m[2])}</span>`;
+      else if (m[3]) out += `<span class="sc-a">${srcEsc(m[3])}</span>=`;
+      else out += `<span class="sc-s">${srcEsc(m[5])}</span>`;
+    }
+    return out + srcEsc(t.slice(last));
+  }
+  const re = /('(?:[^']|'')*')|(#\d+)|([A-Z][A-Z0-9_]{2,})(?=\s*\()|(\/\*.*?\*\/)/g;
+  let out = "", last = 0, m;
+  while ((m = re.exec(t))) {
+    out += srcEsc(t.slice(last, m.index)); last = re.lastIndex;
+    if (m[1]) out += `<span class="sc-s">${srcEsc(m[1])}</span>`;
+    else if (m[2]) out += `<span class="sc-a">${m[2]}</span>`;
+    else if (m[3]) out += `<span class="sc-k">${m[3]}</span>`;
+    else out += `<span class="sc-c">${srcEsc(m[4])}</span>`;
+  }
+  return out + srcEsc(t.slice(last));
+}
+function srcRowHtml(i) {
+  let t = srcLines[i], body;
+  const mt = srcMatch && srcMatch.line === i ? srcMatch : null;
+  if (mt) body = srcColorLine(t.slice(0, mt.col)) + `<mark>${srcEsc(t.slice(mt.col, mt.col + mt.len))}</mark>` + srcColorLine(t.slice(mt.col + mt.len));
+  else body = srcColorLine(t);
+  const hl = srcHl && i >= srcHl.from && i <= srcHl.to;
+  return `<div class="srow${hl ? " hl" : ""}" data-i="${i}"><span class="sln">${i + 1}</span><span class="stx">${body || "&nbsp;"}</span></div>`;
+}
+function srcRender() {
+  if (!srcLines) { srcRows.innerHTML = ""; return; }
+  const top = srcScroll.scrollTop, h = srcScroll.clientHeight || 400;
+  const a = Math.max(0, Math.floor(top / SRC_LH) - 10), b = Math.min(srcLines.length, Math.ceil((top + h) / SRC_LH) + 10);
+  let html = "";
+  for (let i = a; i < b; i++) html += srcRowHtml(i);
+  srcRows.style.transform = `translateY(${a * SRC_LH}px)`;
+  srcRows.innerHTML = html;
+}
+function srcScrollTo(line) { srcScroll.scrollTop = Math.max(0, line * SRC_LH - (srcScroll.clientHeight || 300) / 3); srcRender(); }
+async function srcLoad() {
+  if (!srcVisible || !srcFile) return;
+  const f = srcFile, token = ++srcLoadToken;
+  srcKind = /\.(qif|xml)$/i.test(f.name) ? "qif" : "step";
+  srcTitle.textContent = (srcKind === "qif" ? "QIF" : "STEP") + " Source";
+  srcInfo.textContent = "Loading...";
+  srcLines = null; srcIdx = null; srcHl = null; srcMatch = null; srcRender();
+  try {
+    const buf = await f.arrayBuffer();
+    if (token !== srcLoadToken) return;
+    const text = new TextDecoder(srcKind === "qif" ? "utf-8" : "windows-1252").decode(buf);
+    srcLines = text.split(/\r\n|\n|\r/);
+    srcMaxLen = 0;
+    for (const l of srcLines) if (l.length > srcMaxLen) srcMaxLen = l.length;
+    srcMaxLen = Math.min(srcMaxLen, 3000);
+    srcSpacer.style.height = srcLines.length * SRC_LH + "px";
+    srcSpacer.style.width = (String(srcLines.length).length * 8 + 24 + srcMaxLen * 7.3) + "px";
+    srcInfo.textContent = `${srcLines.length.toLocaleString()} lines`;
+    srcScroll.scrollTop = 0; srcRender();
+    srcTreeRoot = null; srcMode = "source"; srcSetMode("source");
+    if (selectedTolIndex !== null && lastPmi) srcShowTol(lastPmi.geometric_tolerances[selectedTolIndex]);
+  } catch (e) { srcInfo.textContent = "読み込めません: " + (e.message || e); }
+}
+function srcSetFile(file) { srcFile = file; if (srcVisible) srcLoad(); }
+function srcSetVisible(on) {
+  srcVisible = on;
+  srcWin.style.display = on ? "flex" : "none";
+  document.getElementById("splitSrc").style.display = on ? "" : "none";
+  document.getElementById("miSource").classList.toggle("checked", on);
+  try { localStorage.setItem("srcPanel", on ? "1" : "0"); } catch (_) {}
+  resize(); bmDirty = true;
+  if (on) srcLoad(); else { srcLines = null; srcIdx = null; srcRows.innerHTML = ""; }
+}
+// ---- エンティティの行の索引と範囲 ----
+function srcBuildIdx() {
+  if (srcIdx || !srcLines) return;
+  srcIdx = new Map();
+  const re = srcKind === "qif" ? /\bid="(\d+)"/ : /^#(\d+)\s*=/;
+  for (let i = 0; i < srcLines.length; i++) { const m = re.exec(srcLines[i]); if (m && !srcIdx.has(m[1])) srcIdx.set(m[1], i); }
+}
+function srcEntityRange(start) {
+  const indent = (l) => l.length - l.trimStart().length;
+  if (srcKind === "step") {
+    let e = start;
+    while (e < srcLines.length - 1 && !/;\s*$/.test(srcLines[e])) e++;
+    return [start, e];
+  }
+  const base = indent(srcLines[start]);
+  let e = start;
+  for (let j = start + 1; j < srcLines.length && j < start + 400; j++) {
+    const l = srcLines[j];
+    if (!l.trim()) continue;
+    if (indent(l) < base || (indent(l) === base && !/^\s*<\//.test(l))) break;
+    e = j;
+  }
+  return [start, e];
+}
+function srcShowId(id) {
+  if (!srcVisible || !srcLines || id === undefined || id === null) return;
+  srcBuildIdx();
+  const line = srcIdx.get(String(id));
+  if (line === undefined) { srcHl = null; srcRender(); return; }
+  const [a, b] = srcEntityRange(line);
+  srcHl = { from: a, to: b };
+  if (srcFromClick) srcRender(); else srcScrollTo(a);
+  srcTreeRevealLine(a);
+}
+function srcShowTol(tol) { if (tol) srcShowId(tol.id); }
+function srcClearHl() { if (srcHl) { srcHl = null; srcRender(); } }
+function srcEntityAt(i) {           // この行が含まれる特性のエンティティ番号(ソースの行 -> 特性)
+  const tols = (lastPmi && lastPmi.geometric_tolerances) || [], ids = new Set(tols.map(t => String(t.id)));
+  const indent = (l) => l.length - l.trimStart().length;
+  if (srcKind === "step") {
+    for (let j = i; j >= Math.max(0, i - 300); j--) { const m = /^#(\d+)\s*=/.exec(srcLines[j]); if (m) return ids.has(m[1]) ? m[1] : null; }
+    return null;
+  }
+  const base = indent(srcLines[i]);
+  for (let j = i; j >= Math.max(0, i - 600); j--) {
+    const l = srcLines[j], m = /\bid="(\d+)"/.exec(l);
+    if (m && ids.has(m[1]) && indent(l) <= base) return m[1];
+  }
+  return null;
+}
+// ---- 検索 ----
+function srcFindNext(back) {
+  if (!srcLines) return;
+  const q = srcFindEl.value.toLowerCase();
+  if (!q) { srcMatch = null; srcRender(); return; }
+  const n = srcLines.length;
+  let line = srcMatch ? srcMatch.line : Math.floor(srcScroll.scrollTop / SRC_LH);
+  let col = srcMatch ? (back ? srcMatch.col - 1 : srcMatch.col + 1) : (back ? Infinity : 0);
+  for (let k = 0; k <= n; k++) {
+    const t = srcLines[line].toLowerCase();
+    const at = back ? (col < 0 ? -1 : t.lastIndexOf(q, col)) : (col > t.length ? -1 : t.indexOf(q, col));
+    if (at >= 0) {
+      srcMatch = { line, col: at, len: q.length };
+      srcInfo.textContent = srcLines.length.toLocaleString() + " lines | line " + (line + 1);
+      srcScrollTo(line);
+      return;
+    }
+    line = back ? (line - 1 + n) % n : (line + 1) % n;
+    col = back ? Infinity : 0;
+  }
+  srcMatch = null; srcInfo.textContent = "見つかりません"; srcRender();
+}
+srcScroll.addEventListener("scroll", () => { if (srcLines) srcRender(); });
+let srcFromClick = false;
+srcRows.addEventListener("click", (e) => {
+  const row = e.target.closest(".srow");
+  if (!row || !lastPmi) return;
+  const i = parseInt(row.dataset.i, 10);
+  srcFromClick = true;
+  try { srcPickAtLine(i); } finally { srcFromClick = false; }
+  srcTreeRevealLine(i);
+});
+// ---- ソースの行・構造ツリーの節 -> 3D 側の選択 ----
+//  エンティティ番号(STEP の #N / QIF の id)に対応するものを探して選ぶ: 特性・データム・面・稜線・点
+function srcPick(id) {
+  if (!lastPmi || id === null || id === undefined) return false;
+  const sid = String(id);
+  const tols = lastPmi.geometric_tolerances || [];
+  const ti = tols.findIndex(t => String(t.id) === sid);
+  if (ti >= 0) { if (selectedTolIndex !== ti) selectTolerance(ti, tols); return true; }
+  const datums = lastPmi.datums || [];
+  const di = datums.findIndex(d => (d.id !== undefined && String(d.id) === sid) || (d.ids || []).some(x => String(x) === sid));
+  if (di >= 0) { if (selectedDatumIndex !== di) selectDatum(di); return true; }
+  const fi = currentMeshData && currentMeshData.faceInfo ? currentMeshData.faceInfo.findIndex(f => f && String(f.id) === sid) : -1;
+  if (fi >= 0 && currentMeshData.faceRanges && currentMeshData.faceRanges[fi]) {
+    selectPlainFace(currentMeshData.faceRanges[fi][0]);           // 面: その面をハイライト
+    return true;
+  }
+  const topo = lastPmi.topology || {};
+  const ed = (topo.edges || []).find(e => String(e.id) === sid);
+  const vt = ed ? null : (topo.vertices || []).find(v => String(v.id) === sid);
+  if (ed && ed.p1 && ed.p2) {                                       // 稜線: 青い線で示す(曲線は両端を結ぶ線で代用)
+    clearAllSelection(); setModelTranslucent(true);
+    highlightTargetGeometry([{ points: [ed.p1, ed.p2], polylines: [[ed.p1, ed.p2]] }]);
+    statusEl.textContent = `稜線 #${sid}`; statusEl.title = "";
+    return true;
+  }
+  if (vt && vt.p) {                                                 // 点
+    clearAllSelection(); setModelTranslucent(true);
+    highlightTargetGeometry([{ points: [vt.p], polylines: [] }]);
+    statusEl.textContent = `点 #${sid}`; statusEl.title = "";
+    return true;
+  }
+  return false;
+}
+function srcPickAtLine(i) {          // この行を含むエンティティ(上へたどって、選べるものが見つかるまで)
+  if (!srcLines) return false;
+  const indent = (l) => l.length - l.trimStart().length;
+  if (srcKind === "step") {
+    for (let j = i, n = 0; j >= 0 && n < 400; j--, n++) { const m = /^#(\d+)\s*=/.exec(srcLines[j]); if (m) return srcPick(m[1]); }
+    return false;
+  }
+  let bound = indent(srcLines[i]);
+  for (let j = i; j >= Math.max(0, i - 800); j--) {
+    const l = srcLines[j], m = /\bid="([^"]*)"/.exec(l);
+    if (m && indent(l) <= bound) { if (srcPick(m[1])) return true; bound = indent(l) - 1; if (bound < 0) break; }
+  }
+  return false;
+}
+// ---- QIF Structure Tree(Windows 版と同じ: 遅延展開の木 + 内容欄。ソース・特性・3D と相互にリンクする) ----
+let srcMode = "source", srcTreeRoot = null, srcNodeEls = new Map(), srcTreeSel = null;
+const srcTreeEl = document.getElementById("srcTree"), srcNodeEl = document.getElementById("srcNode"), srcTreeWrap = document.getElementById("srcTreeWrap");
+function srcParseTree() {
+  const n = srcLines.length, root = { name: "(root)", start: 0, end: n - 1, children: [], parent: null, depth: -1 };
+  const stack = [root];
+  for (let i = 0; i < n; ) {
+    const line = srcLines[i];
+    if (/^\s*<\//.test(line)) { if (stack.length > 1) stack.pop().end = i; i++; continue; }
+    const m = /^\s*<([A-Za-z_][\w:.-]*)/.exec(line);
+    if (!m) { i++; continue; }
+    let tag = line, j = i;
+    while (!tag.includes(">") && j < n - 1) { j++; tag += " " + srcLines[j]; }
+    const self = /\/>\s*$/.test(tag), closed = tag.includes("</" + m[1] + ">");
+    const idm = /\bid="([^"]*)"/.exec(tag);
+    const node = { name: m[1], id: idm ? idm[1] : null, start: i, end: j, children: [], parent: stack[stack.length - 1], depth: stack.length - 1 };
+    node.parent.children.push(node);
+    if (!self && !closed) stack.push(node);
+    i = j + 1;
+  }
+  while (stack.length > 1) stack.pop().end = n - 1;
+  return root;
+}
+function srcTreeRow(node) {
+  const row = document.createElement("div");
+  row.className = "trow"; row.style.paddingLeft = (4 + node.depth * 14) + "px";
+  row.innerHTML = `<span class="tg">${node.children.length ? "▶" : ""}</span><span class="tn">${srcEsc(node.name)}</span>${node.id !== null ? ` <span class="ta">id="${srcEsc(node.id)}"</span>` : ""}${node.children.length ? ` <span class="tc">(${node.children.length})</span>` : ""}`;
+  row._node = node; node._row = row;
+  row.addEventListener("click", (e) => {
+    if (e.target.classList.contains("tg") && node.children.length) { srcTreeToggle(node); return; }
+    srcTreeSelectNode(node, true);
+  });
+  row.addEventListener("dblclick", () => { if (node.children.length) srcTreeToggle(node); });
+  return row;
+}
+function srcTreeToggle(node, open) {
+  const want = open === undefined ? !node._open : open;
+  if (!node.children.length) return;
+  if (want && !node._open) {
+    node._kids = document.createElement("div");
+    for (const c of node.children) { node._kids.appendChild(srcTreeRow(c)); }
+    node._row.after(node._kids);
+  } else if (!want && node._open) { node._kids.remove(); node._kids = null; }
+  node._open = want;
+  node._row.firstChild.textContent = want ? "▼" : "▶";
+}
+function srcTreeBuild() {
+  srcTreeEl.innerHTML = ""; srcTreeSel = null;
+  if (!srcLines || srcKind !== "qif") { srcTreeRoot = null; return; }
+  srcTreeRoot = srcParseTree();
+  const rootRow = document.createElement("div"); srcTreeRoot._row = rootRow; srcTreeRoot._open = false; srcTreeRoot.depth = -1;
+  rootRow.style.display = "none";
+  rootRow.innerHTML = '<span class="tg"></span>';
+  srcTreeEl.appendChild(rootRow);
+  srcTreeRoot._kids = null;
+  srcTreeToggle(srcTreeRoot, true);
+  for (const c of srcTreeRoot.children.slice(0, 1)) if (c.children.length <= 40) srcTreeToggle(c, true);       // 最上位(QIFDocument)は開いておく
+}
+function srcTreeSelectNode(node, fromTree) {
+  if (srcTreeSel && srcTreeSel._row) srcTreeSel._row.classList.remove("sel");
+  srcTreeSel = node;
+  if (node._row) { node._row.classList.add("sel"); }
+  srcHl = { from: node.start, to: node.end };
+  if (srcVisible && srcMode === "source") srcScrollTo(node.start); else srcRender();
+  const total = node.end - node.start + 1, cap = 300;
+  srcNodeEl.textContent = srcLines.slice(node.start, node.start + Math.min(total, cap)).map(l => l.replace(/^\t+/, (t) => "  ".repeat(t.length))).join(String.fromCharCode(10))
+    + (total > cap ? String.fromCharCode(10) + `... (あと ${total - cap} 行)` : "");
+  if (fromTree) {                       // 木の節 -> 3D 側の選択(自分か、近い親のエンティティ)
+    for (let n = node; n && n.parent; n = n.parent) if (n.id !== null && srcPick(n.id)) break;
+  }
+}
+function srcTreeRevealLine(i) {         // ソースの行 -> 木の、その行を含む一番深い節を開いて選ぶ
+  if (!srcTreeRoot) return;
+  let node = srcTreeRoot;
+  for (;;) {
+    let next = null;
+    for (const c of node.children) { if (c.start <= i && i <= c.end) { next = c; break; } if (c.start > i) break; }
+    if (!next) break;
+    if (node.children.length && !node._open && node !== srcTreeRoot) srcTreeToggle(node, true);
+    node = next;
+  }
+  for (let p = node.parent; p; p = p.parent) if (p !== srcTreeRoot && !p._open) srcTreeToggle(p, true);
+  if (node === srcTreeRoot) return;
+  srcTreeSelectNode(node, false);
+  if (node._row && srcMode === "tree") node._row.scrollIntoView({ block: "nearest" });
+}
+function srcSetMode(mode) {
+  srcMode = srcKind === "qif" ? mode : "source";
+  const tree = srcMode === "tree";
+  document.getElementById("srcScroll").style.display = tree ? "none" : "";
+  srcTreeWrap.style.display = tree ? "flex" : "none";
+  for (const id of ["srcFind", "srcFindPrev", "srcFindBtn"]) document.getElementById(id).style.display = tree ? "none" : "";
+  document.getElementById("srcModeBtn").textContent = tree ? "Source" : "Structure";
+  document.getElementById("srcModeBtn").style.display = srcKind === "qif" ? "" : "none";
+  if (tree) {
+    if (!srcTreeRoot) srcTreeBuild();
+    if (srcHl) srcTreeRevealLine(srcHl.from);
+  } else srcRender();
+}
+document.getElementById("srcModeBtn").addEventListener("click", () => srcSetMode(srcMode === "tree" ? "source" : "tree"));
+document.getElementById("srcFindBtn").addEventListener("click", () => srcFindNext(false));
+document.getElementById("srcFindPrev").addEventListener("click", () => srcFindNext(true));
+srcFindEl.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); srcFindNext(e.shiftKey); } });
+document.getElementById("srcClose").addEventListener("click", () => srcSetVisible(false));
+document.getElementById("miSource").addEventListener("click", () => srcSetVisible(!srcVisible));
+(function () {         // 左のつまみをドラッグして、パネルの幅を変える(幅は覚えておく)
+  const sp = document.getElementById("splitSrc"), MIN_W = 120;
+  const setW = (w) => { const total = document.querySelector("main").clientWidth; w = Math.max(MIN_W, Math.min(w, Math.max(MIN_W, total - 300))); srcWin.style.width = w + "px"; return w; };
+  try { const w0 = parseFloat(localStorage.getItem("srcWinW")); if (w0 > 0) setW(w0); } catch (_) {}
+  sp.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    const x0 = e.clientX, w0 = srcWin.offsetWidth;
+    sp.classList.add("dragging"); document.body.classList.add("col-resizing");
+    try { sp.setPointerCapture(e.pointerId); } catch (_) {}
+    const move = (ev) => { setW(w0 - (ev.clientX - x0)); resize(); bmDirty = true; if (srcLines) srcRender(); };
+    const up = () => {
+      sp.classList.remove("dragging"); document.body.classList.remove("col-resizing");
+      sp.removeEventListener("pointermove", move); sp.removeEventListener("pointerup", up); sp.removeEventListener("pointercancel", up);
+      try { localStorage.setItem("srcWinW", String(srcWin.offsetWidth)); } catch (_) {} resize(); bmDirty = true;
+    };
+    sp.addEventListener("pointermove", move); sp.addEventListener("pointerup", up); sp.addEventListener("pointercancel", up);
+  });
+})();
+setTimeout(() => { try { if (localStorage.getItem("srcPanel") === "1") srcSetVisible(true); } catch (_) {} }, 0);
 async function handleFile(file, antFile, srcPath) {
   if (!file) return;
+  secExit();                                           // 断面も、開いていたファイルのものなので終える
   measExit();                                          // 計測は、開いていたファイルのものなので終える
   currentFileKind = /\.(qif|xml)$/i.test(file.name) ? "qif" : "step";
   antPath = srcPath || null;
@@ -6868,6 +7748,7 @@ async function handleFile(file, antFile, srcPath) {
     const glyphTriCount = (data.pmi.tessellated || []).reduce((n, g) => n + (g.glyph ? g.glyph.indices.length / 3 : 0), 0);
     statusSummary = `${data.filename}: ${data.mesh.faceCount ?? "?"}三角形 / 幾何公差${tolCount}件 / PMI線分${lineCount}本 / 文字${glyphTriCount}三角形`;
     statusEl.textContent = statusSummary;
+    srcSetFile(file);                                      // Source パネルに、このファイルの文章を出す
     selectedAnnName = null; selectedPlainFace = false;
     await antAfterLoad(file, antFile);                   // .ant があれば、前回の状態を再現する
     setProgress(1); await nextFrame();

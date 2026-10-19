@@ -690,6 +690,17 @@ def extract_datums(entities: dict[int, Entity]) -> list[dict]:
                         "name": _unquote(fields[0]),
                         "letter": _unquote(fields[-1]),
                     })
+    # 「(B」「B)」のように括弧つきで登録されているデータムは、括弧のない「B」と同じものとみなして 1 つにまとめる
+    merged: dict[str, dict] = {}
+    for r in results:
+        letter = re.sub(r"[()\s]", "", r["letter"]) or r["letter"]
+        if letter in merged:
+            merged[letter].setdefault("ids", [merged[letter]["id"]]).append(r["id"])
+            continue
+        r = dict(r)
+        r["letter"] = letter
+        merged[letter] = r
+    results = list(merged.values())
     results.sort(key=lambda r: r["letter"])
     return results
 
@@ -1237,6 +1248,41 @@ def extract_dimensions(entities: dict[int, Entity], unit_factor: float = 1.0) ->
     return results
 
 
+def _datum_symbol_points(entities: dict[int, Entity], names: list[str], unit_factor: float) -> list[list[float]]:
+    """データム形体記号(ANNOTATION_PLACEHOLDER_OCCURRENCE_WITH_LEADER_LINE)の GEOMETRIC_SET にある点(位置)を、mm で返す"""
+    if not names:
+        return []
+    want = set(names)
+    out: list[list[float]] = []
+    for ent in entities.values():
+        for kw, args in ent.parts:
+            if kw != "ANNOTATION_PLACEHOLDER_OCCURRENCE_WITH_LEADER_LINE":
+                continue
+            f = _split_top_level_args(args)
+            if len(f) < 3 or _unquote(f[0]) not in want:
+                continue
+            gs = _ref(f[2])
+            if gs is None or gs not in entities:
+                continue
+            for k2, a2 in entities[gs].parts:
+                if k2 != "GEOMETRIC_SET":
+                    continue
+                g = _split_top_level_args(a2)
+                for rid in (_refs_in(g[1]) if len(g) > 1 else []):
+                    pt = _get_cartesian_point(entities, rid)
+                    if pt is None and rid in entities:                       # AXIS2_PLACEMENT_3D: その原点
+                        for k3, a3 in entities[rid].parts:
+                            if k3 == "AXIS2_PLACEMENT_3D":
+                                pl = _split_top_level_args(a3)
+                                if len(pl) > 1:
+                                    pt = _get_cartesian_point(entities, _ref(pl[1]))
+                    if pt is not None:
+                        q = [pt[0] * unit_factor, pt[1] * unit_factor, pt[2] * unit_factor]
+                        if q not in out:
+                            out.append(q)
+    return out
+
+
 def extract_datum_features(entities: dict[int, Entity]) -> dict[str, dict]:
     """データム文字 -> {names: [データム形体記号の注記名...], face_refs: [...]}。
     DATUM_FEATURE(形体) と DATUM(文字) は SHAPE_ASPECT_RELATIONSHIP で結ばれている。"""
@@ -1764,6 +1810,11 @@ def extract_pmi(step_text: str) -> dict:
         for fid in (df["face_refs"] if df else []):
             pts.extend(anchor_points.get(fid, []))
         d["anchor_points"] = [[p[0] * unit_factor, p[1] * unit_factor, p[2] * unit_factor] for p in pts]
+
+    # 形体の面が STEP に結ばれていないデータム(A, H など)のために、データム記号の引出線がさす点(位置)を返す。
+    # 画面側で、その点がのる面を探して「関連づいた形体」としてハイライトする
+    for d in datums:
+        d["target_points"] = _datum_symbol_points(entities, d.get("names", []), unit_factor)
 
     for an in annotations:
         pts = []

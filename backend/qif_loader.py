@@ -172,6 +172,7 @@ def load_qif(path: str) -> tuple[dict, dict]:
         except Exception:
             value_text = "?"
         tolerances.append({
+            "id": nom.id,                      # QIF の CharacteristicNominal の id(Source パネルとの相互ハイライトに使う)
             "layer": nom.type_name,
             "symbol_kind": spec.symbol_kind,
             "dimension_icon": spec.dimension_icon,
