@@ -83,3 +83,37 @@ async def export_view(fmt: str, body: dict):
     name = (body.get("filename") or "view") + "." + fmt
     return FileResponse(path, media_type=_MEDIA[fmt], filename=name,
                         background=BackgroundTask(lambda: os.path.exists(path) and os.remove(path)))
+
+
+@router.post("/api/export3dpdf")
+async def export_3dpdf(body: dict):
+    """3D PDF: モデルのメッシュ + 注記(3D の線・塗りつぶし)を U3D にして PDF に埋め込む"""
+    import asyncio
+    import base64
+
+    from pdf3d import build_u3d, write_pdf3d
+    try:
+        pos = np.frombuffer(base64.b64decode(body["positions"]), dtype="<f4").astype(float).reshape(-1, 3)
+        idx = np.frombuffer(base64.b64decode(body["indices"]), dtype="<u4").astype(np.int64).reshape(-1, 3)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=f"メッシュを読めません: {e}")
+    if not len(pos) or not len(idx):
+        raise HTTPException(status_code=400, detail="メッシュがありません")
+    lines = [{"rgb": _rgb(x.get("rgb")), "pts": x["pts"]} for x in body.get("lines", []) if len(x.get("pts", [])) >= 6]
+    solids = [{"rgb": _rgb(x.get("rgb")), "pts": x["pts"]} for x in body.get("solids", []) if len(x.get("pts", [])) >= 9]
+    lo, hi = pos.min(axis=0), pos.max(axis=0)
+    diag = float(np.linalg.norm(hi - lo)) or 1.0
+    fd, path = tempfile.mkstemp(suffix=".pdf")
+    os.close(fd)
+    try:
+        u3d = await asyncio.to_thread(build_u3d, pos, idx, _rgb(body.get("model_rgb") or [176, 182, 192]), lines, solids, diag, body.get("line_mm"))
+        v = body.get("view") or {}
+        write_pdf3d(path, u3d, (lo + hi) / 2, v.get("right", [1, 0, 0]), v.get("up", [0, 1, 0]), v.get("n", [0, 0, 1]), diag / 2)
+    except Exception as e:  # noqa: BLE001
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+        raise HTTPException(status_code=500, detail=f"3D PDF を作れませんでした: {e}")
+    return FileResponse(path, media_type="application/pdf", filename=str(body.get("filename", "model")) + ".pdf",
+                        background=BackgroundTask(lambda: os.path.exists(path) and os.remove(path)))

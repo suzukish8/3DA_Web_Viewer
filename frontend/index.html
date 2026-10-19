@@ -424,7 +424,7 @@
 </div>
 <div id="expBackdrop" style="display:none">
   <div id="expDialog">
-    <div class="cv-title"><span>Export 2D View</span><button id="expClose" title="Close" aria-label="Close">&times;</button></div>
+    <div class="cv-title"><span>Export</span><button id="expClose" title="Close" aria-label="Close">&times;</button></div>
     <div class="exp-body">
       <div class="exp-preview-col">
         <div class="exp-tabs" id="expTabs">
@@ -466,6 +466,7 @@
               <label><input type="checkbox" id="expFmtSvg" checked> SVG</label>
               <label><input type="checkbox" id="expFmtPdf" checked> PDF</label>
               <label><input type="checkbox" id="expFmtPng" checked> PNG</label>
+              <label><input type="checkbox" id="expFmt3d"> 3D PDF</label>
             </div>
           </div>
         </fieldset>
@@ -496,7 +497,7 @@
       <div class="menu-item" id="miAntSave">Save Settings (.ant)</div>
       <div class="menu-item" id="miAntLink">Link .ant Folder...</div>
       <div class="menu-sep"></div>
-      <div class="menu-item" id="miExpView">Export 2D View...</div>
+      <div class="menu-item" id="miExpView">Export...</div>
     </div>
   </div>
   <div class="menu" id="menuView">
@@ -3667,6 +3668,7 @@ async function expBuildIR(onProgress) {
   const bb2 = currentMeshData.bbox, ext = Math.hypot(bb2.max[0] - bb2.min[0], bb2.max[1] - bb2.min[1], bb2.max[2] - bb2.min[2]) || 1;
   const Lax = ext * 0.25;
   ir.axes = [new THREE.Vector3(Lax, 0, 0), new THREE.Vector3(0, Lax, 0), new THREE.Vector3(0, 0, Lax)].map(v => M.world(v));
+  ir.cam = { right: [M.right.x, M.right.y, M.right.z], up: [M.up.x, M.up.y, M.up.z], u2mm: M.u2mm };      // 3D PDF で、図の平面を 3D へ戻すときの向き
   ir.general = [];
   generalNotesEl.querySelectorAll(".gnote").forEach(n => { const t = n.textContent; if (t && t.trim()) ir.general.push(t); });
   return ir;
@@ -3736,7 +3738,114 @@ function expPinCenter(ir) {
 }
 
 // ---- サーバーで書き出して保存 ----
-async function expSend(fmt, ir0, opts, filename) {
+// ---- 3D PDF: モデルのメッシュ + 注記(3D の線・塗りつぶし)を、サーバーで U3D にして PDF に埋め込む ----
+//  Graphic PMI: 3D 上の注記の線と文字(三角形)をそのまま入れる。
+//  Balloon & Mirror: 画面の向きの 2D 図形(引出線・公差記入枠・文字など)を、見ている向きに垂直な面へ戻して入れる。
+//   枠・文字はモデルの手前の面、引出線・寸法線・矢印の先端は、その位置のモデル表面(視線方向に光線を飛ばして求める)に合わせる。
+function exp3dB64(arr) {
+  const u8 = new Uint8Array(arr.buffer, arr.byteOffset, arr.byteLength);
+  let s = "";
+  for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function exp3dBody(st, ir, filename) {
+  const u = bmUnitToMm || 1, md = currentMeshData, lines = [], solids = [];
+  const pos = new Float32Array(md.positions.length);
+  for (let i = 0; i < pos.length; i++) pos[i] = md.positions[i] * u;
+  const idx = new Uint32Array(md.indices);
+  const BLACK = [0, 0, 0];
+  const cam = ir.cam || { right: [1, 0, 0], up: [0, 1, 0], u2mm: u };
+  const R = new THREE.Vector3(...cam.right), U = new THREE.Vector3(...cam.up), N = R.clone().cross(U).normalize();
+  const bb = md.bbox, diag = Math.hypot(bb.max[0] - bb.min[0], bb.max[1] - bb.min[1], bb.max[2] - bb.min[2]) || 1;
+  const flat = (a) => { const o = []; for (const p of a) o.push(p[0] * u, p[1] * u, p[2] * u); return o; };
+  if (st === "original") {
+    const hide = new Set(generalNoteNames);
+    const tols = (lastPmi && lastPmi.geometric_tolerances) || [];
+    hiddenTol.forEach(i => { if (tols[i]) hide.add(tols[i].name); });
+    for (const g of currentTessellatedGroups) {
+      if (hide.has(g.name)) continue;
+      for (const pl of g.polylines) if (pl.length >= 2) lines.push({ rgb: BLACK, pts: flat(pl) });
+      if (g.glyph) {
+        const P = g.glyph.positions, I = g.glyph.indices;
+        for (let t = 0; t < I.length; t += 3) {
+          const pts = []; for (let q = 0; q < 3; q++) { const i = I[t + q] * 3; pts.push(P[i] * u, P[i + 1] * u, P[i + 2] * u); }
+          solids.push({ rgb: BLACK, pts });
+        }
+      }
+    }
+  } else {
+    let maxD = -Infinity;
+    for (const x of [bb.min[0], bb.max[0]]) for (const y of [bb.min[1], bb.max[1]]) for (const z of [bb.min[2], bb.max[2]]) maxD = Math.max(maxD, x * N.x + y * N.y + z * N.z);
+    const dFront = maxD + 0.02 * diag, u2 = cam.u2mm || u;
+    const lift = (p, d) => [((p[0] / u2) * R.x + (p[1] / u2) * U.x + d * N.x) * u, ((p[0] / u2) * R.y + (p[1] / u2) * U.y + d * N.y) * u, ((p[0] / u2) * R.z + (p[1] / u2) * U.z + d * N.z) * u];
+    const rc = new THREE.Raycaster();
+    const hitD = (p) => {            // 図の点 p の位置で、視線方向にモデルへ光線を飛ばし、当たった表面の奥行き(当たらないときは手前の面)を返す
+      try {
+        const o = lift(p, dFront + diag); rc.set(new THREE.Vector3(o[0] / u, o[1] / u, o[2] / u), N.clone().negate());
+        const h = rc.intersectObject(currentMesh, false)[0];
+        if (h) return h.point.dot(N);
+      } catch (_) {}
+      return dFront;
+    };
+    const ok = new Set(["LEADER", "DIMENSION", "ANNOTATION", "DATUM"]), onSurf = new Set(["LEADER", "DIMENSION"]);
+    const flatPts = (pts, depthAt) => { const o = []; pts.forEach((p, i) => o.push(...lift(p, depthAt(i)))); return o; };
+    for (const pl of ir.polylines) {
+      if (!ok.has(pl.layer) || pl.points.length < 2) continue;
+      let depthAt = () => dFront;
+      if (onSurf.has(pl.layer)) { const hd = hitD(pl.points[pl.points.length - 1]), n1 = pl.points.length - 1; depthAt = (i) => dFront + (hd - dFront) * (i / n1); }
+      lines.push({ rgb: pl.rgb || BLACK, pts: flatPts(pl.points, depthAt) });
+    }
+    for (const c of ir.circles) {
+      if (!ok.has(c.layer)) continue;
+      const d0 = onSurf.has(c.layer) ? hitD(c.c) : dFront, ring = [];
+      for (let i = 0; i <= 24; i++) { const a = i / 24 * 2 * Math.PI; ring.push([c.c[0] + c.r * Math.cos(a), c.c[1] + c.r * Math.sin(a)]); }
+      lines.push({ rgb: c.rgb || BLACK, pts: flatPts(ring, () => d0) });
+    }
+    for (const s of ir.solids) {
+      if (!ok.has(s.layer) || s.points.length < 3) continue;
+      let d0 = dFront;
+      if (onSurf.has(s.layer)) { const cx = s.points.reduce((a, q) => a + q[0], 0) / s.points.length, cy = s.points.reduce((a, q) => a + q[1], 0) / s.points.length; d0 = hitD([cx, cy]); }
+      solids.push({ rgb: s.rgb || BLACK, pts: flatPts(s.points, () => d0) });
+    }
+    const font = (window.VISIO && window.VISIO.font) || {}, gapW = (window.VISIO && window.VISIO.gap) || 0.75;
+    for (const lab of ir.labels) {          // 文字は Visio 様式の線の文字にして入れる
+      if (!ok.has(lab.layer)) continue;
+      const sc = lab.h / 2.25;
+      let x = lab.p[0];
+      for (const ch of String(lab.text)) {
+        const g = font[ch] || font[ch.toUpperCase()];
+        if (!g) { x += 1.0 * sc; continue; }
+        for (const stroke of g.s) lines.push({ rgb: lab.rgb || BLACK, pts: flatPts(stroke.map(q => [x + q[0] * sc, lab.p[1] + q[1] * sc]), () => dFront) });
+        x += (g.w + gapW) * sc;
+      }
+    }
+  }
+  if (bmSections && bmSections.size) {          // 断面の輪郭とハッチングは、3D のまま入れる
+    const hex = bmSectionColor().getHex(), rgb = [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255];
+    for (const sec of bmSections.values()) {
+      if (sec.visible === false) continue;
+      for (const arr of [sec.data.outline, sec.data.hatch, sec.data.circle])
+        for (let i = 0; i + 5 < arr.length; i += 6) lines.push({ rgb, pts: [arr[i] * u, arr[i + 1] * u, arr[i + 2] * u, arr[i + 3] * u, arr[i + 4] * u, arr[i + 5] * u] });
+    }
+  }
+  return { positions: exp3dB64(pos), indices: exp3dB64(idx), lines, solids, filename,
+           view: { right: [R.x, R.y, R.z], up: [U.x, U.y, U.z], n: [N.x, N.y, N.z] }, line_mm: Math.max(diag * u * 0.0006, 0.03) };
+}
+async function exp3dPdf(st, ir, filename) {
+  const body = exp3dBody(st, ir, filename);
+  const res = await fetch(API_BASE + "/api/export3dpdf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) {
+    let detail = "";
+    try { detail = (await res.json()).detail || ""; } catch (e) {}
+    throw new Error(detail || `サーバーエラー (${res.status})`);
+  }
+  const blob = await res.blob(), a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = filename + ".pdf";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+async function expSend(fmt, ir0, opts, filename, st) {
+  if (fmt === "pdf3d") { await exp3dPdf(st, ir0, filename + "_3D"); return; }
   if (fmt === "png") {
     const blob = await expPngBlob(ir0, opts);
     const a = document.createElement("a");
@@ -3771,7 +3880,7 @@ const expBackdrop = document.getElementById("expBackdrop");
 const expEls = { paper: document.getElementById("expPaper"), scale: document.getElementById("expScale"),
                  lwModel: document.getElementById("expLwModel"), lwOther: document.getElementById("expLwOther"),
                  sOrig: document.getElementById("expStyleOriginal"), sBal: document.getElementById("expStyleBalloon"),
-                 fDxf: document.getElementById("expFmtDxf"), fSvg: document.getElementById("expFmtSvg"), fPdf: document.getElementById("expFmtPdf"), fPng: document.getElementById("expFmtPng"),
+                 fDxf: document.getElementById("expFmtDxf"), fSvg: document.getElementById("expFmtSvg"), fPdf: document.getElementById("expFmtPdf"), fPng: document.getElementById("expFmtPng"), f3d: document.getElementById("expFmt3d"),
                  previews: document.getElementById("expPreviews"), msg: document.getElementById("expMsg") };
 EXP_PAGE_SIZES.forEach(n => expEls.paper.add(new Option(n, n)));
 EXP_SCALES.forEach(n => expEls.scale.add(new Option(n, n)));
@@ -3971,6 +4080,7 @@ function expOpen() {
   expEls.fSvg.checked = expStore.get("fSvg", "1") === "1";
   expEls.fPdf.checked = expStore.get("fPdf", "1") === "1";
   expEls.fPng.checked = expStore.get("fPng", "1") === "1";
+  expEls.f3d.checked = expStore.get("f3d", "0") === "1";
   expStyleKeys.forEach(k => { expStyleChecks[k].checked = false; });
   expActive = annotationStyle === "original" ? "original" : "balloon";
   expStyleChecks[expActive].checked = true;               // 初期は、いま表示しているスタイルだけを書き出す
@@ -3989,13 +4099,13 @@ function expOpen() {
 function expClose() { expToken++; expBackdrop.style.display = "none"; }
 
 async function expRun() {
-  const fmts = [["dxf", expEls.fDxf], ["svg", expEls.fSvg], ["pdf", expEls.fPdf], ["png", expEls.fPng]].filter(x => x[1].checked).map(x => x[0]);
+  const fmts = [["dxf", expEls.fDxf], ["svg", expEls.fSvg], ["pdf", expEls.fPdf], ["png", expEls.fPng], ["pdf3d", expEls.f3d]].filter(x => x[1].checked).map(x => x[0]);
   const styles = expSelectedStyles();
   if (!fmts.length) { expEls.msg.textContent = "ファイル形式を 1 つ以上選んでください。"; return; }
   if (!styles.length) { expEls.msg.textContent = "スタイルを 1 つ以上選んでください。"; return; }
   const opts = expOptions();
   expStore.set("paper", opts.paper); expStore.set("scale", opts.scale); expStore.set("lwModel2", opts.lwModel); expStore.set("lwOther2", opts.lwOther);
-  expStore.set("fPng", expEls.fPng.checked ? "1" : "0");
+  expStore.set("fPng", expEls.fPng.checked ? "1" : "0"); expStore.set("f3d", expEls.f3d.checked ? "1" : "0");
   expStore.set("fDxf", expEls.fDxf.checked ? "1" : "0"); expStore.set("fSvg", expEls.fSvg.checked ? "1" : "0"); expStore.set("fPdf", expEls.fPdf.checked ? "1" : "0");
   const all = styles.length > 1;                       // 複数のスタイルを選んだときは、ファイル名にスタイル名を付ける
   const base = expBaseName();
@@ -4014,12 +4124,12 @@ async function expRun() {
         ir = await expBuildIRForView((f) => setProgress(f * 0.3));
       }
       for (const f of fmts) {
-        await expSend(f, ir, opts, all ? `${base}_${expStyleTag[st] || st}` : base);
+        await expSend(f, ir, opts, all ? `${base}_${expStyleTag[st] || st}` : base, st);
         n++; setProgress(0.3 + 0.7 * n / total);
       }
     }
     if (annotationStyle !== startStyle) setAnnotationStyle(startStyle);
-    statusEl.textContent = `書き出しました (${fmts.map(f => f.toUpperCase()).join(" / ")}${all ? "・全スタイル" : ""})`;
+    statusEl.textContent = `書き出しました (${fmts.map(f => (f === "pdf3d" ? "3D PDF" : f.toUpperCase())).join(" / ")}${all ? "・全スタイル" : ""})`;
     statusEl.title = "";
   } catch (e) {
     if (annotationStyle !== startStyle) setAnnotationStyle(startStyle);
@@ -4136,7 +4246,7 @@ async function expRun() {
 document.getElementById("expOriginFit").addEventListener("click", () => { expOffset.x = 0; expOffset.y = 0; expRenderPreview(); });
 document.getElementById("expOk").addEventListener("click", expRun);
 document.getElementById("expCancel").addEventListener("click", expClose);
-window.addEventListener("keydown", (e) => {   // Esc で Export 2D View を閉じる(開いているときだけ)
+window.addEventListener("keydown", (e) => {   // Esc で Export を閉じる(開いているときだけ)
   if (e.key === "Escape" && expBackdrop.style.display !== "none") { e.preventDefault(); e.stopPropagation(); expClose(); }
 }, true);
 document.getElementById("expClose").addEventListener("click", expClose);
@@ -4147,7 +4257,7 @@ document.getElementById("expHl").addEventListener("change", () => {
 });
 // Files: チェックボックス付きのドロップダウン(ボタンで開閉、外側クリックで閉じる)
 function expSyncFilesText() {
-  const names = [["DXF", expEls.fDxf], ["SVG", expEls.fSvg], ["PDF", expEls.fPdf], ["PNG", expEls.fPng]].filter(x => x[1].checked).map(x => x[0]);
+  const names = [["DXF", expEls.fDxf], ["SVG", expEls.fSvg], ["PDF", expEls.fPdf], ["PNG", expEls.fPng], ["3D PDF", expEls.f3d]].filter(x => x[1].checked).map(x => x[0]);
   document.getElementById("expFilesText").textContent = names.length ? names.join(", ") : "(none)";
 }
 document.getElementById("expFilesBtn").addEventListener("click", (e) => {
@@ -4157,7 +4267,7 @@ document.getElementById("expFilesBtn").addEventListener("click", (e) => {
 });
 document.getElementById("expFilesPop").addEventListener("click", (e) => e.stopPropagation());
 document.getElementById("expDialog").addEventListener("click", () => { document.getElementById("expFilesPop").style.display = "none"; });
-[expEls.fDxf, expEls.fSvg, expEls.fPdf, expEls.fPng].forEach(el => el.addEventListener("change", expSyncFilesText));
+[expEls.fDxf, expEls.fSvg, expEls.fPdf, expEls.fPng, expEls.f3d].forEach(el => el.addEventListener("change", expSyncFilesText));
 
 [expEls.paper, expEls.scale, expEls.lwModel, expEls.lwOther].forEach(el => el.addEventListener("input", () => expRefreshPreview(false)));
 // プレビュー上のマウスホイールで作図尺度を変える(上へ回すと大きく、下へ回すと小さく)

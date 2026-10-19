@@ -2,3 +2,4 @@ fastapi>=0.141
 uvicorn>=0.52
 python-multipart>=0.0.32
 cadquery-ocp>=7.9
+pymeshlab>=2025.7
