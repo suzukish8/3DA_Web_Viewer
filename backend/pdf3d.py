@@ -134,13 +134,19 @@ def write_pdf3d(path, u3d, center, right, up, n, radius, page_wh=(842.0, 595.0),
     m = 24
     add(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {W} {H}] /Annots [4 0 R] /Contents 7 0 R >>")
     add(f"<< /Type /Annot /Subtype /3D /Rect [{m} {m} {W - m} {H - m}] /F 68 /3DD 5 0 R /3DV 6 0 R "
-        f"/3DA << /A /PO /AIS /L /D /PC /DIS /U /TB true /NP false >> /3DI true >>")
+        f"/3DA << /A /PO /AIS /L /D /PC /DIS /U /TB true /NP false >> /3DI true /AP << /N 8 0 R >> >>")
     add(b"<< /Type /3D /Subtype /U3D /Filter /FlateDecode /Length %d >>\nstream\n" % len(comp) + comp + b"\nendstream")
     add(f"<< /Type /3DView /XN (Default) /IN (Default) /MS /M /C2W [{arr}] /CO {dist:.6f} "
         f"/P << /Type /3DProjection /Subtype /P /PS /Min /FOV {fov} >> "
         f"/BG << /Type /3DBG /Subtype /SC /CS /DeviceRGB /C [1 1 1] >> "
         f"/RM << /Type /3DRenderMode /Subtype /SolidOutline >> /LS << /Type /3DLightingScheme /Subtype /CAD >> >>")
     add(b"<< /Length 0 >>\nstream\n\nendstream")
+    # 8: 3D が有効になる前に出る表示(Acrobat 既定の「?」の代わり)
+    bw, bh = W - 2 * m, H - 2 * m
+    msg = "3D content - click here to activate. (If it does not appear, allow 3D content in Acrobat.)"
+    cs = (f"0.96 0.96 0.97 rg 0 0 {bw} {bh} re f 0.7 0.7 0.75 RG 1 w 0.5 0.5 {bw - 1} {bh - 1} re S "
+          f"BT /F1 14 Tf 0.3 0.3 0.35 rg {bw / 2 - 270} {bh / 2 - 5} Td ({msg}) Tj ET").encode("latin-1")
+    add(f"<< /Type /XObject /Subtype /Form /BBox [0 0 {bw} {bh}] /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /Length {len(cs)} >>\nstream\n".encode("latin-1") + cs + b"\nendstream")
     out = bytearray(b"%PDF-1.7\n%\xe2\xe3\xcf\xd3\n")
     offs = []
     for i, b in enumerate(objs, 1):
