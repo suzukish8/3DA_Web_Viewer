@@ -324,8 +324,8 @@
   #fileLabel:active { background: var(--accent); }
   #fileInput { display: none; }
   #status { font-size: 12px; color: var(--text-dim); padding: 5px 14px; background: var(--panel);
-    border-top: 1px solid var(--panel-border); flex: 0 0 auto; white-space: normal; word-break: break-word;
-    max-height: 6.2em; overflow-y: auto; line-height: 1.4; }
+    border-top: 1px solid var(--panel-border); flex: 0 0 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    line-height: 1.4; }       /* 1 行に固定(長い説明で 2 行になると、3D 画面の高さが変わってモデルが動くため)。全文はポインターを乗せると読める */
   #status:empty { display: none; }
 
   main { flex: 1 1 auto; display: flex; min-height: 0; position: relative; }
@@ -401,6 +401,10 @@
   /* アノテーションを選んだとき、その中心から広がる円(大きなモデルでも、どこが選ばれたか分かるように) */
   .ripple { position: absolute; border-radius: 50%; border: 3px solid rgba(0,40,160,1); box-shadow: 0 0 6px rgba(0,40,160,0.55);
     pointer-events: none; z-index: 7; transform: translate(-50%, -50%) scale(0); animation: rippleGrow 2.4s ease-out forwards; }
+  .ripple-cross { position: absolute; pointer-events: none; z-index: 7; background: rgba(0,40,160,0.75); animation: rippleCross 3.9s ease-out forwards; }
+  .ripple-cross.h { left: 0; right: 0; height: 1px; transform: translateY(-0.5px); }
+  .ripple-cross.v { top: 0; bottom: 0; width: 1px; transform: translateX(-0.5px); }
+  @keyframes rippleCross { 0%, 55% { opacity: 0.85; } 100% { opacity: 0; } }
   @keyframes rippleGrow { 0% { transform: translate(-50%, -50%) scale(0.02); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
   /* STEP/QIF Source パネル(Windows 版の QIF/STEP Source Panel と同じ) */
   #srcWin { width: 460px; max-width: 70vw; flex: 0 0 auto; display: none; flex-direction: column; position: relative; overflow: hidden;
@@ -4969,6 +4973,14 @@ document.getElementById("miRipple").classList.toggle("checked", rippleOn);
 function rippleAt(px, py) {
   if (!rippleOn || !isFinite(px) || !isFinite(py)) return;
   const W = viewerEl.clientWidth, H = viewerEl.clientHeight, d = Math.max(70, Math.min(W, H) * 0.22);
+  viewerEl.querySelectorAll(".ripple-cross").forEach(e => e.remove());
+  for (const c of ["h", "v"]) {              // アニメーションのあいだ、円の中心を示す青い十字線を、3D 画面いっぱいに引く
+    const l = document.createElement("div");
+    l.className = "ripple-cross " + c;
+    if (c === "h") l.style.top = py + "px"; else l.style.left = px + "px";
+    viewerEl.appendChild(l);
+    setTimeout(() => l.remove(), 3900);
+  }
   for (let k = 0; k < 3; k++) {              // 少しずつ遅らせた 3 本の輪
     const r = document.createElement("div");
     r.className = "ripple";
