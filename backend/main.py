@@ -226,5 +226,14 @@ async def health():
     return {"status": "ok"}
 
 
+@app.middleware("http")
+async def _no_cache(request, call_next):
+    """画面(HTML / JS)は、更新したらすぐ反映されるよう、毎回サーバーに確認させる(古い画面が残らないように)"""
+    resp = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
 _frontend_dir = os.path.join(os.path.dirname(__file__), "..", "frontend")
 app.mount("/", StaticFiles(directory=_frontend_dir, html=True), name="frontend")

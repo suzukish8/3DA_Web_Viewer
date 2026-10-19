@@ -102,7 +102,8 @@
   #styleMenu .menu-item.disabled { color: #c4c8ce; }
   /* 保存ビューのパネル (右側) */
   #viewsPanel { width: 240px; max-width: 36vw; background: var(--panel); border-left: 1px solid var(--panel-border);
-    display: flex; flex-direction: column; flex-shrink: 0; position: relative; }
+    display: flex; flex-direction: column; flex-shrink: 0; position: relative; overflow-x: auto; overflow-y: hidden; }
+  #viewsPanel > * { min-width: max-content; }       /* 狭くしたときは、内容を切らずに水平スクロールバーで見る */
   #viewsHead { display: flex; align-items: center; padding: 8px 10px; font-size: 13px; font-weight: 600;
     border-bottom: 1px solid var(--panel-border); }
   #viewsHead span { flex: 1 1 auto; }
@@ -128,6 +129,8 @@
   #generalNotes { position: static; flex: 0 1 auto; min-height: 0; max-height: 45%; overflow: auto; padding: 8px 10px;
     margin: auto 8px 8px; background: #fff; border: 1px solid var(--panel-border); border-radius: 6px;       /* 保存ビューとは別の窓。パネルの下端に揃える */
     box-shadow: 0 1px 4px rgba(0,0,0,.12); display: none; flex-direction: column; gap: 8px; }
+  .gnote .gline { white-space: pre-wrap; margin: 1px 0; }
+  .gnote .gline .fcf { margin: 2px 0; }
   .gnote { background: transparent; border: none; border-radius: 0;
     padding: 2px 4px; font-size: 12px; line-height: 1.45; color: var(--text); white-space: pre-wrap;
     font-family: "Segoe UI", "Meiryo", sans-serif; user-select: text; }
@@ -317,7 +320,7 @@
     background: rgba(255,255,255,0.8); padding: 4px 8px; border-radius: 4px; pointer-events: none; }
 
   #panel { width: 320px; max-width: 42vw; background: var(--panel); border-right: 1px solid var(--panel-border);
-    overflow-y: auto; padding: 10px; flex-shrink: 0; position: relative; }
+    overflow-y: auto; overflow-x: auto; padding: 10px; flex-shrink: 0; position: relative; }
   /* Tool > Measurement の専用ウィンドウ */
   /* Saved Views と同じように、画面に固定したパネルとして、3D ビューの右・Saved Views の左に並べる */
   #measWin { width: 340px; max-width: 60vw; flex: 0 0 auto; display: none; flex-direction: column; position: relative; overflow: hidden;
@@ -368,6 +371,7 @@
   #symSizeBar { position: sticky; bottom: -10px; margin: 10px -10px -10px; padding: 6px 10px; display: flex; align-items: center; gap: 6px;
     background: var(--panel); border-top: 1px solid var(--panel-border); font-size: 12px; z-index: 2; }
   #symSizeBar { flex-wrap: wrap; }
+  #symSizeBar { display: none !important; }       /* Symbol Height・Show Designators は、特性の欄の右クリックメニューから(部品は隠して残し、値・連動を保つ) */
   #secBrRow { display: none !important; }       /* 調整は Option > Section Color Brightness... から(スライダ自体は残して連動させる) */
   #secBrRowOld { flex-basis: 100%; display: flex; align-items: center; gap: 6px; }
   #secBrRow input[type=range] { flex: 1; min-width: 40px; }
@@ -428,6 +432,7 @@
     <div class="exp-body">
       <div class="exp-preview-col">
         <div class="exp-tabs" id="expTabs">
+          <div class="exp-tab" data-style="none"><input type="checkbox" id="expStyleNone"><span>No PMI</span></div>
           <div class="exp-tab" data-style="original"><input type="checkbox" id="expStyleOriginal"><span>Graphic PMI</span></div>
           <div class="exp-tab" data-style="balloon"><input type="checkbox" id="expStyleBalloon"><span>Balloon &amp; Mirror</span></div>
         </div>
@@ -528,6 +533,7 @@
               <div class="menu-sep"></div>
               <div class="menu-item has-sub">Characteristics Sort
                 <div class="submenu" id="sortMenu">
+                  <div class="menu-item radio" data-sort="datum">By Datum Reference Frame</div>
                   <div class="menu-item radio" data-sort="type">By Type</div>
                   <div class="menu-item radio checked" data-sort="designator">By Designator (Default)</div>
                 </div>
@@ -605,9 +611,9 @@
       <div id="tolList"></div>
       <div id="datumList"></div>
       <div id="symSizeBar" title="Characteristics / Datums の記号の大きさ(FCF Height とは別)">
-        <label for="symSizeNum">Symbol Height:</label>
+        <span id="symSizeOld" style="display:none"><label for="symSizeNum">Symbol Height:</label>
         <input type="range" id="symSizeSlider" min="6" max="20" step="1" value="20">
-        <input type="number" id="symSizeNum" min="6" max="20" step="1" value="20"><span>px</span>
+        <input type="number" id="symSizeNum" min="6" max="20" step="1" value="20"><span>px</span></span>
         <label id="secBrRow" title="断面(輪郭・ハッチング)の色: モデルの色より何 % 明るく(+)/暗く(-)するか(暫定)">Section Brightness:
           <input type="range" id="secBrSlider" min="-100" max="100" step="1" value="-50">
           <input type="number" id="secBrNum" min="-100" max="100" step="1" value="-50"><span>%</span></label>
@@ -2914,7 +2920,7 @@ document.getElementById("miDesignators").addEventListener("click", () => {
   const panelR = document.getElementById("viewsPanel");
   const splitL = document.getElementById("splitLeft");
   const splitR = document.getElementById("splitRight");
-  const MIN_W = 140;
+  const MIN_W = 16;                 // ほぼ極限まで狭くできる(内容は、水平スクロールバーで見る)
   const store = (k, v) => { try { localStorage.setItem(k, String(v)); } catch (e) {} };
   const load = (k) => { try { const v = parseFloat(localStorage.getItem(k)); return v > 0 ? v : null; } catch (e) { return null; } };
   function setWidth(el, w) {
@@ -3670,7 +3676,7 @@ async function expBuildIR(onProgress) {
   ir.axes = [new THREE.Vector3(Lax, 0, 0), new THREE.Vector3(0, Lax, 0), new THREE.Vector3(0, 0, Lax)].map(v => M.world(v));
   ir.cam = { right: [M.right.x, M.right.y, M.right.z], up: [M.up.x, M.up.y, M.up.z], u2mm: M.u2mm };      // 3D PDF で、図の平面を 3D へ戻すときの向き
   ir.general = [];
-  generalNotesEl.querySelectorAll(".gnote").forEach(n => { const t = n.textContent; if (t && t.trim()) ir.general.push(t); });
+  if (annotationStyle !== "none") generalNotesEl.querySelectorAll(".gnote").forEach(n => { const t = n.dataset.raw || n.textContent; if (t && t.trim()) ir.general.push(t); });
   return ir;
 }
 
@@ -3695,7 +3701,14 @@ function expWithGeneral(ir, opts) {
   const out = Object.assign({}, ir, { labels: ir.labels.slice() });
   if (!bb) return out;
   const scale = expScaleValue(opts.scale), fit = expIsFit(opts);
-  const cx = (bb.x0 + bb.x1) / 2, cy = (bb.y0 + bb.y1) / 2;
+  // 用紙に置く位置の基準は、3D モデル(稜線)の外接矩形の中心。注記や鏡の出方(スタイル)が変わっても、モデルの位置は変わらない。
+  // 「Fit to drawing」のときだけ、注記も含めた全体の中心(用紙が図形に合うので)
+  let cx = (bb.x0 + bb.x1) / 2, cy = (bb.y0 + bb.y1) / 2;
+  if (!fit) {
+    const mir = Object.assign({}, ir, { polylines: ir.polylines.filter(p => p.layer === "MODEL" || p.layer === "MODEL_HIDDEN"), circles: [], solids: [], labels: [] });
+    const mb = expBBoxOf(mir);
+    if (mb) { cx = (mb.x0 + mb.x1) / 2; cy = (mb.y0 + mb.y1) / 2; }
+  }
   // 用紙の中心に来る図面上の点 P。ドラッグで図形を (dx, dy) mm 動かしたときは、P = 図形の中心 - (dx, dy)/尺度
   const P = fit ? [cx, cy] : [cx - expOffset.x / scale, cy - expOffset.y / scale];
   out.center = P;
@@ -3709,18 +3722,45 @@ function expWithGeneral(ir, opts) {
     lines.push("");                                       // 注記どうしの間を 1 行あける
   }
   while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
-  const widest = Math.max(...lines.map(l => l.length)) * h * 0.58;
+  // 公差記入枠の行: 枠の高さ(Visio の 5 mm = 図面上の fh)で、枠・記号・文字を線で描く
+  const fh = h * 2.3, kf = fh / 5;
+  const frames = lines.map(l => { const f = gnFcfCells(l); if (!f || !f.sym || !VS) return null; const sy = VS.sym[f.sym]; if (!sy) return null;
+    const ws = [sy.w].concat(f.cells.slice(1).map(t => { const L = vsLayout(t); return L.bad ? null : Math.max(L.w + 2, 5); }));
+    return ws.some(w => w === null) ? null : Object.assign({ ws, W: ws.reduce((a, b) => a + b, 0) }, f); });
+  const heights = lines.map((l, i) => frames[i] ? fh + pitch * 0.5 : pitch);
+  const totalH = heights.reduce((a, b) => a + b, 0);
+  const widest = Math.max(...lines.map((l, i) => frames[i] ? frames[i].W * kf / 0.58 / h : l.length)) * h * 0.58;
   const [SW, SH] = expSheetMm(opts.paper, bb.x1 - bb.x0, bb.y1 - bb.y0, scale);
   let right, bottom;
   if (fit) {                                              // 図形の右下の外側
-    right = bb.x1; bottom = bb.y0 - margin - lines.length * pitch;
+    right = bb.x1; bottom = bb.y0 - margin - totalH;
   } else {                                                // 用紙の右下(図形を動かしても、用紙の角に残る)
     right = P[0] + (SW / 2) / scale - margin; bottom = P[1] - (SH / 2) / scale + margin;
   }
-  const n = lines.length;
+  out.polylines = out.polylines.slice(); out.circles = out.circles.slice();
+  let yTop = bottom + totalH;                              // 上の行から順に、下へ並べる
   lines.forEach((ln, i) => {
-    if (!ln.trim()) return;
-    out.labels.push({ layer: "ANNOTATION", rgb: EXP_BLACK, p: [right - widest, bottom + (n - 1 - i) * pitch], text: ln, h });
+    const y0 = yTop - heights[i]; yTop = y0;
+    const fr = frames[i];
+    if (!fr) {
+      if (ln.trim()) out.labels.push({ layer: "ANNOTATION", rgb: EXP_BLACK, p: [right - widest, y0], text: ln, h });
+      return;
+    }
+    const x0 = right - widest, yb = y0 + pitch * 0.25;
+    const X = (v) => x0 + v * kf, Y = (v) => yb + v * kf;
+    const pl = (pts) => out.polylines.push({ layer: "ANNOTATION", rgb: EXP_BLACK, points: pts.map(q => [X(q[0]), Y(q[1])]) });
+    pl([[0, 0], [fr.W, 0], [fr.W, 5], [0, 5], [0, 0]]);
+    let cx = 0;
+    fr.ws.forEach((w, ci) => {
+      if (ci > 0) pl([[cx, 0], [cx, 5]]);
+      if (ci === 0) { for (const st of VS.sym[fr.sym].s) pl(st.map(q => [q[0] + cx + (w - VS.sym[fr.sym].w) / 2, q[1]])); }
+      else {
+        const L = vsLayout(fr.cells[ci]), ox = cx + (w - L.w) / 2, base = 2.5 - VS.cap / 2;
+        for (const st of L.paths) pl(st.map(q => [q[0] + ox, q[1] + base]));
+        for (const c of L.circles) out.circles.push({ layer: "ANNOTATION", rgb: EXP_BLACK, c: [X(c.cx + ox), Y(c.cy + base)], r: c.r * kf });
+      }
+      cx += w;
+    });
   });
   return out;
 }
@@ -3773,7 +3813,7 @@ function exp3dBody(st, ir, filename) {
         }
       }
     }
-  } else {
+  } else if (st === "balloon") {
     let maxD = -Infinity;
     for (const x of [bb.min[0], bb.max[0]]) for (const y of [bb.min[1], bb.max[1]]) for (const z of [bb.min[2], bb.max[2]]) maxD = Math.max(maxD, x * N.x + y * N.y + z * N.z);
     const dFront = maxD + 0.02 * diag, u2 = cam.u2mm || u;
@@ -3879,13 +3919,13 @@ function expBaseName() {
 const expBackdrop = document.getElementById("expBackdrop");
 const expEls = { paper: document.getElementById("expPaper"), scale: document.getElementById("expScale"),
                  lwModel: document.getElementById("expLwModel"), lwOther: document.getElementById("expLwOther"),
-                 sOrig: document.getElementById("expStyleOriginal"), sBal: document.getElementById("expStyleBalloon"),
+                 sOrig: document.getElementById("expStyleOriginal"), sBal: document.getElementById("expStyleBalloon"), sNone: document.getElementById("expStyleNone"),
                  fDxf: document.getElementById("expFmtDxf"), fSvg: document.getElementById("expFmtSvg"), fPdf: document.getElementById("expFmtPdf"), fPng: document.getElementById("expFmtPng"), f3d: document.getElementById("expFmt3d"),
                  previews: document.getElementById("expPreviews"), msg: document.getElementById("expMsg") };
 EXP_PAGE_SIZES.forEach(n => expEls.paper.add(new Option(n, n)));
 EXP_SCALES.forEach(n => expEls.scale.add(new Option(n, n)));
 const expStyleLabel = { original: "Graphic PMI", balloon: "Balloon & Mirror" };
-const expStyleTag = { original: "GraphicPMI", balloon: "BalloonMirror" };
+const expStyleTag = { original: "GraphicPMI", balloon: "BalloonMirror", none: "NoPMI" };
 let expBusy = false, expToken = 0, expIRs = {};      // expIRs: スタイル -> 図形(プレビューで作ったものを書き出しにも使う)
 
 // 用紙(mm)。A シリーズ: (短辺, 長辺)
@@ -3999,8 +4039,8 @@ function expIRtoSVG(ir, opts, forExport) {
 }
 
 // ---- タブ(Graphic PMI / Balloon & Mirror): チェックボックスで「書き出すスタイル」、タブで「プレビューするスタイル」 ----
-const expStyleKeys = ["original", "balloon"];
-const expStyleChecks = { original: expEls.sOrig, balloon: expEls.sBal };
+const expStyleKeys = ["none", "original", "balloon"];
+const expStyleChecks = { original: expEls.sOrig, balloon: expEls.sBal, none: expEls.sNone };
 let expActive = "balloon";
 function expSelectedStyles() { return expStyleKeys.filter(k => expStyleChecks[k].checked); }
 function expOptions() {
@@ -4076,14 +4116,10 @@ function expOpen() {
   if (!EXP_SCALES.includes(expEls.scale.value)) expEls.scale.value = "x1";
   expEls.lwModel.value = expStore.get("lwModel2", "0.25");
   expEls.lwOther.value = expStore.get("lwOther2", "0.125");
-  expEls.fDxf.checked = expStore.get("fDxf", "1") === "1";
-  expEls.fSvg.checked = expStore.get("fSvg", "1") === "1";
-  expEls.fPdf.checked = expStore.get("fPdf", "1") === "1";
-  expEls.fPng.checked = expStore.get("fPng", "1") === "1";
-  expEls.f3d.checked = expStore.get("f3d", "0") === "1";
   expStyleKeys.forEach(k => { expStyleChecks[k].checked = false; });
-  expActive = annotationStyle === "original" ? "original" : "balloon";
+  expActive = annotationStyle === "original" ? "original" : annotationStyle === "none" ? "none" : "balloon";
   expStyleChecks[expActive].checked = true;               // 初期は、いま表示しているスタイルだけを書き出す
+  expFmtLoad(expActive);                                  // ファイル形式の選択は、スタイル(タブ)ごとに持つ
   expSyncTabs();
   document.getElementById("expHl").value = expHiddenLine;
   expSyncFilesText();
@@ -4099,14 +4135,12 @@ function expOpen() {
 function expClose() { expToken++; expBackdrop.style.display = "none"; }
 
 async function expRun() {
-  const fmts = [["dxf", expEls.fDxf], ["svg", expEls.fSvg], ["pdf", expEls.fPdf], ["png", expEls.fPng], ["pdf3d", expEls.f3d]].filter(x => x[1].checked).map(x => x[0]);
-  const styles = expSelectedStyles();
-  if (!fmts.length) { expEls.msg.textContent = "ファイル形式を 1 つ以上選んでください。"; return; }
-  if (!styles.length) { expEls.msg.textContent = "スタイルを 1 つ以上選んでください。"; return; }
+  expFmtSave(expActive);
+  const styles = expSelectedStyles().filter(st => expFmtGet(st).length);
+  if (!expSelectedStyles().length) { expEls.msg.textContent = "スタイルを 1 つ以上選んでください。"; return; }
+  if (!styles.length) { expEls.msg.textContent = "ファイル形式を 1 つ以上選んでください(選んだスタイルごとに設定します)。"; return; }
   const opts = expOptions();
   expStore.set("paper", opts.paper); expStore.set("scale", opts.scale); expStore.set("lwModel2", opts.lwModel); expStore.set("lwOther2", opts.lwOther);
-  expStore.set("fPng", expEls.fPng.checked ? "1" : "0"); expStore.set("f3d", expEls.f3d.checked ? "1" : "0");
-  expStore.set("fDxf", expEls.fDxf.checked ? "1" : "0"); expStore.set("fSvg", expEls.fSvg.checked ? "1" : "0"); expStore.set("fPdf", expEls.fPdf.checked ? "1" : "0");
   const all = styles.length > 1;                       // 複数のスタイルを選んだときは、ファイル名にスタイル名を付ける
   const base = expBaseName();
   const startStyle = annotationStyle;
@@ -4116,20 +4150,21 @@ async function expRun() {
   expBusy = true;
   try {
     await expSleep(30);
-    let n = 0; const total = styles.length * fmts.length;
+    let n = 0; const total = styles.reduce((a, st) => a + expFmtGet(st).length, 0), done = new Set();
     for (const st of styles) {
       let ir = expIRs[st];
       if (!ir) {                                       // プレビューが無い(または古い)ときは作り直す
         if (st !== annotationStyle) { setAnnotationStyle(st); await expSleep(120); }
         ir = await expBuildIRForView((f) => setProgress(f * 0.3));
       }
-      for (const f of fmts) {
+      for (const f of expFmtGet(st)) {
+        done.add(f);
         await expSend(f, ir, opts, all ? `${base}_${expStyleTag[st] || st}` : base, st);
         n++; setProgress(0.3 + 0.7 * n / total);
       }
     }
     if (annotationStyle !== startStyle) setAnnotationStyle(startStyle);
-    statusEl.textContent = `書き出しました (${fmts.map(f => (f === "pdf3d" ? "3D PDF" : f.toUpperCase())).join(" / ")}${all ? "・全スタイル" : ""})`;
+    statusEl.textContent = `書き出しました (${[...done].map(f => (f === "pdf3d" ? "3D PDF" : f.toUpperCase())).join(" / ")}${all ? "・全スタイル" : ""})`;
     statusEl.title = "";
   } catch (e) {
     if (annotationStyle !== startStyle) setAnnotationStyle(startStyle);
@@ -4256,6 +4291,30 @@ document.getElementById("expHl").addEventListener("change", () => {
   expHiddenLine = document.getElementById("expHl").value; expStore.set("hidden", expHiddenLine); expRefreshPreview(true);      // 陰線処理は図形そのものが変わる
 });
 // Files: チェックボックス付きのドロップダウン(ボタンで開閉、外側クリックで閉じる)
+// ファイル形式の選択は、スタイル(Graphic PMI / Balloon & Mirror のタブ)ごとに持つ。Balloon & Mirror では 3D PDF は書き出せない
+const EXP_FMT_KEYS = [["dxf", "fDxf", "1"], ["svg", "fSvg", "1"], ["pdf", "fPdf", "1"], ["png", "fPng", "1"], ["pdf3d", "f3d", "0"]];
+function expFmtLoad(style) {
+  for (const [k, el, def] of EXP_FMT_KEYS) {
+    const old = expStore.get(el, def);                                   // 以前の(スタイル共通の)設定を、初期値に使う
+    expEls[el].checked = expStore.get("fmt_" + style + "_" + k, old) === "1";
+  }
+  expSync3d(style);
+}
+function expFmtSave(style) {
+  for (const [k, el] of EXP_FMT_KEYS) {
+    if (k === "pdf3d" && style === "balloon") continue;
+    expStore.set("fmt_" + style + "_" + k, expEls[el].checked ? "1" : "0");
+  }
+}
+function expFmtGet(style) {
+  return EXP_FMT_KEYS.filter(([k, el, def]) => !(k === "pdf3d" && style === "balloon") && expStore.get("fmt_" + style + "_" + k, expStore.get(el, def)) === "1").map(x => x[0]);
+}
+function expSync3d(style) {
+  const off = style === "balloon", lab = expEls.f3d.closest("label");
+  if (off) expEls.f3d.checked = false;
+  expEls.f3d.disabled = off;
+  if (lab) { lab.style.opacity = off ? "0.45" : ""; lab.title = off ? "3D PDF is not available for Balloon & Mirror" : ""; }
+}
 function expSyncFilesText() {
   const names = [["DXF", expEls.fDxf], ["SVG", expEls.fSvg], ["PDF", expEls.fPdf], ["PNG", expEls.fPng], ["3D PDF", expEls.f3d]].filter(x => x[1].checked).map(x => x[0]);
   document.getElementById("expFilesText").textContent = names.length ? names.join(", ") : "(none)";
@@ -4267,7 +4326,7 @@ document.getElementById("expFilesBtn").addEventListener("click", (e) => {
 });
 document.getElementById("expFilesPop").addEventListener("click", (e) => e.stopPropagation());
 document.getElementById("expDialog").addEventListener("click", () => { document.getElementById("expFilesPop").style.display = "none"; });
-[expEls.fDxf, expEls.fSvg, expEls.fPdf, expEls.fPng, expEls.f3d].forEach(el => el.addEventListener("change", expSyncFilesText));
+[expEls.fDxf, expEls.fSvg, expEls.fPdf, expEls.fPng, expEls.f3d].forEach(el => el.addEventListener("change", () => { expFmtSave(expActive); expSyncFilesText(); }));
 
 [expEls.paper, expEls.scale, expEls.lwModel, expEls.lwOther].forEach(el => el.addEventListener("input", () => expRefreshPreview(false)));
 // プレビュー上のマウスホイールで作図尺度を変える(上へ回すと大きく、下へ回すと小さく)
@@ -4324,7 +4383,7 @@ document.getElementById("expCvApply").addEventListener("click", () => {
 ["expCvX", "expCvY", "expCvZ", "expCvZoom"].forEach(id => document.getElementById(id).addEventListener("input", () => expRefreshPreview(true)));
 document.querySelectorAll("#expTabs .exp-tab").forEach(tab => tab.addEventListener("click", (e) => {
   if (e.target.tagName === "INPUT") return;            // チェックボックスは「書き出す/書き出さない」だけ
-  expActive = tab.dataset.style; expSyncTabs(); expRefreshPreview(false);
+  expFmtSave(expActive); expActive = tab.dataset.style; expFmtLoad(expActive); expSyncFilesText(); expSyncVisibility(); expSyncTabs(); expRefreshPreview(false);
 }));
 
 function setNavScheme(scheme) {
@@ -4830,6 +4889,17 @@ function selectPlainFace(faceIndex) {
   applyHiddenGraphics();
 }
 
+// 一般注記の中の「|⌓|0.5|A|B-B|C|」のような行は、公差記入枠(FCF)。Visio の様式で描く(特性の欄と同じ)
+const GN_SYM = { "\u2313": "profile_surface", "\u2312": "profile_line", "\u23E4": "straightness", "\u23E5": "flatness", "\u25CB": "circularity",
+  "\u232D": "cylindricity", "\u2225": "parallelism", "\u22A5": "perpendicularity", "\u2220": "angularity", "\u2316": "position",
+  "\u25CE": "concentricity", "\u232F": "symmetry", "\u2197": "circular_runout", "\u2330": "total_runout" };
+function gnFcfCells(line) {
+  const m = /^\s*\|(.+)\|\s*$/.exec(line);
+  if (!m) return null;
+  const cells = m[1].split("|").map(c => c.trim());
+  if (cells.length < 2 || cells.some(c => !c)) return null;
+  return { sym: GN_SYM[cells[0]] || null, cells };
+}
 // ---- 一般注記 (General tolerance) ----
 // ノート本文に "general tolerance" を含むものは、3D 上には描かず、画面右下に正対して表示する。
 const generalNoteNames = new Set();
@@ -4872,7 +4942,23 @@ function setupGeneralNotes(pmi) {
     shown.add(key);
     const div = document.createElement("div");
     div.className = "gnote";
-    div.textContent = a.text.replace(/_/g, " ");   // 改行・空白は white-space: pre-wrap で反映(CAD 由来の "_" は空白扱い)
+    const raw = a.text.replace(/_/g, " ");           // CAD 由来の "_" は空白扱い
+    div.dataset.raw = raw;                            // 書き出し用の元の文章(枠は線画なので、textContent には文字が残らない)
+    raw.split(String.fromCharCode(10)).forEach(line => {
+      const f = gnFcfCells(line), row = document.createElement("div");
+      row.className = "gline";
+      if (f && typeof fcfHtml === "function") {
+        const sv = (t) => vsTextSvg(t, { H: 5, padX: 1.0, minW: 5 });
+        const symSv = f.sym ? vsSymSvg(f.sym) : null, cs = f.cells.slice(1).map(sv);
+        if (symSv && cs.every(x => x)) {
+          row.innerHTML = `<span class="fcf"><span class="sym vc">${symSv}</span>${cs.map(x => `<span class="vc">${x}</span>`).join("")}</span>`;
+          div.appendChild(row);
+          return;
+        }
+      }
+      row.textContent = line || String.fromCharCode(160);
+      div.appendChild(row);
+    });
     div.title = a.name;
     body.appendChild(div);
   }
@@ -5076,6 +5162,14 @@ function renderPmi(pmi) {
   if (sortMode === "designator") {
     sortByDes(idxs);
     if (idxs.length) groups.push(groupHtml(`Characteristics (${idxs.length})`, idxs.map(rowHtml).join(""), true));
+  } else if (sortMode === "datum") {
+    // データム系(|A|B|C|, |D|E|F|, |X|Y|Z| など)ごとにまとめる。各グループのチェックで、そのデータム系の特性をまとめて表示/非表示にできる
+    const byRef = {};
+    idxs.forEach(i => { const k = (tols[i].datum_refs || []).map(r => String(r).trim()).filter(Boolean).join("|"); (byRef[k] = byRef[k] || []).push(i); });
+    Object.keys(byRef).sort((a, b) => (a === "") - (b === "") || a.localeCompare(b)).forEach(k => {
+      const list = sortByDes(byRef[k]);
+      groups.push(groupHtml(k ? `|${k.split("|").join("|")}| (${list.length})` : `No datum reference (${list.length})`, list.map(rowHtml).join(""), true));
+    });
   } else {
     const byLayer = {};
     idxs.forEach(i => { (byLayer[tols[i].layer || "Other"] = byLayer[tols[i].layer || "Other"] || []).push(i); });
@@ -6669,6 +6763,7 @@ async function lastFileOpen() {
       menu.appendChild(h);
     }
     for (const it of items) {
+      if (it.node) { menu.appendChild(it.node()); continue; }
       const row = document.createElement("div");
       row.textContent = (it.checked ? "\u2713 " : "\u3000 ") + it.text;
       row.style.cssText = "padding:5px 14px;white-space:nowrap;" + (it.fn ? "cursor:pointer;" : "color:#9aa0aa;");
@@ -6681,6 +6776,28 @@ async function lastFileOpen() {
     }
     document.body.appendChild(menu);
   }
+  panelEl.addEventListener("contextmenu", (e) => {         // 特性のパネルを右クリック: Characteristics Sort の 3 つを選べる
+    e.preventDefault();
+    const items = [["designator", "By Designator (Default)"], ["datum", "By Datum Reference Frame"], ["type", "By Type"]].map(([k, text]) => ({
+      text, checked: sortMode === k, fn: () => { const m = document.querySelector(`#sortMenu .menu-item[data-sort="${k}"]`); if (m) m.click(); } }));
+    items.push({ node: () => { const d = document.createElement("div"); d.style.cssText = "border-top:1px solid #e3e6ec;margin:3px 0 0"; return d; } });
+    const miD = document.getElementById("miDesignators");      // Show Designators(View メニューの Designators と同じ)
+    items.push({ text: "Show Designators", checked: miD.classList.contains("checked"), fn: () => miD.click() });
+    items.push({ node: () => {        // Symbol Height: Characteristics / Datums の記号の大きさ(px)
+      const sl = document.getElementById("symSizeSlider"), nm = document.getElementById("symSizeNum");
+      const w = document.createElement("div");
+      w.style.cssText = "display:flex;align-items:center;gap:6px;padding:6px 14px 4px;white-space:nowrap";
+      const lab = document.createElement("span"); lab.textContent = "Symbol Height:";
+      const rg = document.createElement("input"); rg.type = "range"; rg.min = "6"; rg.max = "20"; rg.step = "1"; rg.value = sl.value; rg.style.cssText = "width:110px";
+      const num = document.createElement("input"); num.type = "number"; num.min = "6"; num.max = "20"; num.step = "1"; num.value = sl.value; num.style.cssText = "width:48px";
+      const px = document.createElement("span"); px.textContent = "px";
+      rg.addEventListener("input", () => { sl.value = rg.value; sl.dispatchEvent(new Event("input")); num.value = sl.value; });
+      num.addEventListener("change", () => { nm.value = num.value; nm.dispatchEvent(new Event("change")); rg.value = nm.value; num.value = nm.value; });
+      w.append(lab, rg, num, px);
+      return w;
+    } });
+    makeMenu(e, "Characteristics Sort", items);
+  });
   viewerEl.addEventListener("contextmenu", async (e) => {
     if (currentMesh) {                              // モデルを表示中: 引出線の黒丸(アンカー)の上なら Hatched Cross Section のメニュー。それ以外は従来どおり
       if (annotationStyle === "balloon") {
