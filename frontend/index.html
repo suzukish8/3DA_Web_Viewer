@@ -1640,9 +1640,10 @@ function bmMeasureItem(it) {
   // 幾何公差の無い寸法だけ(designator 98, 99 など): 寸法値の下に下線を引き、引出線はその下線の右端からのばす
   { const vis = (q) => Array.from(it.el.querySelectorAll(q)).some(n => n.offsetParent !== null);
     it.el.classList.toggle("dim-only", !vis(".bm-core .fcf") && !vis(".bm-core .ted") && vis(".bm-core .dimlabel")); }
-  { const f0 = it.el.querySelector(".bm-core .fcf"); it.el.style.setProperty("--fh", (f0 ? f0.offsetHeight : 22) + "px"); }   // 公差記入枠の高さ(隙間 = その 1/10)
-  const firstFcf = it.el.querySelector(".bm-core .fcf, .bm-core .ted");
-  const oneH = firstFcf ? firstFcf.offsetHeight : 22;           // 公差枠の高さ = データム四角の一辺(正方形)
+  const visFirst = (sel) => Array.from(it.el.querySelectorAll(sel)).find(n => n.offsetParent !== null);      // 表示中の最初のもの(非表示の枠は高さ 0 なので、データム四角が 0 になってしまう)
+  { const f0 = visFirst(".bm-core .fcf"); it.el.style.setProperty("--fh", ((f0 && f0.offsetHeight) || 22) + "px"); }   // 公差記入枠の高さ(隙間 = その 1/10)
+  const firstFcf = visFirst(".bm-core .fcf, .bm-core .ted");
+  const oneH = (firstFcf && firstFcf.offsetHeight) || (Number(it.frameH) > 0 ? it.frameH : 22);           // 公差枠の高さ = データム四角の一辺(正方形)
   it.el.querySelectorAll(".bm-datums .dbox").forEach(n => { n.style.width = oneH + "px"; n.style.height = oneH + "px"; });
   const frames = it.el.querySelector(".bm-frames");
   it.frameH = oneH;                                             // 1 枠の高さ(同軸線の長さ)
