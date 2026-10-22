@@ -127,6 +127,12 @@
   .view-row .vdel { border: none; background: transparent; color: var(--text-dim); cursor: pointer; font-size: 15px;
     line-height: 1; padding: 0 4px; border-radius: 3px; }
   .view-row .vdel:hover { background: #e3e6ec; color: var(--text); }
+  #cmHead { display: flex; align-items: center; padding: 8px 10px; font-size: 13px; font-weight: 600; border-top: 1px solid var(--panel-border); border-bottom: 1px solid var(--panel-border); }
+  #cmHead span { flex: 0 0 auto; }
+  #cmHead #cmClose { margin-left: auto; border: none; background: transparent; font-size: 20px; line-height: 1; color: var(--text-dim); cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+  #cmHead #cmClose:hover { background: #e3e6ec; color: var(--text); }
+  #cmList { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding: 6px; }
+  .cm-row .cm-txt { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
   #viewsFoot { display: none !important; }       /* 保存ボタンは、見出しの「+」へ移した */
   #viewsSave { width: 100%; padding: 6px; border: 1px solid var(--panel-border); border-radius: 5px; background: #fff;
     font-size: 13px; cursor: pointer; }
@@ -384,6 +390,11 @@
   #cutList .cut-row .cn small { color: var(--text-dim); margin-left: 6px; }
   #cutList .cut-row .cx { border: none; background: transparent; color: #8a93a3; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 4px; border-radius: 3px; }
   #cutList .cut-row .cx:hover { background: #dfe4ee; color: var(--text); }
+  /* ユーザーが追加したコメント(面に付ける注記) */
+  #commentLayer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
+  .cm-box { white-space: pre-wrap; position: absolute; left: 0; top: 0; pointer-events: auto; max-width: 260px; padding: 2px 7px; border: 1px solid #1a1a1a; background: rgba(255,255,255,0.92);
+    font-size: 12px; line-height: 1.35; color: #111; white-space: pre-wrap; word-break: break-word; cursor: default; transform-origin: 0 0; user-select: none; }
+  .cm-box:hover { border-color: #0077ff; color: #0055cc; }
   /* Tool > Section Cut の窓 */
   #secWin { position: absolute; left: 12px; top: 12px; z-index: 9; width: 330px; display: none; background: rgba(255,255,255,0.96);
     border: 1px solid var(--panel-border); border-radius: 6px; box-shadow: 0 3px 14px rgba(0,0,0,.25); font-size: 12px; }
@@ -407,14 +418,14 @@
   @keyframes rippleCross { 0%, 55% { opacity: 0.85; } 100% { opacity: 0; } }
   @keyframes rippleGrow { 0% { transform: translate(-50%, -50%) scale(0.02); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
   /* STEP/QIF Source パネル(Windows 版の QIF/STEP Source Panel と同じ) */
-  #srcWin { width: 460px; max-width: 70vw; flex: 0 0 auto; display: none; flex-direction: column; position: relative; overflow: hidden;
+  #srcWin, #treeWin { width: 460px; max-width: 70vw; flex: 0 0 auto; display: none; flex-direction: column; position: relative; overflow: hidden;
     background: var(--panel); border-left: 1px solid var(--panel-border); font-size: 12px; }
-  #srcWin .src-head { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--panel-border); background: #eef1f6; }
-  #srcWin .src-head span { font-weight: 600; white-space: nowrap; margin-right: 4px; }
-  #srcWin .src-head input { flex: 1 1 60px; min-width: 40px; font-size: 12px; padding: 2px 4px; }
-  #srcWin .src-head button { font-size: 12px; padding: 1px 8px; border: 1px solid #c9ced6; background: #fff; border-radius: 4px; cursor: pointer; }
-  #srcWin .src-head button:hover { background: #eaf1fb; }
-  #srcClose { border: none !important; background: transparent !important; font-size: 18px !important; line-height: 1; color: var(--text-dim); padding: 0 6px !important; }
+  #srcWin .src-head, #treeWin .src-head { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--panel-border); background: #eef1f6; }
+  #srcWin .src-head span, #treeWin .src-head span { font-weight: 600; white-space: nowrap; margin-right: 4px; }
+  #srcWin .src-head input, #treeWin .src-head input { flex: 1 1 60px; min-width: 40px; font-size: 12px; padding: 2px 4px; }
+  #srcWin .src-head button, #treeWin .src-head button { font-size: 12px; padding: 1px 8px; border: 1px solid #c9ced6; background: #fff; border-radius: 4px; cursor: pointer; }
+  #srcWin .src-head button:hover, #treeWin .src-head button:hover { background: #eaf1fb; }
+  #srcClose, #treeClose { border: none !important; background: transparent !important; font-size: 18px !important; line-height: 1; color: var(--text-dim); padding: 0 6px !important; }
   #srcScroll { flex: 1 1 auto; min-height: 0; overflow: auto; position: relative; background: #fff;
     font-family: Consolas, "Courier New", monospace; font-size: 12px; line-height: 16px; }
   #srcSpacer { position: absolute; left: 0; top: 0; width: 1px; }
@@ -426,7 +437,7 @@
   #srcRows .stx { padding-left: 8px; }
   #srcRows mark { background: #ffd54a; color: inherit; }
   .sc-k { color: #7a1fa2; } .sc-a { color: #1360b8; } .sc-s { color: #1b7f3a; } .sc-c { color: #8a93a3; }
-  #srcTreeWrap { flex: 1 1 auto; min-height: 0; flex-direction: column; background: #fff; }
+  #treeInfo { padding: 3px 10px; font-size: 11px; color: var(--text-dim); border-top: 1px solid var(--panel-border); }
   #srcTree { flex: 1 1 60%; min-height: 0; overflow: auto; font-family: Consolas, "Courier New", monospace; font-size: 12px; padding: 2px 0; }
   #srcTree .trow { white-space: nowrap; cursor: pointer; line-height: 18px; }
   #srcTree .trow:hover { background: #f3f7fd; }
@@ -493,7 +504,7 @@
   #symDesRow { flex-basis: 100%; display: flex; align-items: center; gap: 6px; cursor: pointer; }
   #symSizeBar input[type=range] { flex: 1; min-width: 40px; }
   #symSizeBar input[type=number] { width: 52px; }
-  #panelClose { position: absolute; top: 4px; right: 6px; border: none; background: transparent; font-size: 20px;
+  #panelClose { position: absolute; z-index: 6; top: 4px; right: 6px; border: none; background: transparent; font-size: 20px;
     line-height: 1; color: var(--text-dim); cursor: pointer; padding: 2px 6px; border-radius: 4px; }
   #panelClose:hover { background: #e3e6ec; color: var(--text); }
   #panel h2 { font-size: 13px; color: var(--text-dim); margin: 14px 0 6px; text-transform: uppercase;
@@ -662,6 +673,7 @@
           <div class="menu-item checkable" id="miViewsPanel">Saved Views Panel</div>
           <div class="menu-item checkable checked" id="miGeneral">General Tolerance Panel</div>
           <div class="menu-item checkable" id="miSource">STEP/QIF Source Panel</div>
+          <div class="menu-item checkable" id="miTree">STEP/QIF Structure Tree</div>
           <div class="menu-item checkable" id="miAxes">Origin Axes</div>
         </div>
       </div>
@@ -684,6 +696,8 @@
     <div class="menu-items">
       <div class="menu-item checkable" id="miMeasure">Measurement</div>
       <div class="menu-item checkable" id="miSection">Section Cut...</div>
+      <div class="menu-item checkable" id="miComment">Comment</div>
+      <div class="menu-item checkable" id="miSketch">Sketch</div>
     </div>
   </div>
   <div class="menu" id="menuOption">
@@ -765,14 +779,21 @@
           <div class="sec-note">平面を「基準面を距離だけ動かす → X → Y → Z 軸の順に、座標軸まわりに回す」で決めます(回転の中心は原点)。</div>
         </div>
       </div>
+      <div id="commentLayer"></div>
       <div id="generalNotes"></div>      <!-- General tolerance などの一般注記: 3D 画面の右下に、枠だけを半透明で重ねる -->
       <div id="dropOverlay">ここにSTEPファイルをドロップ</div>
     </div>
+    <div class="splitter" id="splitTree" title="Drag to resize" style="display:none"></div>
+    <div id="treeWin">
+      <div class="src-head"><span id="treeTitle">STEP/QIF Structure Tree</span><input id="treeFind" type="text" placeholder="Find in structure..." spellcheck="false"><button id="treeFindPrev" type="button" title="Previous">&#9650;</button><button id="treeFindBtn" type="button" title="Next (Enter)">Find</button><button id="treeClose" type="button" title="Close" aria-label="Close">&times;</button></div>
+      <div id="srcTree"></div>
+      <pre id="srcNode"></pre>
+      <div id="treeInfo"></div>
+    </div>
     <div class="splitter" id="splitSrc" title="Drag to resize" style="display:none"></div>
     <div id="srcWin">
-      <div class="src-head"><span id="srcTitle">STEP Source</span><input id="srcFind" type="text" placeholder="Find in source..." spellcheck="false"><button id="srcFindPrev" type="button" title="Previous">&#9650;</button><button id="srcFindBtn" type="button" title="Next (Enter)">Find</button><button id="srcModeBtn" type="button" title="QIF Structure Tree" style="display:none">Structure</button><button id="srcClose" type="button" title="Close" aria-label="Close">&times;</button></div>
+      <div class="src-head"><span id="srcTitle">STEP Source</span><input id="srcFind" type="text" placeholder="Find in source..." spellcheck="false"><button id="srcFindPrev" type="button" title="Previous">&#9650;</button><button id="srcFindBtn" type="button" title="Next (Enter)">Find</button><button id="srcClose" type="button" title="Close" aria-label="Close">&times;</button></div>
       <div id="srcScroll"><div id="srcSpacer"></div><div id="srcRows"></div></div>
-      <div id="srcTreeWrap" style="display:none"><div id="srcTree"></div><pre id="srcNode"></pre></div>
       <div id="srcInfo"></div>
     </div>
     <div class="splitter" id="splitMeas" title="Drag to resize" style="display:none"></div>
@@ -795,6 +816,8 @@
       <div id="viewsHead" style="display:none"><span>Saved Views</span><button id="viewsSave" type="button" title="Save Current View..." aria-label="Save Current View">+</button><button id="viewsClose" title="Close" aria-label="Close">&times;</button></div>
       <div id="viewsList" style="display:none"></div>
       <div id="viewsFoot" style="display:none"></div>
+      <div id="cmHead" style="display:none"><span>Comments/Sketch</span><button id="cmClose" type="button" title="Close" aria-label="Close">&times;</button></div>
+      <div id="cmList" style="display:none"></div>
     </div>
   </main>
   <div id="statusbar">
@@ -938,6 +961,7 @@ function animate(now) {
   if (typeof cvTick === "function") cvTick();
   if (typeof dbgUpdate === "function") dbgUpdate();
   if (typeof measLabelTick === "function") measLabelTick();
+  if (typeof commentTick === "function") commentTick();
   renderer.render(scene, camera);
 }
 animate();
@@ -1209,7 +1233,7 @@ function handleViewClick(px, py) {
       const d = distPointSegment(px, py, sg[0], sg[1], sg[2], sg[3]);
       if (d < bd) { bd = d; bestIt = it; }
     }
-    const idx = bestIt ? bestIt.idxs.find(i => !hiddenTol.has(i)) : undefined;
+    const idx = bestIt && !bestIt.isComment ? bestIt.idxs.find(i => !hiddenTol.has(i)) : undefined;
     if (idx !== undefined) {
       if (idx !== selectedTolIndex) selectTolerance(idx, tols);
       revealRow(`.pmi-card[data-idx="${idx}"]`);
@@ -1229,7 +1253,7 @@ function handleViewClick(px, py) {
         if (d < bd) { bd = d; best = sec.item; }
       }
     }
-    const idx = best ? best.idxs.find(i => !hiddenTol.has(i)) : undefined;
+    const idx = best && !best.isComment ? best.idxs.find(i => !hiddenTol.has(i)) : undefined;
     if (idx !== undefined) {
       if (idx !== selectedTolIndex) selectTolerance(idx, tols);
       revealRow(`.pmi-card[data-idx="${idx}"]`);
@@ -1436,6 +1460,7 @@ document.getElementById("viewsSave").addEventListener("click", saveCurrentViewPr
 const miViewsPanel = document.getElementById("miViewsPanel");
 // Saved Views と General tolerance は別々の窓(同じ列に並ぶ)。表示/非表示も別々に切り替える
 const miGeneral = document.getElementById("miGeneral");
+var cmHidden = false;
 function updateViewsColumn() {
   const on = miViewsPanel.classList.contains("checked"), gOn = miGeneral.classList.contains("checked");
   const hasGen = typeof generalNoteNames !== "undefined" && generalNoteNames.size > 0;
@@ -1449,7 +1474,10 @@ function updateViewsColumn() {
     }
     generalNotesEl.style.display = gOn && hasGen ? "flex" : "none";
   }
-  viewsPanelEl.style.display = on ? "" : "none";                          // 右の列は Saved Views だけ(General tolerance は 3D 画面に重ねる枠)
+  const cmOn = !!(userComments && userComments.length) && !cmHidden;         // コメントがあるときは、Saved Views の下にコメント一覧を出す
+  document.getElementById("cmHead").style.display = cmOn ? "" : "none";
+  document.getElementById("cmList").style.display = cmOn ? "" : "none";
+  viewsPanelEl.style.display = on || cmOn ? "" : "none";                  // 右の列は Saved Views とコメント一覧(General tolerance は 3D 画面に重ねる枠)
   resize();
 }
 function setViewsPanelVisible(on) {
@@ -1463,6 +1491,7 @@ function setGeneralVisible(on) {
 miGeneral.addEventListener("click", () => setGeneralVisible(!miGeneral.classList.contains("checked")));
 miViewsPanel.addEventListener("click", () => setViewsPanelVisible(!miViewsPanel.classList.contains("checked")));
 document.getElementById("viewsClose").addEventListener("click", () => setViewsPanelVisible(false));
+document.getElementById("cmClose").addEventListener("click", () => { cmHidden = true; updateViewsColumn(); });
 rebuildSavedViewsMenu();
 
 
@@ -1551,29 +1580,9 @@ function bmOrientOutward(a) {
   if (n % 2 === 1) a.normal.negate();
 }
 
-// 読み込み後に呼ぶ: 特性ごとのアンカーとラベルを用意する
-function bmSetup(pmi) {
-  bmClear();
-  if (!currentMeshData || !pmi) return;
-  bmBuildFaces();
-  const tols = pmi.geometric_tolerances || [];
-
-  // 同じ形体(対象面が同一)を指示している公差記入枠を 1 つの塊にまとめる
-  const groups = [];
-  const byKey = new Map();
-  tols.forEach((t, i) => {
-    const ranges = t.face_triangle_ranges || [];
-    // パターン(複数の穴)を指す特性は、指示している最初の 1 個の形体でまとめる(その穴だけを指す寸法と同じ塊になる)
-    const aR = t.anchor_triangle_ranges || [];
-    const keyRanges = (t.pattern && aR.length) ? aR : ranges;
-    const key = keyRanges.length ? keyRanges.map(r => r[0] + "-" + r[1]).sort().join(",") : null;
-    if (key !== null && byKey.has(key)) { byKey.get(key).members.push(i); return; }
-    const g = { members: [i], ranges, anchorRanges: t.anchor_triangle_ranges || [] };
-    groups.push(g);
-    if (key !== null) byKey.set(key, g);
-  });
-
-  for (const g of groups) {
+var BM_COMMENT_BASE = 100000;       // コメントの枠は、幾何公差の番号と重ならない番号(100000 + コメントの id)で扱う
+// 1 つの塊(同じ面を指す公差記入枠の集まり)から、ラベル・アンカーを作って bmItems へ入れる(コメントも、これで幾何公差と完全に同じ扱いにする)
+function bmMakeItem(g, tols, rowClick) {
     // 並び順: サイズ寸法 → 幾何公差(公差値の大きい順が上)
     const rank = (i) => tols[i].symbol_kind === "dimension" ? 0 : 1;
     const val = (i) => (typeof tols[i].value_mm === "number") ? tols[i].value_mm : -Infinity;
@@ -1596,7 +1605,7 @@ function bmSetup(pmi) {
       const row = document.createElement("div");
       row.className = "bm-row" + (t.symbol_kind === "dimension" ? " dim" : "") + (t.symbol_kind === "dimension" && t.layer === "Radius" ? " has-ted" : "");
       row.innerHTML = `<span class="des">${escapeHtml(t.designator || "--")}</span><span class="bm-core">${fcfHtml(t)}</span>`;
-      row.addEventListener("click", (e) => { e.stopPropagation(); selectTolerance(i, tols); });
+      row.addEventListener("click", (e) => { e.stopPropagation(); if (rowClick) rowClick(i); else selectTolerance(i, tols); });
       frames.appendChild(row);
       memberEls.push({ idx: i, row });
     }
@@ -1629,12 +1638,61 @@ function bmSetup(pmi) {
     const axisAnchor = !!(dim && dim.type === "cyl");
     const spanDim = !!(dim && dim.type === "span");     // 幅・距離などのアンカーは、2 つの寸法線端点の中点
     const anchorPt = axisAnchor ? dim.center.clone() : (spanDim ? dim.d1.clone().add(dim.d2).multiplyScalar(0.5) : (a ? a.anchor : null));
-    bmItems.push({ aRanges, axisAnchor, idxs: g.members, members: memberEls, anchor: anchorPt, normal: a ? a.normal : null,
-                   cands: a ? a.cands : [], color, el, w: 0, h: 0, tris, shownKey: "", dim, dimIdx });
-  }
+    const item = { aRanges, axisAnchor, idxs: g.members, members: memberEls, anchor: anchorPt, normal: a ? a.normal : null,
+                   cands: a ? a.cands : [], color, el, w: 0, h: 0, tris, shownKey: "", dim, dimIdx };
+    bmItems.push(item);
+    return item;
+}
+// 読み込み後に呼ぶ: 特性ごとのアンカーとラベルを用意する
+function bmSetup(pmi) {
+  bmClear();
+  if (!currentMeshData || !pmi) return;
+  bmBuildFaces();
+  const tols = pmi.geometric_tolerances || [];
+
+  // 同じ形体(対象面が同一)を指示している公差記入枠を 1 つの塊にまとめる
+  const groups = [];
+  const byKey = new Map();
+  tols.forEach((t, i) => {
+    const ranges = t.face_triangle_ranges || [];
+    // パターン(複数の穴)を指す特性は、指示している最初の 1 個の形体でまとめる(その穴だけを指す寸法と同じ塊になる)
+    const aR = t.anchor_triangle_ranges || [];
+    const keyRanges = (t.pattern && aR.length) ? aR : ranges;
+    const key = keyRanges.length ? keyRanges.map(r => r[0] + "-" + r[1]).sort().join(",") : null;
+    if (key !== null && byKey.has(key)) { byKey.get(key).members.push(i); return; }
+    const g = { members: [i], ranges, anchorRanges: t.anchor_triangle_ranges || [] };
+    groups.push(g);
+    if (key !== null) byKey.set(key, g);
+  });
+
+  for (const g of groups) bmMakeItem(g, tols);
+  userComments.forEach(c => bmAddCommentItem(c));        // ユーザーのコメントも、幾何公差と同じ枠として並べる
   // 寸法の実測(表示後に 1 回)
   requestAnimationFrame(() => setTimeout(bmMeasure, 0));
   bmDirty = true;
+}
+function commentPseudoTol(c) {
+  const rg = currentMeshData && currentMeshData.faceRanges ? currentMeshData.faceRanges[c.face] : null;
+  const ranges = rg ? [[rg[0], rg[1]]] : [];
+  return { designator: "C" + c.id, symbol_kind: "comment", layer: "Comment", value_text: c.text, face_triangle_ranges: ranges, anchor_triangle_ranges: ranges, name: "Comment " + c.id, attached_datums: [] };
+}
+function bmAddCommentItem(c) {
+  if (!currentMeshData || !currentMesh || c.kind === "sketch") return null;
+  const idx = BM_COMMENT_BASE + c.id, T = []; T[idx] = commentPseudoTol(c);
+  const g = { members: [idx], ranges: T[idx].face_triangle_ranges, anchorRanges: T[idx].anchor_triangle_ranges };
+  const it = bmMakeItem(g, T, () => commentSelect(c));
+  it.isComment = true; it.comment = c;
+  it.anchor = new THREE.Vector3(c.p[0], c.p[1], c.p[2]);               // 右クリックした位置(面上の点)
+  it.normal = new THREE.Vector3(c.n[0], c.n[1], c.n[2]);
+  it.el.addEventListener("contextmenu", (e) => {
+    e.preventDefault(); e.stopPropagation(); commentMenu(e, c);
+  });
+  bmDirty = true; bmLastSig = "";
+  return it;
+}
+function bmRemoveCommentItems() {
+  for (const it of bmItems.filter(x => x.isComment)) it.el.remove();
+  bmItems = bmItems.filter(x => !x.isComment);
 }
 function bmMeasureItem(it) {
   // 幾何公差の無い寸法だけ(designator 98, 99 など): 寸法値の下に下線を引き、引出線はその下線の右端からのばす
@@ -2309,7 +2367,7 @@ function buildMirror(axis, sign) {
 function bmPlaceMirrorMarker(g) {
   const m = g.userData.marker, b = g.userData.markerBase;
   if (!m || !b) return;
-  const side = bmFcfUnits * 0.5;   // 公差記入枠の高さの半分
+  const side = bmFcfUnits;   // 公差記入枠の高さ(FCF Height)と同じ
   m.scale.setScalar(side);
   m.position.copy(b.c).addScaledVector(b.right, b.halfU - side * 0.75).addScaledVector(b.up, b.halfV - side * 0.75);
   m.updateMatrixWorld(true);
@@ -5492,6 +5550,7 @@ const SYMBOL_SVG = {
 
 function fcfHtml(t) {
   const kind = t.symbol_kind || "generic";
+  if (kind === "comment") return `<span class="fcf cmt"><span style="white-space:pre-wrap;max-width:240px">${escapeHtml(t.value_text || "")}</span></span>`;
   const val = escapeHtml(t.value_text || "?");
   const count = t.count > 1 ? `${t.count}×` : "";   // 複数のサイズ形体: 「4× ∅3.5 ±0.1」
   if (kind === "dimension") {
@@ -5639,6 +5698,7 @@ function renderPmi(pmi) {
   }));
   tolListEl.querySelectorAll("input.dvis").forEach(cb => cb.addEventListener("change", () => setDatumsVisible(cb.checked)));
   syncGroupChecks();
+  if (typeof commentGroupRender === "function" && userComments && userComments.length) commentGroupRender();
 }
 // 3D 上のデータム記号(データム形体記号・データムターゲット・B&M のデータム四角)の表示/非表示
 var datumsVisible = true;
@@ -5652,7 +5712,7 @@ function setDatumsVisible(on) {
 // すべての特性(幾何公差・寸法)の 3D 上の表示/非表示
 function setAllCharacteristicsVisible(on) {
   const tols = (lastPmi && lastPmi.geometric_tolerances) || [];
-  if (on) hiddenTol.clear(); else tols.forEach((_, i) => hiddenTol.add(i));
+  if (on) hiddenTol.clear(); else { tols.forEach((_, i) => hiddenTol.add(i)); (userComments || []).forEach(c => hiddenTol.add(BM_COMMENT_BASE + c.id)); }
   tolListEl.querySelectorAll("input.vis").forEach(c => { c.checked = on; });
   tolListEl.querySelectorAll("input.gvis").forEach(c => { c.checked = on; c.indeterminate = false; });
   applyHiddenGraphics();
@@ -6778,6 +6838,378 @@ const secDragEnd = () => { if (secDrag) { const raf = secDrag.raf; secDrag = nul
 cv.addEventListener("pointerup", secDragEnd, true);
 cv.addEventListener("pointercancel", secDragEnd, true);
 window.addEventListener("keydown", (e) => { if (e.key === "Escape" && secOn && !document.querySelector("#expBackdrop[style*='flex']")) { secExit(); } });
+// ---- コメント: 面を右クリックして「コメントを追加」。Graphic PMI / None では 3D 上の注記として、Balloon & Mirror では左右の隅に枠として並べる ----
+var userComments = [], commentSeq = 1;      // animate() が先に呼ばれても落ちないよう、var にする
+var commentLayer = document.getElementById("commentLayer");
+var commentGroup = new THREE.Group(); commentGroup.renderOrder = 1002; scene.add(commentGroup);
+var commentObjs = new Map();         // id -> { el, line, dot }
+function commentPick(px, py) {          // 画面上の点 -> モデル上の点・法線・面の番号(なければ null)
+  if (!currentMesh || !currentMeshData) return null;
+  camera.updateMatrixWorld(true); currentMesh.updateMatrixWorld(true);
+  const w = viewerEl.clientWidth, h = viewerEl.clientHeight;
+  pickRaycaster.setFromCamera(new THREE.Vector2(px / w * 2 - 1, -(py / h * 2 - 1)), camera);
+  const hit = pickRaycaster.intersectObject(currentMesh, false)[0];
+  if (!hit || hit.faceIndex == null) return null;
+  const n = hit.face.normal.clone().transformDirection(currentMesh.matrixWorld);
+  if (n.dot(pickRaycaster.ray.direction) > 0) n.negate();                     // カメラ側を向ける
+  const ranges = currentMeshData.faceRanges || [];
+  return { p: hit.point.clone(), n, tri: hit.faceIndex, face: ranges.findIndex(r => hit.faceIndex >= r[0] && hit.faceIndex < r[1]) };
+}
+function commentPrompt(title, initial) {          // 複数行の入力窓(Enter は改行、Ctrl+Enter か OK で決定、Esc で中止)
+  return new Promise((resolve) => {
+    const bd = document.createElement("div");
+    bd.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center";
+    bd.innerHTML = `<div style="background:#fff;border:1px solid #9aa4b5;border-radius:8px;padding:14px;width:min(420px,90vw);box-shadow:0 6px 24px rgba(0,0,0,.3);font-size:13px"><div style="font-weight:600;margin-bottom:8px"></div><textarea rows="5" style="width:100%;box-sizing:border-box;font:inherit;padding:6px;resize:vertical"></textarea><div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:10px"><span style="margin-right:auto;color:#888;font-size:11px">Enter: 改行 / Ctrl+Enter: 決定</span><button type="button" data-k="ng">キャンセル</button><button type="button" data-k="ok" style="font-weight:600">OK</button></div></div>`;
+    bd.firstChild.firstChild.textContent = title;
+    const ta = bd.querySelector("textarea"); ta.value = initial || "";
+    const done = (v) => { bd.remove(); resolve(v); };
+    bd.querySelector('[data-k="ok"]').addEventListener("click", () => done(ta.value));
+    bd.querySelector('[data-k="ng"]').addEventListener("click", () => done(null));
+    bd.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Escape") { e.preventDefault(); done(null); } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); done(ta.value); } });
+    bd.addEventListener("pointerdown", (e) => e.stopPropagation());
+    document.body.appendChild(bd); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+  });
+}
+async function commentAdd(hit) {
+  const text = await commentPrompt("コメントを入力してください", "");
+  if (text === null || !text.trim()) return;
+  cmHidden = false;
+  userComments.push({ id: commentSeq++, text: text.trim(), face: hit.face, p: [hit.p.x, hit.p.y, hit.p.z], n: [hit.n.x, hit.n.y, hit.n.z] });
+  commentsRebuild();
+}
+async function commentEdit(c) {
+  if (c.kind === "sketch") { sketchColor(c); return; }
+  const v = await commentPrompt("コメントを編集", c.text);
+  if (v === null) return;
+  if (!v.trim()) { commentDelete(c); return; }
+  c.text = v.trim(); commentsRebuild();
+}
+function commentDelete(c) {
+  if (!confirm("このコメントを削除しますか?")) return;
+  hiddenTol.delete(BM_COMMENT_BASE + c.id);
+  userComments = userComments.filter(x => x.id !== c.id); commentsRebuild();
+}
+function commentsClear() {
+  commentObjs.forEach(o => { o.el.remove(); if (o.line) { commentGroup.remove(o.line); o.line.geometry.dispose(); o.line.material.dispose(); } if (o.dot) { commentGroup.remove(o.dot); o.dot.geometry.dispose(); o.dot.material.dispose(); } });
+  commentObjs.clear();
+  if (typeof sketchObjs !== "undefined" && sketchObjs) [...sketchObjs.keys()].forEach(sketchDispose);
+}
+function commentsRebuild() {
+  commentsClear();
+  const diag = currentMeshData && currentMeshData.bbox ? Math.hypot(currentMeshData.bbox.max[0] - currentMeshData.bbox.min[0], currentMeshData.bbox.max[1] - currentMeshData.bbox.min[1], currentMeshData.bbox.max[2] - currentMeshData.bbox.min[2]) || 1 : 1;
+  for (const c of userComments) {
+    if (c.kind === "sketch") { sketchBuild(c); continue; }
+    const el = document.createElement("div");
+    el.className = "cm-box"; el.textContent = c.text; el.title = "右クリック: 編集・削除";
+    el.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); commentMenu(e, c); });
+    el.addEventListener("click", (e) => { e.stopPropagation(); if (commentDragMoved) { commentDragMoved = false; return; } commentSelect(c); });
+    el.addEventListener("pointerdown", (e) => commentDragStart(e, c));
+    el.addEventListener("dblclick", () => commentEdit(c));
+    commentLayer.appendChild(el);
+    // Graphic PMI / None 用: 面上の点から、法線方向へ伸びる引出線(3D)と黒丸
+    const p = new THREE.Vector3(...c.p), n = new THREE.Vector3(...c.n), q = c.q ? new THREE.Vector3(...c.q) : p.clone().addScaledVector(n, diag * 0.12);
+    const lg = new THREE.BufferGeometry().setFromPoints([p, q]);
+    const line = new THREE.Line(lg, new THREE.LineBasicMaterial({ color: 0x1a1a1a, depthTest: false, transparent: true }));
+    line.renderOrder = 1002; line.frustumCulled = false;
+    const dg = new THREE.BufferGeometry().setFromPoints([p]);
+    const dot = new THREE.Points(dg, new THREE.PointsMaterial({ color: 0x1a1a1a, size: 6, sizeAttenuation: false, depthTest: false }));
+    dot.renderOrder = 1002; dot.frustumCulled = false;
+    commentGroup.add(line); commentGroup.add(dot);
+    commentObjs.set(c.id, { id: c.id, el, line, dot, p, q, n });
+  }
+  if (typeof bmRemoveCommentItems === "function") {              // B&M: 幾何公差と同じ枠として作り直す
+    bmRemoveCommentItems();
+    if (lastPmi && currentMeshData && (bmItems.length || annotationStyle === "balloon")) { if (!bmItems.length) bmSetup(lastPmi); else userComments.forEach(c => bmAddCommentItem(c)); }
+  }
+  bmDirty = true; bmLastSig = "";
+  commentTick();
+  commentListRender();
+}
+var commentDragMoved = false, commentDrag = null;
+function commentDragStart(e, c) {          // Graphic PMI / None: 枠をドラッグして置く位置を変える(位置は .ant に保存)
+  if (e.button !== 0) return;
+  const o = commentObjs.get(c.id); if (!o) return;
+  e.stopPropagation();
+  commentTmp.copy(o.q).project(camera);
+  commentDrag = { c, o, x0: e.clientX, y0: e.clientY, sx: (commentTmp.x + 1) / 2 * viewerEl.clientWidth, sy: (1 - commentTmp.y) / 2 * viewerEl.clientHeight, z: commentTmp.z, moved: false };
+  commentDragMoved = false;
+}
+window.addEventListener("pointermove", (e) => {
+  const d = commentDrag; if (!d) return;
+  if (!d.moved && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 4) return;
+  d.moved = true; commentDragMoved = true; e.preventDefault();
+  const W = viewerEl.clientWidth, H = viewerEl.clientHeight;
+  const x = d.sx + e.clientX - d.x0, y = d.sy + e.clientY - d.y0;
+  const w = new THREE.Vector3(x / W * 2 - 1, -(y / H * 2 - 1), d.z).unproject(camera);       // 同じ奥行きのまま、画面上で動かす
+  d.o.q.copy(w); d.c.q = [w.x, w.y, w.z];
+  d.o.line.geometry.dispose(); d.o.line.geometry = new THREE.BufferGeometry().setFromPoints([d.o.p, d.o.q]);
+  commentTick();
+});
+window.addEventListener("pointerup", () => { if (commentDrag) { const m = commentDrag.moved; commentDrag = null; if (m) setTimeout(() => { commentDragMoved = false; }, 0); } });
+function commentsReset() { if (typeof sketchEnd === "function") sketchEnd(); userComments = []; commentSeq = 1; commentsClear(); commentListRender(); }
+function commentFaceId(c) { const fi = currentMeshData && currentMeshData.faceInfo && c.face >= 0 ? currentMeshData.faceInfo[c.face] : null; return fi && fi.id !== undefined ? "#" + fi.id : ""; }
+function commentListRender() {           // 右の列のコメント一覧(Saved Views と同じ表示)
+  const list = document.getElementById("cmList");
+  list.innerHTML = "";
+  userComments.forEach(c => {
+    const row = document.createElement("div");
+    row.className = "view-row";
+    const name = document.createElement("span");
+    name.className = "vname"; name.textContent = commentLabel(c); name.title = commentFull(c); if (c.kind === "sketch") name.style.color = c.color || "#ff0000";
+    row.appendChild(name);
+    const fid = commentFaceId(c);
+    if (fid) { const src = document.createElement("span"); src.className = "vsrc"; src.textContent = fid; row.appendChild(src); }
+    const del = document.createElement("button");
+    del.className = "vdel"; del.textContent = "\u00D7"; del.title = "Delete";
+    del.addEventListener("click", (e) => { e.stopPropagation(); commentDelete(c); });
+    row.appendChild(del);
+    row.addEventListener("click", () => commentSelect(c));
+    row.addEventListener("dblclick", () => commentEdit(c));
+    row.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); commentMenu(e, c); });
+    if (hiddenTol.has(BM_COMMENT_BASE + c.id)) row.style.opacity = "0.5";
+    list.appendChild(row);
+  });
+  updateViewsColumn();
+  commentGroupRender();
+}
+// 特性パネルの「Comment」の欄: 1 つずつ表示/非表示(幾何公差と同じ hiddenTol で持つので、タブごとに保存され、B&M の枠も隠れる)
+function commentGroupRender() {
+  const old = document.getElementById("cmGrp"); if (old) old.remove();
+  if (!userComments.length) return;
+  const rows = userComments.map(c => `<div class="row pmi-card cm-row" data-cid="${c.id}"><input type="checkbox" class="vis" data-idx="${BM_COMMENT_BASE + c.id}" ${hiddenTol.has(BM_COMMENT_BASE + c.id) ? "" : "checked"}>`
+    + `<span class="des"${c.kind === "sketch" ? ` style="color:${escapeHtml(c.color || "#ff0000")}"` : ""}>${c.kind === "sketch" ? "S" : "C"}${c.id}</span><span class="cm-txt" title="${escapeHtml(commentFull(c))}"${c.kind === "sketch" ? ` style="color:${escapeHtml(c.color || "#ff0000")}"` : ""}>${escapeHtml(commentLabel(c))}</span></div>`).join("");
+  const wrap = document.createElement("div");
+  wrap.innerHTML = groupHtml(`Comment/Sketch (${userComments.length})`, rows, true);
+  const g = wrap.firstElementChild; g.id = "cmGrp";
+  tolListEl.appendChild(g);
+  g.querySelector(".grp-head").addEventListener("click", (e) => { if (e.target.tagName !== "INPUT") g.classList.toggle("collapsed"); });
+  g.querySelectorAll(".cm-row").forEach(r => {
+    const c = userComments.find(x => x.id === Number(r.dataset.cid));
+    r.addEventListener("click", (e) => { if (e.target.classList.contains("vis")) return; commentSelect(c); });
+    r.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); commentMenu(e, c); });
+  });
+  g.querySelectorAll("input.vis").forEach(cb => cb.addEventListener("change", () => {
+    const i = Number(cb.dataset.idx);
+    if (cb.checked) hiddenTol.delete(i); else hiddenTol.add(i);
+    syncGroupChecks(); commentVisChanged();
+  }));
+  g.querySelector("input.gvis").addEventListener("change", (e) => {
+    g.querySelectorAll("input.vis").forEach(c => { c.checked = e.target.checked; const i = Number(c.dataset.idx); if (e.target.checked) hiddenTol.delete(i); else hiddenTol.add(i); });
+    e.target.indeterminate = false; commentVisChanged();
+  });
+  syncGroupChecks();
+}
+function commentVisChanged() {
+  document.querySelectorAll("#cmList .view-row").forEach((r, k) => { const c = userComments[k]; if (c) r.style.opacity = hiddenTol.has(BM_COMMENT_BASE + c.id) ? "0.5" : ""; });
+  bmDirty = true; bmLastSig = ""; commentTick();
+}
+function commentSetHidden(c, hide) {
+  const i = BM_COMMENT_BASE + c.id;
+  if (hide) hiddenTol.add(i); else hiddenTol.delete(i);
+  document.querySelectorAll(`#tolList input.vis[data-idx="${i}"]`).forEach(cb => { cb.checked = !hide; });
+  syncGroupChecks(); commentVisChanged();
+}
+function commentMenu(e, c) {
+  const hid = hiddenTol.has(BM_COMMENT_BASE + c.id);
+  const items = c.kind === "sketch" ? [{ text: "色を変える", fn: () => sketchColor(c) }, { text: "線を足す", fn: () => sketchBegin(c.face, c) }] : [{ text: "編集する", fn: () => commentEdit(c) }];
+  items.push({ text: hid ? "表示する" : "非表示にする", fn: () => commentSetHidden(c, !hid) }, { text: "削除する", fn: () => commentDelete(c) });
+  if (window.__makeMenu) window.__makeMenu(e, c.kind === "sketch" ? "スケッチ" : "コメント", items);
+}
+function commentSelect(c) {              // 指している面と、その面に紐づく幾何公差があれば、それもハイライトする
+  const rg = currentMeshData && currentMeshData.faceRanges ? currentMeshData.faceRanges[c.face] : null;
+  if (!rg) return;
+  const ti = toleranceOfFace(rg[0]);
+  const prev = rippleAllowed; rippleAllowed = true;
+  try {
+    if (ti !== null) { selectTolerance(ti, lastPmi.geometric_tolerances); const r = document.querySelector(`.pmi-card[data-idx="${ti}"]`); if (r && r.scrollIntoView) r.scrollIntoView({ block: "nearest" }); }
+    else selectPlainFace(rg[0]);
+  } finally { rippleAllowed = prev; }
+}
+// ---- スケッチ: 選んだ面の上でマウスダウンして線を描く。コメントの仲間として、右の一覧・左の Comment/Sketch 欄に並ぶ ----
+var sketchGroup = new THREE.Group(); sketchGroup.renderOrder = 1003; scene.add(sketchGroup);
+var sketchObjs = new Map();               // id -> { line }
+var sketchMode = null;                    // { face, cur, stroke }
+function commentLabel(c) { return c.kind === "sketch" ? "スケッチ " + c.id + "(" + c.strokes.length + " 本)" : c.text.split("\n")[0]; }
+function commentFull(c) { return c.kind === "sketch" ? commentLabel(c) : c.text; }
+function sketchDispose(id) { const o = sketchObjs.get(id); if (o) { sketchGroup.remove(o.line); o.line.geometry.dispose(); o.line.material.dispose(); sketchObjs.delete(id); } }
+function sketchBuild(c) {
+  sketchDispose(c.id);
+  const pos = [];
+  for (const st of c.strokes) for (let i = 3; i + 2 < st.length; i += 3) pos.push(st[i - 3], st[i - 2], st[i - 1], st[i], st[i + 1], st[i + 2]);
+  if (!pos.length) return;
+  const g = new LineSegmentsGeometry(); g.setPositions(pos);
+  const m = new LineMaterial({ color: new THREE.Color(c.color || "#ff0000").getHex(), linewidth: 3, depthTest: true, transparent: true, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 });
+  m.resolution.set(viewerEl.clientWidth || 1, viewerEl.clientHeight || 1);
+  const l = new LineSegments2(g, m); l.computeLineDistances(); l.renderOrder = 1003; l.frustumCulled = false;
+  l.visible = !hiddenTol.has(BM_COMMENT_BASE + c.id);
+  sketchGroup.add(l); sketchObjs.set(c.id, { line: l });
+}
+function sketchColor(c) {                 // 色の変更(既定は赤)
+  const i = document.createElement("input"); i.type = "color"; i.value = c.color || "#ff0000"; i.style.cssText = "position:fixed;left:-200px;top:0;opacity:0";
+  document.body.appendChild(i);
+  i.addEventListener("input", () => { c.color = i.value; sketchBuild(c); commentListRender(); });
+  i.addEventListener("change", () => { c.color = i.value; sketchBuild(c); commentListRender(); i.remove(); });
+  i.click();
+}
+function commentFaceOverlay(f, opacity) {
+  commentHoverClear(); commentHoverFace = f;
+  const rg = currentMeshData.faceRanges[f]; if (!rg) return;
+  const src = currentMeshData.indices, idx = [];
+  for (let t = rg[0]; t < rg[1]; t++) idx.push(src[t * 3], src[t * 3 + 1], src[t * 3 + 2]);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(currentMeshData.positions, 3)); g.setIndex(idx); g.computeVertexNormals();
+  commentHoverMesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xff8a00, side: THREE.DoubleSide, transparent: true, opacity, depthTest: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+  commentHoverMesh.renderOrder = 501; scene.add(commentHoverMesh);
+}
+function sketchBegin(face, cur) {          // この面の上で、マウスダウンして線を描く(cur: 線を足す既存のスケッチ)
+  if (face < 0 || !currentMeshData || !currentMeshData.faceRanges[face]) return;
+  commentModeSet(false);
+  sketchMode = { face, cur: cur || null, stroke: null };
+  document.getElementById("miSketch").classList.add("checked"); cv.style.cursor = "crosshair";
+  commentFaceOverlay(face, 0.22);
+  const fi = currentMeshData.faceInfo && currentMeshData.faceInfo[face];
+  statusEl.textContent = "Sketch" + (fi ? "(面 #" + fi.id + ")" : "") + ": 面の上でドラッグして線を描きます — Esc / Enter で終了";
+}
+function sketchEnd() {
+  if (!sketchMode) return;
+  sketchMode = null; commentHoverClear();
+  document.getElementById("miSketch").classList.remove("checked"); cv.style.cursor = "";
+  restoreStatus();
+}
+function sketchHit(e) {                    // ポインター位置の、スケッチ対象の面の上の点(面の外なら null)
+  const vr = viewerEl.getBoundingClientRect();
+  if (!sketchMode || e.clientX < vr.left || e.clientX > vr.right || e.clientY < vr.top || e.clientY > vr.bottom) return null;
+  const hit = commentPick(e.clientX - vr.left, e.clientY - vr.top);
+  return hit && hit.face === sketchMode.face ? hit : null;
+}
+function sketchAddPoint(hit, force) {
+  const bb = currentMeshData.bbox, diag = Math.hypot(bb.max[0] - bb.min[0], bb.max[1] - bb.min[1], bb.max[2] - bb.min[2]) || 1;
+  const q = hit.p.clone().addScaledVector(hit.n, diag * 0.003), st = sketchMode.stroke, k = st.length;
+  if (!force && k >= 3 && Math.hypot(q.x - st[k - 3], q.y - st[k - 2], q.z - st[k - 1]) < diag * 0.002) return;
+  st.push(q.x, q.y, q.z);
+}
+var sketchSwallow = false;
+viewerEl.addEventListener("pointerdown", (e) => {
+  if (!sketchMode || e.button !== 0 || (e.target.closest && e.target.closest("#panel, #viewsPanel, #menubar, .bm-label, .cm-box"))) return;
+  const hit = sketchHit(e); if (!hit) return;                   // 面の外では、これまでどおり回転・移動
+  e.stopPropagation(); e.preventDefault(); sketchSwallow = true;
+  let c = sketchMode.cur;
+  if (!c) { c = { id: commentSeq++, kind: "sketch", text: "", face: hit.face, p: [hit.p.x, hit.p.y, hit.p.z], n: [hit.n.x, hit.n.y, hit.n.z], color: "#ff0000", strokes: [] }; sketchMode.cur = c; sketchMode.isNew = true; }
+  sketchMode.stroke = []; c.strokes.push(sketchMode.stroke);
+  sketchAddPoint(hit, true); sketchBuild(c);
+}, true);
+window.addEventListener("pointermove", (e) => {
+  if (!sketchMode || !sketchMode.stroke) return;
+  const hit = sketchHit(e); if (!hit) return;
+  sketchAddPoint(hit); sketchBuild(sketchMode.cur);
+});
+window.addEventListener("pointerup", (e) => {
+  if (!sketchMode || !sketchMode.stroke || e.button !== 0) return;
+  const c = sketchMode.cur, st = sketchMode.stroke; sketchMode.stroke = null;
+  if (st.length < 6) c.strokes.splice(c.strokes.indexOf(st), 1);          // 点だけ(クリックだけ)の線は捨てる
+  if (!c.strokes.length) { sketchDispose(c.id); if (sketchMode.isNew) { sketchMode.cur = null; sketchMode.isNew = false; } return; }
+  if (!userComments.includes(c)) { cmHidden = false; userComments.push(c); }
+  sketchMode.isNew = false;
+  commentsRebuild();
+});
+viewerEl.addEventListener("click", (e) => { if (sketchSwallow) { sketchSwallow = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+// ---- Tool > Comment: 面をクリックして指定すると、右クリックの「コメントを追加」と同じ ----
+var commentMode = false, commentDown = null, commentSwallow = false, commentHoverMesh = null, commentHoverFace = -2;
+function commentHoverClear() {            // 面を指定するときの、ポインター下の面のハイライト(オレンジ)
+  if (commentHoverMesh) { scene.remove(commentHoverMesh); commentHoverMesh.geometry.dispose(); commentHoverMesh.material.dispose(); commentHoverMesh = null; }
+  commentHoverFace = -2;
+}
+function commentHoverUpdate(e) {
+  if (!commentMode || !currentMeshData) return;
+  const vr = viewerEl.getBoundingClientRect();
+  const inside = e.clientX >= vr.left && e.clientX <= vr.right && e.clientY >= vr.top && e.clientY <= vr.bottom;
+  const hit = inside && !e.target.closest("#panel, #viewsPanel, #menubar, .bm-label") ? commentPick(e.clientX - vr.left, e.clientY - vr.top) : null;
+  const f = hit ? hit.face : -1;
+  if (f === commentHoverFace) return;
+  commentHoverClear(); commentHoverFace = f;
+  const rg = hit && f >= 0 ? currentMeshData.faceRanges[f] : null;
+  if (!rg) return;
+  const src = currentMeshData.indices, idx = [];
+  for (let t = rg[0]; t < rg[1]; t++) idx.push(src[t * 3], src[t * 3 + 1], src[t * 3 + 2]);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(currentMeshData.positions, 3)); g.setIndex(idx); g.computeVertexNormals();
+  commentHoverMesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xff8a00, side: THREE.DoubleSide, transparent: true, opacity: 0.65, depthTest: true, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+  commentHoverMesh.renderOrder = 501;
+  scene.add(commentHoverMesh);
+  statusEl.textContent = (commentPurpose === "sketch" ? "Sketch: この面に描きます" : "Comment: この面にコメントを置きます") + (currentMeshData.faceInfo && currentMeshData.faceInfo[f] ? "(面 #" + currentMeshData.faceInfo[f].id + ")" : "") + " — クリックで決定(Esc で中止)";
+}
+window.addEventListener("pointermove", commentHoverUpdate);
+var commentPurpose = "comment";           // "comment": コメントを置く面を指定 / "sketch": スケッチを描く面を指定
+function commentModeSet(on) {
+  if (!on) commentHoverClear();
+  commentMode = on;
+  document.getElementById("miComment").classList.toggle("checked", on && commentPurpose === "comment");
+  document.getElementById("miSketch").classList.toggle("checked", (on && commentPurpose === "sketch") || !!sketchMode);
+  cv.style.cursor = on || sketchMode ? "crosshair" : "";
+  if (on) statusEl.textContent = commentPurpose === "sketch" ? "Sketch: 線を描く面をクリックしてください(Esc で中止)" : "Comment: コメントを置く面をクリックしてください(Esc で中止)"; else if (!sketchMode) restoreStatus();
+}
+function commentModeToggle(purpose) {
+  if (commentMode && commentPurpose === purpose) { commentModeSet(false); return; }
+  if (!currentMesh || !currentMeshData) { statusEl.textContent = "ファイルを開いてから " + (purpose === "sketch" ? "Sketch" : "Comment") + " を使ってください。"; return; }
+  if (sketchMode) sketchEnd();
+  commentPurpose = purpose; commentModeSet(true);
+}
+document.getElementById("miComment").addEventListener("click", () => commentModeToggle("comment"));
+document.getElementById("miSketch").addEventListener("click", () => { if (sketchMode) { sketchEnd(); return; } commentModeToggle("sketch"); });
+viewerEl.addEventListener("pointerdown", (e) => { commentDown = commentMode && e.button === 0 ? [e.clientX, e.clientY] : null; }, true);
+viewerEl.addEventListener("pointerup", (e) => {
+  if (!commentMode || !commentDown || e.button !== 0) return;
+  const moved = Math.hypot(e.clientX - commentDown[0], e.clientY - commentDown[1]); commentDown = null;
+  if (moved > 5) return;                          // ドラッグ(回転・移動)は、指定とは見なさない
+  const vr = viewerEl.getBoundingClientRect(), hit = commentPick(e.clientX - vr.left, e.clientY - vr.top);
+  if (!hit) { statusEl.textContent = "Comment: モデルの面の上をクリックしてください(Esc で中止)"; return; }
+  commentSwallow = true;
+  const purpose = commentPurpose;
+  commentModeSet(false);
+  if (purpose === "sketch") { setTimeout(() => sketchBegin(hit.face), 0); return; }
+  setTimeout(() => { commentAdd(hit); restoreStatus(); }, 0);
+}, true);
+viewerEl.addEventListener("click", (e) => { if (commentSwallow) { commentSwallow = false; e.stopImmediatePropagation(); } }, true);
+window.addEventListener("keydown", (e) => { if (e.key === "Escape" && commentMode) { e.preventDefault(); commentModeSet(false); } });
+window.addEventListener("keydown", (e) => { if ((e.key === "Escape" || e.key === "Enter") && sketchMode && !document.querySelector("textarea:focus, input:focus")) { e.preventDefault(); sketchEnd(); } });
+var commentTmp = new THREE.Vector3();
+function commentTick() {                 // Graphic PMI / None: 引出線の先(面の外側)に、画面に正対した枠を置く
+  if (typeof sketchObjs !== "undefined" && sketchObjs) sketchObjs.forEach((o, id) => { o.line.visible = !hiddenTol.has(BM_COMMENT_BASE + id); o.line.material.resolution.set(viewerEl.clientWidth || 1, viewerEl.clientHeight || 1); });
+  if (!commentGroup || !commentObjs) return;
+  const bal = annotationStyle === "balloon";
+  commentGroup.visible = !bal && commentObjs.size > 0;
+  if (bal) { commentObjs.forEach(o => { o.el.style.display = "none"; }); return; }          // B&M は、幾何公差と同じ枠(bmItems)で表示する
+  if (!commentObjs.size) return;
+  const W = viewerEl.clientWidth, H = viewerEl.clientHeight;
+  const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+  commentObjs.forEach((o) => {
+    commentTmp.copy(o.q).project(camera);
+    const x = (commentTmp.x + 1) / 2 * W, y = (1 - commentTmp.y) / 2 * H, w = o.el.offsetWidth, h = o.el.offsetHeight;
+    const inside = commentTmp.z < 1 && x > -w && x < W + w && y > -h && y < H + h;
+    const hid = hiddenTol.has(BM_COMMENT_BASE + o.id);
+    if (o.line) o.line.visible = !hid; if (o.dot) o.dot.visible = !hid;
+    o.el.style.display = inside && !hid ? "" : "none";
+    o.el.style.transform = `translate(${(x - w / 2).toFixed(1)}px, ${(y - h / 2).toFixed(1)}px)`;
+    o.el.style.opacity = o.n.dot(dir) > 0.3 ? "0.4" : "1";               // 面が裏向きのときは薄く
+  });
+}
+function commentLayoutBalloon(ctx) {     // Balloon & Mirror: 左右の隅に、他の公差記入枠と重ならないよう、下から一列に積む
+  if (annotationStyle !== "balloon" || !commentObjs.size) return;
+  const { W, H, toScr, marginX, occupied, firstFreeBottom } = ctx, k = Math.max(0.2, Math.min(6, bmScaleK));
+  commentObjs.forEach((o) => {
+    const s0 = toScr(o.p);
+    if (s0[0] < 0 || s0[0] > W || s0[1] < 0 || s0[1] > H) { o.el.style.display = "none"; return; }
+    o.el.style.display = ""; o.el.style.opacity = "1";
+    const w = o.el.offsetWidth * k, h = o.el.offsetHeight * k, side = s0[0] < W / 2 ? "left" : "right";
+    const bottom = firstFreeBottom(side, h), top = bottom - h;
+    const x = side === "left" ? viewOvlL + marginX : W - viewOvlR - marginX - w;
+    o.el.style.transform = `translate(${x.toFixed(1)}px, ${top.toFixed(1)}px) scale(${k.toFixed(4)})`;
+    occupied[side].push([top, bottom]);
+    const ex = side === "left" ? x + w : x, ey = top + h / 2;                       // 枠の内側の端の中央 -> 面上の点
+    bmSvg.appendChild(bmSvgEl("polyline", { points: `${ex.toFixed(1)},${ey.toFixed(1)} ${s0[0].toFixed(1)},${s0[1].toFixed(1)}`, fill: "none", stroke: "#1a1a1a", "stroke-width": 1 }));
+    bmSvg.appendChild(bmSvgEl("circle", { cx: s0[0].toFixed(1), cy: s0[1].toFixed(1), r: 3, fill: "#1a1a1a" }));
+  });
+}
 // ---- 2 点間の測定: 最短距離(オレンジ)と、X・Y・Z 軸に沿った距離(赤・緑・青)を、線と文字で 3D 上に描き、結果を文章で出力する ----
 var measResultObj = null, measLabels = [], measResultKey = "";
 function measUpdateResultSoon() {        // 選択が変わったときだけ作り直す(ホバーでは作り直さない)
@@ -7187,6 +7619,7 @@ function antBaseName(name) { return String(name).replace(/\.[^.]+$/, ""); }
 // 既定の状態を覚えておく(ファイルを開いた直後。アンカー・寸法線の端点は、既定からずれたものだけを保存する)
 function antSnapshotDefaults() {
   for (const it of bmItems) {
+    if (it.isComment) continue;
     it.antAnchor0 = it.anchor ? it.anchor.clone() : null;
     it.antShift0 = it.dim ? (it.dim.shift || 0) : 0;
   }
@@ -7206,6 +7639,8 @@ function antCollect() {
   L.push(el("SortMode", {}, sortMode));
   L.push(el("NavScheme", {}, navScheme));
   L.push(el("HighlightRipple", {}, String(rippleOn)));
+  for (const it of bmItems) if (it.isComment && it.anchor && it.comment) it.comment.p = [it.anchor.x, it.anchor.y, it.anchor.z];       // アンカーをドラッグした位置
+  L.push(el("Comments", {}, userComments.map(c => el("Comment", Object.assign({ id: c.id, face: c.face, p: c.p.map(antNum).join(" "), n: c.n.map(antNum).join(" ") }, c.kind === "sketch" ? { kind: "sketch", color: c.color || "#ff0000", s: c.strokes.map(st => st.map(antNum).join(" ")).join("|") } : (c.q ? { q: c.q.map(antNum).join(" ") } : {})), antEsc(c.text || ""))).join("")));
   {                                        // パネル・メニューバーの見た目(半透明・幅・断面の一覧の高さ・General tolerance の透明度)
     const ap = document.getElementById("app"), pl = document.getElementById("panel"), pr = document.getElementById("viewsPanel"), cl = document.getElementById("cutList");
     const gr = document.querySelector("#generalNotes .gfoot input");
@@ -7231,6 +7666,7 @@ function antCollect() {
   // アンカーの位置・寸法線の端点(既定から変えたものだけ)
   const anchors = [], dims = [];
   for (const it of bmItems) {
+    if (it.isComment) continue;
     const id = it.idxs[0];
     if (it.anchor && it.antAnchor0 && it.anchor.distanceToSquared(it.antAnchor0) > 1e-10) anchors.push(el("Anchor", { id, position: antVec(it.anchor), normal: antVec(it.normal) }));
     if (it.dim && it.dim.type !== "span" && (it.dim.fixedU || (it.dim.shift || 0) !== it.antShift0)) {
@@ -7272,6 +7708,18 @@ function antApply(xmlText) {
     if ((v = T("SortMode")) !== null && v !== sortMode) { const m = document.querySelector(`#sortMenu .menu-item[data-sort="${v}"]`); if (m) m.click(); }
     if ((v = T("NavScheme")) !== null && v !== navScheme) setNavScheme(v);
     if ((v = T("HighlightRipple")) !== null) setRipple(v === "true");
+    {                                      // コメント
+      const cs = [...root.getElementsByTagName("Comment")].map(e => ({ id: parseInt(e.getAttribute("id"), 10), face: parseInt(e.getAttribute("face"), 10), text: e.textContent,
+        kind: e.getAttribute("kind"), color: e.getAttribute("color"), s: e.getAttribute("s"), q: antParseVec(e.getAttribute("q")),
+        p: (antParseVec(e.getAttribute("p")) || { x: 0, y: 0, z: 0 }), n: (antParseVec(e.getAttribute("n")) || { x: 0, y: 0, z: 1 }) })).filter(c => isFinite(c.id) && (c.kind === "sketch" ? !!c.s : c.text.trim()));
+      if (cs.length) {
+        userComments = cs.map(c => c.kind === "sketch"
+          ? { id: c.id, kind: "sketch", face: c.face, text: "", color: c.color || "#ff0000", p: [c.p.x, c.p.y, c.p.z], n: [c.n.x, c.n.y, c.n.z], strokes: c.s.split("|").map(x => x.trim().split(/\s+/).map(Number).filter(v => isFinite(v))).filter(a => a.length >= 6) }
+          : { id: c.id, face: c.face, text: c.text, p: [c.p.x, c.p.y, c.p.z], n: [c.n.x, c.n.y, c.n.z], q: c.q ? [c.q.x, c.q.y, c.q.z] : null });
+        commentSeq = userComments.reduce((m, c) => Math.max(m, c.id), 0) + 1;
+        commentsRebuild();
+      }
+    }
     {                                      // パネル・メニューバーの見た目
       const ps = root.getElementsByTagName("PanelStyle")[0];
       if (ps) {
@@ -7649,7 +8097,7 @@ async function lastFileOpen() {
   document.getElementById("app").classList.toggle("panel-trans", panelTranslucent);
   setTimeout(() => { resize(); bmDirty = true; }, 0);
   const hiddenPanelItems = () => {         // 非表示のパネルを表示する項目(View / Option メニューの項目と同じ動作)
-    const defs = [["miPanel", "Characteristics Panel"], ["miViewsPanel", "Saved Views Panel"], ["miGeneral", "General Tolerance Panel"], ["miSource", "STEP/QIF Source Panel"]];
+    const defs = [["miPanel", "Characteristics Panel"], ["miViewsPanel", "Saved Views Panel"], ["miGeneral", "General Tolerance Panel"], ["miSource", "STEP/QIF Source Panel"], ["miTree", "STEP/QIF Structure Tree"]];
     const items = defs.filter(([id]) => !document.getElementById(id).classList.contains("checked")).map(([id, text]) => ({ text: "Show " + text, fn: () => document.getElementById(id).click() }));
     return items.length ? items : [{ text: "(All panels are shown)" }];
   };
@@ -7715,8 +8163,13 @@ async function lastFileOpen() {
         const it = bmAnchorAt(e.clientX, e.clientY);
         if (it) { e.preventDefault(); bmSectionMenu(it, e, close, makeMenu); return; }
       }
-      e.preventDefault();                           // 何もないところ: 非表示になっているパネルを出す項目
-      makeMenu(e, "Show Panel", hiddenPanelItems());
+      e.preventDefault();
+      const vr = viewerEl.getBoundingClientRect(), hit = commentPick(e.clientX - vr.left, e.clientY - vr.top);
+      if (hit) {                                    // モデルの面の上: コメントを追加
+        makeMenu(e, "面 " + (hit.face >= 0 && currentMeshData.faceInfo && currentMeshData.faceInfo[hit.face] ? "#" + currentMeshData.faceInfo[hit.face].id : ""), [{ text: "コメントを追加", fn: () => commentAdd(hit) }, { text: "スケッチを追加", fn: () => sketchBegin(hit.face) }]);
+        return;
+      }
+      makeMenu(e, "Show Panel", hiddenPanelItems());              // 何もないところ: 非表示になっているパネルを出す項目
       return;
     }
     e.preventDefault();
@@ -7785,7 +8238,7 @@ function srcRender() {
 }
 function srcScrollTo(line) { srcScroll.scrollTop = Math.max(0, line * SRC_LH - (srcScroll.clientHeight || 300) / 3); srcRender(); }
 async function srcLoad() {
-  if (!srcVisible || !srcFile) return;
+  if ((!srcVisible && !treeVisible) || !srcFile) return;
   const f = srcFile, token = ++srcLoadToken;
   srcKind = /\.(qif|xml)$/i.test(f.name) ? "qif" : "step";
   srcTitle.textContent = (srcKind === "qif" ? "QIF" : "STEP") + " Source";
@@ -7803,11 +8256,11 @@ async function srcLoad() {
     srcSpacer.style.width = (String(srcLines.length).length * 8 + 24 + srcMaxLen * 7.3) + "px";
     srcInfo.textContent = `${srcLines.length.toLocaleString()} lines`;
     srcScroll.scrollTop = 0; srcRender();
-    srcTreeRoot = null; srcMode = "source"; srcSetMode("source");
+    srcTreeRoot = null; if (treeVisible) srcTreeBuild();
     if (selectedTolIndex !== null && lastPmi) srcShowTol(lastPmi.geometric_tolerances[selectedTolIndex]);
   } catch (e) { srcInfo.textContent = "読み込めません: " + (e.message || e); }
 }
-function srcSetFile(file) { srcFile = file; if (srcVisible) srcLoad(); }
+function srcSetFile(file) { srcFile = file; if (srcVisible || treeVisible) srcLoad(); }
 function srcSetVisible(on) {
   srcVisible = on;
   srcWin.style.display = on ? "flex" : "none";
@@ -7815,7 +8268,7 @@ function srcSetVisible(on) {
   document.getElementById("miSource").classList.toggle("checked", on);
   try { localStorage.setItem("srcPanel", on ? "1" : "0"); } catch (_) {}
   resize(); bmDirty = true;
-  if (on) srcLoad(); else { srcLines = null; srcIdx = null; srcRows.innerHTML = ""; }
+  if (on) { if (!srcLines) srcLoad(); else srcRender(); } else { srcRows.innerHTML = ""; if (!treeVisible) { srcLines = null; srcIdx = null; } }
 }
 // ---- エンティティの行の索引と範囲 ----
 function srcBuildIdx() {
@@ -7842,14 +8295,14 @@ function srcEntityRange(start) {
   return [start, e];
 }
 function srcShowId(id) {
-  if (!srcVisible || !srcLines || id === undefined || id === null) return;
+  if ((!srcVisible && !treeVisible) || !srcLines || id === undefined || id === null) return;
   srcBuildIdx();
   const line = srcIdx.get(String(id));
   if (line === undefined) { srcHl = null; srcRender(); return; }
   const [a, b] = srcEntityRange(line);
   srcHl = { from: a, to: b };
   if (srcFromClick) srcRender(); else srcScrollTo(a);
-  srcTreeRevealLine(a);
+  if (treeVisible) srcTreeRevealLine(a);
 }
 function srcShowTol(tol) { if (tol) srcShowId(tol.id); }
 function srcClearHl() { if (srcHl) { srcHl = null; srcRender(); } }
@@ -7901,7 +8354,49 @@ srcRows.addEventListener("click", (e) => {
 });
 // ---- ソースの行・構造ツリーの節 -> 3D 側の選択 ----
 //  エンティティ番号(STEP の #N / QIF の id)に対応するものを探して選ぶ: 特性・データム・面・稜線・点
-function srcPick(id) {
+// ソース・構造ツリーの選択も、特性パネルのクリックと同じ: 3D 上のハイライト + 波紋(Option > Highlight Ripple Animation)
+function srcPick(id, lineIdx) {
+  const prev = rippleAllowed; rippleAllowed = true;
+  try { return srcPickCore(id) || (lineIdx !== undefined && srcPickByName(lineIdx)); } finally { rippleAllowed = prev; }
+}
+function srcRippleWorld(x, y, z) { if (rippleOn && rippleAllowed) { const q = rippleWorldToPx(x, y, z); rippleAt(q[0], q[1]); } }
+function srcRippleFace(ri) {              // 面の中心(その面の三角形の外接箱の中心)から波紋
+  const md = currentMeshData, rg = md.faceRanges[ri];
+  const P = md.positions, I = md.indices, lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+  for (let t = rg[0]; t < rg[1]; t++) for (let k = 0; k < 3; k++) { const v = I[t * 3 + k] * 3; for (let c = 0; c < 3; c++) { if (P[v + c] < lo[c]) lo[c] = P[v + c]; if (P[v + c] > hi[c]) hi[c] = P[v + c]; } }
+  if (isFinite(lo[0])) srcRippleWorld((lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2);
+}
+function srcPickByName(lineIdx) {          // エンティティの最初の文字列(名前)で、特性・データム・注記を探して選ぶ(ソースの行 -> 3D のアノテーション)
+  if (!lastPmi || !srcLines || lineIdx === undefined || srcKind !== "step") return false;
+  let e = lineIdx; while (e < srcLines.length - 1 && !/;\s*$/.test(srcLines[e])) e++;
+  const text = srcLines.slice(lineIdx, e + 1).join(" ");
+  const nm = /'((?:[^']|'')*)'/.exec(text);
+  if (!nm || !nm[1]) return false;
+  const name = nm[1].replace(/''/g, "'");
+  const tols = lastPmi.geometric_tolerances || [];
+  const ti = tols.findIndex(t => t.name === name);
+  if (ti >= 0) { if (selectedTolIndex !== ti) selectTolerance(ti, tols); return true; }
+  const datums = lastPmi.datums || [];
+  const di = datums.findIndex(d => (d.names || []).includes(name));
+  if (di >= 0) { if (selectedDatumIndex !== di) selectDatum(di); return true; }
+  const a = (lastPmi.annotations || []).find(x => x.name === name);
+  if (a) {
+    if (selectedAnnName !== name) selectAnnotationItem(name);
+    let p = null;
+    const g = (currentTessellatedGroups || []).find(q => q.name === name);
+    if (g) {
+      const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+      for (const pl of g.polylines) for (const q of pl) for (let k = 0; k < 3; k++) { if (q[k] < lo[k]) lo[k] = q[k]; if (q[k] > hi[k]) hi[k] = q[k]; }
+      if (isFinite(lo[0])) p = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2];
+    }
+    if (!p && (a.points || []).length) p = a.points[0];
+    if (!p && (a.anchor_points || []).length) p = a.anchor_points[0];
+    if (p) srcRippleWorld(p[0], p[1], p[2]);
+    return true;
+  }
+  return false;
+}
+function srcPickCore(id) {
   if (!lastPmi || id === null || id === undefined) return false;
   const sid = String(id);
   const tols = lastPmi.geometric_tolerances || [];
@@ -7913,6 +8408,7 @@ function srcPick(id) {
   const fi = currentMeshData && currentMeshData.faceInfo ? currentMeshData.faceInfo.findIndex(f => f && String(f.id) === sid) : -1;
   if (fi >= 0 && currentMeshData.faceRanges && currentMeshData.faceRanges[fi]) {
     selectPlainFace(currentMeshData.faceRanges[fi][0]);           // 面: その面をハイライト
+    srcRippleFace(fi);
     return true;
   }
   const topo = lastPmi.topology || {};
@@ -7922,12 +8418,14 @@ function srcPick(id) {
     clearAllSelection(); setModelTranslucent(true);
     highlightTargetGeometry([{ points: [ed.p1, ed.p2], polylines: [[ed.p1, ed.p2]] }]);
     statusEl.textContent = `稜線 #${sid}`; statusEl.title = "";
+    srcRippleWorld((ed.p1[0] + ed.p2[0]) / 2, (ed.p1[1] + ed.p2[1]) / 2, (ed.p1[2] + ed.p2[2]) / 2);
     return true;
   }
   if (vt && vt.p) {                                                 // 点
     clearAllSelection(); setModelTranslucent(true);
     highlightTargetGeometry([{ points: [vt.p], polylines: [] }]);
     statusEl.textContent = `点 #${sid}`; statusEl.title = "";
+    srcRippleWorld(vt.p[0], vt.p[1], vt.p[2]);
     return true;
   }
   return false;
@@ -7936,7 +8434,7 @@ function srcPickAtLine(i) {          // この行を含むエンティティ(上
   if (!srcLines) return false;
   const indent = (l) => l.length - l.trimStart().length;
   if (srcKind === "step") {
-    for (let j = i, n = 0; j >= 0 && n < 400; j--, n++) { const m = /^#(\d+)\s*=/.exec(srcLines[j]); if (m) return srcPick(m[1]); }
+    for (let j = i, n = 0; j >= 0 && n < 400; j--, n++) { const m = /^#(\d+)\s*=/.exec(srcLines[j]); if (m) return srcPick(m[1], j); }
     return false;
   }
   let bound = indent(srcLines[i]);
@@ -7946,12 +8444,15 @@ function srcPickAtLine(i) {          // この行を含むエンティティ(上
   }
   return false;
 }
-// ---- QIF Structure Tree(Windows 版と同じ: 遅延展開の木 + 内容欄。ソース・特性・3D と相互にリンクする) ----
-let srcMode = "source", srcTreeRoot = null, srcNodeEls = new Map(), srcTreeSel = null;
-const srcTreeEl = document.getElementById("srcTree"), srcNodeEl = document.getElementById("srcNode"), srcTreeWrap = document.getElementById("srcTreeWrap");
-function srcParseTree() {
+// ---- STEP/QIF Structure Tree(Windows 版と同じ: 遅延展開の木 + 内容欄。ソース・特性・3D と相互にリンクする) ----
+//  QIF: 要素(XML)の木。STEP: エンティティの種類ごとにまとめ、各エンティティを開くと、参照している(#N)エンティティが出る。
+let treeVisible = false, srcTreeRoot = null, srcTreeSel = null, treeStarts = null, treeEnts = null, treeFindLine = -1;
+const srcTreeEl = document.getElementById("srcTree"), srcNodeEl = document.getElementById("srcNode"), treeWin = document.getElementById("treeWin"), treeInfoEl = document.getElementById("treeInfo");
+const TREE_CHUNK = 300;                   // 1 度に作る子の行数(多いときは「さらに表示」)
+function srcParseTree() {                 // QIF: 行から要素の木を作る
   const n = srcLines.length, root = { name: "(root)", start: 0, end: n - 1, children: [], parent: null, depth: -1 };
   const stack = [root];
+  treeStarts = [];
   for (let i = 0; i < n; ) {
     const line = srcLines[i];
     if (/^\s*<\//.test(line)) { if (stack.length > 1) stack.pop().end = i; i++; continue; }
@@ -7962,63 +8463,132 @@ function srcParseTree() {
     const self = /\/>\s*$/.test(tag), closed = tag.includes("</" + m[1] + ">");
     const idm = /\bid="([^"]*)"/.exec(tag);
     const node = { name: m[1], id: idm ? idm[1] : null, start: i, end: j, children: [], parent: stack[stack.length - 1], depth: stack.length - 1 };
-    node.parent.children.push(node);
+    node.parent.children.push(node); treeStarts.push(i);
     if (!self && !closed) stack.push(node);
     i = j + 1;
   }
   while (stack.length > 1) stack.pop().end = n - 1;
   return root;
 }
+function srcParseStepTree() {             // STEP: エンティティを種類ごとにまとめた木(各エンティティは、開くと参照先が出る)
+  const n = srcLines.length, ents = [], byId = new Map();
+  for (let i = 0; i < n; i++) {
+    const m = /^#(\d+)\s*=\s*(.*)$/.exec(srcLines[i]);
+    if (!m) continue;
+    const rest = m[2];
+    const kw = rest.startsWith("(") ? "(complex)" : ((/^([A-Za-z][\w]*)/.exec(rest) || [])[1] || "?");
+    let e = i; while (e < n - 1 && !/;\s*$/.test(srcLines[e])) e++;
+    const nm = /'((?:[^']|'')*)'/.exec(rest);
+    const ent = { id: m[1], kw, start: i, end: e, label: nm && nm[1] ? nm[1] : "" };
+    ents.push(ent); byId.set(m[1], ent);
+    i = e;
+  }
+  treeEnts = ents; treeStarts = ents.map(x => x.start);
+  const groups = new Map();
+  for (const e of ents) { if (!groups.has(e.kw)) groups.set(e.kw, []); groups.get(e.kw).push(e); }
+  const root = { name: "(root)", start: 0, end: n - 1, parent: null, depth: -1, children: [] };
+  const mkEnt = (e, parent) => {
+    const refs = new Set();
+    for (let k = e.start; k <= e.end; k++) { const re = /#(\d+)/g; let r; const t = srcLines[k]; while ((r = re.exec(t))) if (r[1] !== e.id && byId.has(r[1])) refs.add(r[1]); }
+    const node = { name: e.kw, id: e.id, idLabel: "#" + e.id, extra: e.label, start: e.start, end: e.end, parent, depth: parent.depth + 1, children: null, nref: refs.size };
+    if (refs.size) node.lazy = (nd) => {
+      const anc = new Set(); for (let p = nd; p; p = p.parent) if (p.id) anc.add(p.id);
+      return [...refs].map(id => { const c = mkEnt(byId.get(id), nd); if (anc.has(id)) { c.lazy = null; c.nref = 0; c.cyc = true; } return c; });
+    };
+    else node.children = [];
+    return node;
+  };
+  const list = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  for (const [kw, arr] of list) {
+    const g = { name: kw, id: null, idLabel: "", start: arr[0].start, end: arr[arr.length - 1].end, parent: root, depth: 0, children: null, nref: arr.length, isGroup: true, ents: arr };
+    g.lazy = (nd) => arr.map(e => mkEnt(e, nd));
+    root.children.push(g);
+  }
+  root._byId = byId; root._mkEnt = mkEnt;
+  return root;
+}
 function srcTreeRow(node) {
   const row = document.createElement("div");
   row.className = "trow"; row.style.paddingLeft = (4 + node.depth * 14) + "px";
-  row.innerHTML = `<span class="tg">${node.children.length ? "▶" : ""}</span><span class="tn">${srcEsc(node.name)}</span>${node.id !== null ? ` <span class="ta">id="${srcEsc(node.id)}"</span>` : ""}${node.children.length ? ` <span class="tc">(${node.children.length})</span>` : ""}`;
+  const cnt = node.children ? node.children.length : (node.nref || 0);
+  const idl = node.idLabel !== undefined ? node.idLabel : (node.id !== null && node.id !== undefined ? `id="${node.id}"` : "");
+  row.innerHTML = `<span class="tg">${cnt ? "\u25B6" : ""}</span><span class="tn">${srcEsc(node.name)}</span>${idl ? ` <span class="ta">${srcEsc(idl)}</span>` : ""}${node.extra ? ` <span class="tc">'${srcEsc(node.extra.slice(0, 40))}'</span>` : ""}${cnt ? ` <span class="tc">(${cnt})</span>` : ""}${node.cyc ? ' <span class="tc">\u21BA</span>' : ""}`;
   row._node = node; node._row = row;
   row.addEventListener("click", (e) => {
-    if (e.target.classList.contains("tg") && node.children.length) { srcTreeToggle(node); return; }
+    if (e.target.classList.contains("tg") && cnt) { srcTreeToggle(node); return; }
     srcTreeSelectNode(node, true);
   });
-  row.addEventListener("dblclick", () => { if (node.children.length) srcTreeToggle(node); });
+  row.addEventListener("dblclick", () => { if (cnt) srcTreeToggle(node); });
   return row;
+}
+function srcTreeFill(node, upto) {         // 子の行を、upto 番目まで作る(多いときは、300 行ずつ)
+  if (!node._kids) return;
+  const kids = node.children, sh = node._shown || 0, to = Math.min(kids.length, upto);
+  if (node._more) { node._more.remove(); node._more = null; }
+  for (let k = sh; k < to; k++) node._kids.appendChild(srcTreeRow(kids[k]));
+  node._shown = Math.max(sh, to);
+  if (node._shown < kids.length) {
+    const m = document.createElement("div");
+    m.className = "trow"; m.style.paddingLeft = (4 + (node.depth + 1) * 14) + "px"; m.style.color = "#1360b8";
+    m.textContent = `\u2026 さらに表示 (${kids.length - node._shown})`;
+    m.addEventListener("click", () => srcTreeFill(node, node._shown + TREE_CHUNK));
+    node._kids.appendChild(m); node._more = m;
+  }
 }
 function srcTreeToggle(node, open) {
   const want = open === undefined ? !node._open : open;
-  if (!node.children.length) return;
+  if (!node.children && node.lazy) node.children = node.lazy(node);
+  if (!node.children || !node.children.length) return;
   if (want && !node._open) {
-    node._kids = document.createElement("div");
-    for (const c of node.children) { node._kids.appendChild(srcTreeRow(c)); }
+    node._kids = document.createElement("div"); node._shown = 0; node._more = null;
     node._row.after(node._kids);
-  } else if (!want && node._open) { node._kids.remove(); node._kids = null; }
+    srcTreeFill(node, TREE_CHUNK);
+  } else if (!want && node._open) { node._kids.remove(); node._kids = null; node._shown = 0; }
   node._open = want;
-  node._row.firstChild.textContent = want ? "▼" : "▶";
+  node._row.firstChild.textContent = want ? "\u25BC" : "\u25B6";
 }
 function srcTreeBuild() {
-  srcTreeEl.innerHTML = ""; srcTreeSel = null;
-  if (!srcLines || srcKind !== "qif") { srcTreeRoot = null; return; }
-  srcTreeRoot = srcParseTree();
+  srcTreeEl.innerHTML = ""; srcTreeSel = null; treeStarts = null; treeEnts = null;
+  if (!srcLines) { srcTreeRoot = null; return; }
+  srcTreeRoot = srcKind === "qif" ? srcParseTree() : srcParseStepTree();
   const rootRow = document.createElement("div"); srcTreeRoot._row = rootRow; srcTreeRoot._open = false; srcTreeRoot.depth = -1;
-  rootRow.style.display = "none";
-  rootRow.innerHTML = '<span class="tg"></span>';
+  rootRow.style.display = "none"; rootRow.innerHTML = '<span class="tg"></span>';
   srcTreeEl.appendChild(rootRow);
-  srcTreeRoot._kids = null;
   srcTreeToggle(srcTreeRoot, true);
-  for (const c of srcTreeRoot.children.slice(0, 1)) if (c.children.length <= 40) srcTreeToggle(c, true);       // 最上位(QIFDocument)は開いておく
+  if (srcKind === "qif") { for (const c of srcTreeRoot.children.slice(0, 1)) if (c.children.length <= 40) srcTreeToggle(c, true); }
+  document.getElementById("treeTitle").textContent = (srcKind === "qif" ? "QIF" : "STEP") + " Structure Tree";
+  treeInfoEl.textContent = srcKind === "qif" ? `${(treeStarts || []).length.toLocaleString()} elements` : `${(treeEnts || []).length.toLocaleString()} entities / ${srcTreeRoot.children.length} types`;
 }
 function srcTreeSelectNode(node, fromTree) {
   if (srcTreeSel && srcTreeSel._row) srcTreeSel._row.classList.remove("sel");
   srcTreeSel = node;
-  if (node._row) { node._row.classList.add("sel"); }
+  if (node._row) node._row.classList.add("sel");
   srcHl = { from: node.start, to: node.end };
-  if (srcVisible && srcMode === "source") srcScrollTo(node.start); else srcRender();
+  if (srcVisible) { if (fromTree) srcScrollTo(node.start); else srcRender(); }
   const total = node.end - node.start + 1, cap = 300;
-  srcNodeEl.textContent = srcLines.slice(node.start, node.start + Math.min(total, cap)).map(l => l.replace(/^\t+/, (t) => "  ".repeat(t.length))).join(String.fromCharCode(10))
+  srcNodeEl.textContent = node.isGroup ? `${node.name}: ${node.nref} entities` : srcLines.slice(node.start, node.start + Math.min(total, cap)).map(l => l.replace(/^\t+/, (t) => "  ".repeat(t.length))).join(String.fromCharCode(10))
     + (total > cap ? String.fromCharCode(10) + `... (あと ${total - cap} 行)` : "");
   if (fromTree) {                       // 木の節 -> 3D 側の選択(自分か、近い親のエンティティ)
-    for (let n = node; n && n.parent; n = n.parent) if (n.id !== null && srcPick(n.id)) break;
+    for (let n = node; n && n.parent; n = n.parent) if (n.id !== null && n.id !== undefined && srcPick(n.id, srcKind === "step" ? n.start : undefined)) break;
   }
 }
-function srcTreeRevealLine(i) {         // ソースの行 -> 木の、その行を含む一番深い節を開いて選ぶ
-  if (!srcTreeRoot) return;
+function srcTreeRevealLine(i) {         // ソースの行 -> 木の、その行を含む節を開いて選ぶ
+  if (!srcTreeRoot || !treeVisible) return;
+  if (srcKind === "step") {
+    const ents = treeEnts || []; let lo = 0, hi = ents.length - 1, f = -1;
+    while (lo <= hi) { const mid = (lo + hi) >> 1; if (ents[mid].start <= i) { f = mid; lo = mid + 1; } else hi = mid - 1; }
+    if (f < 0 || ents[f].end < i) return;
+    const e = ents[f], g = srcTreeRoot.children.find(c => c.name === e.kw);
+    if (!g) return;
+    srcTreeToggle(g, true);
+    const idx = g.children ? g.children.findIndex(c => c.id === e.id) : -1;
+    if (idx < 0) return;
+    if (g._shown < idx + 1) srcTreeFill(g, idx + 1 + 20);
+    const node = g.children[idx];
+    srcTreeSelectNode(node, false);
+    if (node._row) node._row.scrollIntoView({ block: "nearest" });
+    return;
+  }
   let node = srcTreeRoot;
   for (;;) {
     let next = null;
@@ -8030,22 +8600,56 @@ function srcTreeRevealLine(i) {         // ソースの行 -> 木の、その行
   for (let p = node.parent; p; p = p.parent) if (p !== srcTreeRoot && !p._open) srcTreeToggle(p, true);
   if (node === srcTreeRoot) return;
   srcTreeSelectNode(node, false);
-  if (node._row && srcMode === "tree") node._row.scrollIntoView({ block: "nearest" });
+  if (node._row) node._row.scrollIntoView({ block: "nearest" });
 }
-function srcSetMode(mode) {
-  srcMode = srcKind === "qif" ? mode : "source";
-  const tree = srcMode === "tree";
-  document.getElementById("srcScroll").style.display = tree ? "none" : "";
-  srcTreeWrap.style.display = tree ? "flex" : "none";
-  for (const id of ["srcFind", "srcFindPrev", "srcFindBtn"]) document.getElementById(id).style.display = tree ? "none" : "";
-  document.getElementById("srcModeBtn").textContent = tree ? "Source" : "Structure";
-  document.getElementById("srcModeBtn").style.display = srcKind === "qif" ? "" : "none";
-  if (tree) {
-    if (!srcTreeRoot) srcTreeBuild();
-    if (srcHl) srcTreeRevealLine(srcHl.from);
-  } else srcRender();
+// 木の Find: 節(要素・エンティティ)の開始行の文章に、入力した文字がある次の(前の)節を探して選ぶ
+function treeFindNext(back) {
+  if (!srcLines || !treeStarts || !treeStarts.length) return;
+  const q = document.getElementById("treeFind").value.toLowerCase();
+  if (!q) return;
+  const st = treeStarts, n = st.length;
+  let k = treeFindLine >= 0 ? (treeFindLine + (back ? -1 : 1) + n) % n : (srcTreeSel ? Math.max(0, st.findIndex(x => x >= srcTreeSel.start)) : 0);
+  for (let c = 0; c < n; c++) {
+    if (srcLines[st[k]].toLowerCase().includes(q)) { treeFindLine = k; srcTreeRevealLine(st[k]); treeInfoEl.textContent = `line ${st[k] + 1}`; return; }
+    k = back ? (k - 1 + n) % n : (k + 1) % n;
+  }
+  treeInfoEl.textContent = "見つかりません";
 }
-document.getElementById("srcModeBtn").addEventListener("click", () => srcSetMode(srcMode === "tree" ? "source" : "tree"));
+function treeSetVisible(on) {
+  treeVisible = on;
+  treeWin.style.display = on ? "flex" : "none";
+  document.getElementById("splitTree").style.display = on ? "" : "none";
+  document.getElementById("miTree").classList.toggle("checked", on);
+  try { localStorage.setItem("treePanel", on ? "1" : "0"); } catch (_) {}
+  resize(); bmDirty = true;
+  if (on) { if (srcLines) { if (!srcTreeRoot) srcTreeBuild(); if (srcHl) srcTreeRevealLine(srcHl.from); } else srcLoad(); }
+  else { srcTreeEl.innerHTML = ""; srcTreeRoot = null; srcTreeSel = null; treeStarts = null; treeEnts = null; if (!srcVisible) { srcLines = null; srcIdx = null; } }
+}
+document.getElementById("miTree").addEventListener("click", () => treeSetVisible(!treeVisible));
+document.getElementById("treeClose").addEventListener("click", () => treeSetVisible(false));
+document.getElementById("treeFindBtn").addEventListener("click", () => { treeFindLine = -1; treeFindNext(false); });
+document.getElementById("treeFindPrev").addEventListener("click", () => treeFindNext(true));
+document.getElementById("treeFind").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); treeFindNext(e.shiftKey); } });
+document.getElementById("treeFind").addEventListener("input", () => { treeFindLine = -1; });
+(function () {         // 左のつまみをドラッグして、パネルの幅を変える(幅は覚えておく)
+  const sp = document.getElementById("splitTree"), MIN_W = 160;
+  const setW = (w) => { const total = document.querySelector("main").clientWidth; w = Math.max(MIN_W, Math.min(w, Math.max(MIN_W, total - 300))); treeWin.style.width = w + "px"; return w; };
+  try { const w0 = parseFloat(localStorage.getItem("treeWinW")); if (w0 > 0) setW(w0); } catch (_) {}
+  sp.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    const x0 = e.clientX, w0 = treeWin.offsetWidth;
+    sp.classList.add("dragging"); document.body.classList.add("col-resizing");
+    try { sp.setPointerCapture(e.pointerId); } catch (_) {}
+    const move = (ev) => { setW(w0 - (ev.clientX - x0)); resize(); bmDirty = true; };
+    const up = () => {
+      sp.classList.remove("dragging"); document.body.classList.remove("col-resizing");
+      sp.removeEventListener("pointermove", move); sp.removeEventListener("pointerup", up); sp.removeEventListener("pointercancel", up);
+      try { localStorage.setItem("treeWinW", String(treeWin.offsetWidth)); } catch (_) {} resize(); bmDirty = true;
+    };
+    sp.addEventListener("pointermove", move); sp.addEventListener("pointerup", up); sp.addEventListener("pointercancel", up);
+  });
+})();
+setTimeout(() => { try { if (localStorage.getItem("treePanel") === "1") treeSetVisible(true); } catch (_) {} }, 0);
 document.getElementById("srcFindBtn").addEventListener("click", () => srcFindNext(false));
 document.getElementById("srcFindPrev").addEventListener("click", () => srcFindNext(true));
 srcFindEl.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); srcFindNext(e.shiftKey); } });
@@ -8108,6 +8712,7 @@ async function handleFile(file, antFile, srcPath) {
     showMesh(data.mesh);
     setProgress(0.98); await nextFrame();
     renderPmi(data.pmi);
+    commentsReset();                                       // コメントは、ファイルごと(.ant があれば、あとで復元する)
     panelTabsReset();                                      // 特性・データム欄のタブ(.ant があれば、あとで復元する)
     setupGeneralNotes(data.pmi);
     bmSetup(data.pmi);
