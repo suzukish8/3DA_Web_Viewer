@@ -130,6 +130,12 @@ async def upload_step(file: UploadFile = File(...)):
     if not data:
         raise HTTPException(status_code=400, detail="空のファイルです")
 
+    # 重い解析は、別スレッドで行う(その間も /api/health などの他のリクエストに応答できるように)
+    from starlette.concurrency import run_in_threadpool
+    return await run_in_threadpool(_process_upload, data, filename, suffix)
+
+
+def _process_upload(data: bytes, filename: str, suffix: str):
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
         tmp.write(data)
         tmp_path = tmp.name
