@@ -6,9 +6,7 @@
     return new Promise((resolve, reject) => {
       let w;
       try { w = new Worker("wasm_worker.js"); } catch (e) {
-        const hint = location.protocol === "file:" ? "
-
-ファイル(file://)から開いた画面では、ブラウザ内解析は使えません。サーバー(start_server.bat)が起動していて、応答できる状態か確認してください。" : "";
+        const hint = location.protocol === "file:" ? "\n\nファイル(file://)から開いた画面では、ブラウザ内解析は使えません。サーバー(start_server.bat)が起動していて、応答できる状態か確認してください。" : "";
         reject(new Error("Web Worker を起動できません: " + e.message + hint)); return;
       }
       w.onmessage = (e) => {
