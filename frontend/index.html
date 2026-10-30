@@ -3067,9 +3067,11 @@ document.querySelectorAll("#styleMenu [data-style]").forEach(el =>
 function applyDefaultAnnotationStyle(isQif, pmi) {
   const hasTol = (pmi.geometric_tolerances || []).length > 0;
   const hasGraphic = (pmi.tessellated || []).some(g => (g.polylines && g.polylines.length) || g.glyph);
-  document.querySelector('#styleMenu [data-style="original"]').classList.toggle("disabled", isQif);
+  const isJt = currentFileKind === "jt";                 // a JT carries drawn PMI too (jt/graphic.py), so Graphic PMI stays selectable
+  document.querySelector('#styleMenu [data-style="original"]').classList.toggle("disabled", isQif && !(isJt && hasGraphic));
   let style = "none";
-  if (isQif) { if (hasTol) style = "balloon"; }
+  if (isJt && hasGraphic) style = "original";
+  else if (isQif) { if (hasTol) style = "balloon"; }
   else if (hasGraphic) style = "original";
   setAnnotationStyle(style);
 }

@@ -73,6 +73,31 @@ def apply_jt_pmi(geom: JtGeometry, mesh, path: str) -> None:
         doc.warn(f"JT PMI: not available ({exc})")
 
 
+def build_graphic_pmi(path: str):
+    """The JT's drawn PMI (frames, leaders, dimension lines, text strokes) as
+    the viewer's ``GraphicPmi``.  Groups are named ``jt-<entity id>`` so a
+    click maps to the same annotation the semantic overlay created."""
+    from qif_viewer.step.graphic_pmi import GraphicPmi
+
+    from .graphic import extract_graphic
+    from .pmi import extract_pmi
+    from .reader import read_jt
+
+    jt = read_jt(path)
+    graphic = extract_graphic(jt)
+    names = {e.run_start: f"jt-{e.id}" for e in extract_pmi(jt).entities}
+    gp = GraphicPmi()
+    for run_start, ent in sorted(graphic.items()):
+        lines = [pl.points for pl in ent.polylines if len(pl.points) >= 2]
+        if not lines:
+            continue
+        p0 = len(gp.polylines)
+        gp.polylines.extend(lines)
+        gp.groups.append((names.get(run_start, f"jt-gfx-{run_start}"), p0, len(gp.polylines), 0, 0))
+        gp.occurrence_count += 1
+    return gp
+
+
 def load_jt_file(path: str):
     """Desktop entry: a ``StepLoadResult`` with a pyvista display mesh."""
     import pyvista as pv
@@ -95,7 +120,16 @@ def load_jt_file(path: str):
         edges_mesh = pv.PolyData(np.vstack(geom.edge_polylines), lines=lines)
     else:
         edges_mesh = pv.PolyData()
-    return StepLoadResult(geom.doc, mesh, geom.cell_offsets, edges_mesh, geom.edge_ids, pv.PolyData(), [])
+    try:
+        graphic = build_graphic_pmi(path)
+    except Exception as exc:  # noqa: BLE001 - drawn PMI is optional
+        geom.doc.warn(f"JT graphic PMI: not available ({exc})")
+        graphic = None
+    result = StepLoadResult(geom.doc, mesh, geom.cell_offsets, edges_mesh, geom.edge_ids, pv.PolyData(), [])
+    if graphic is not None:
+        result.graphic_pmi = graphic
+        geom.doc.warn(f"JT graphic PMI: {graphic.occurrence_count} entities, {len(graphic.polylines)} polylines")
+    return result
 
 
 def _build_faces(scene: JtScene, doc: QifDocument) -> list[tuple[int, int, str]]:

@@ -352,4 +352,42 @@ def load_jt(path: str) -> tuple[dict, dict]:
     apply_jt_pmi(geom, PointsFaces(geom.points, geom.triangles), path)
     mesh, pmi = doc_to_response(geom.doc, geom.points, geom.triangles, geom.cell_offsets, [], _jt_attributes(path))
     pmi["source_text"] = jt_report_text(path, geom.doc)
+    try:
+        pmi["tessellated"] = _jt_graphic_groups(path, geom.doc, pmi)
+    except Exception:  # noqa: BLE001 - drawn PMI is optional
+        pmi["tessellated"] = []
     return mesh, pmi
+
+
+def _jt_graphic_groups(path: str, doc, pmi: dict) -> list[dict]:
+    """JT に描かれている PMI(記入枠・引出線・寸法線・文字の線分)を、STEP の tessellated と同じ形に直す。
+    グループ名は、対応する特性の name(= "jt-<エンティティ番号>")に合わせ、選択・ハイライトを連動させる。"""
+    from qif_viewer.jt.graphic import extract_graphic
+    from qif_viewer.jt.pmi import KIND_DATUM, extract_pmi
+    from qif_viewer.jt.reader import read_jt
+
+    jt = read_jt(path)
+    graphic = extract_graphic(jt)
+    raw = {e.run_start: e for e in extract_pmi(jt).entities}
+    index = getattr(doc, "step_pmi_name_index", None) or {}
+    tol_by_id = {t["id"]: t for t in pmi["geometric_tolerances"]}
+    groups: list[dict] = []
+    for run_start, g in sorted(graphic.items()):
+        lines = [[[float(x) for x in p] for p in pl.points] for pl in g.polylines if len(pl.points) >= 2]
+        if not lines:
+            continue
+        e = raw.get(run_start)
+        name = f"jt-gfx-{run_start}"
+        if e is not None:
+            name = f"jt-{e.id}"
+            for aid in index.get(name, []):
+                t = tol_by_id.get(aid[5:] if aid.startswith("char-") else "")
+                if t is not None:
+                    t["name"] = name
+                    break
+            if e.kind == KIND_DATUM:
+                for d in pmi["datums"]:
+                    if d["letter"] == e.props.get("label"):
+                        d["names"].append(name)
+        groups.append({"name": name, "polylines": lines})
+    return groups

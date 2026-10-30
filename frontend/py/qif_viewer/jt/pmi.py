@@ -43,6 +43,7 @@ class JtPmiEntity:
     name: str                      # e.g. "Feature Control Frame (35)" (may be "")
     props: dict[str, str] = field(default_factory=dict)
     segment_offset: int = 0
+    run_start: int = 0             # offset of the property run in the PMI payload (joins to jt.graphic)
 
     def vec(self, key: str) -> Optional[tuple[float, float, float]]:
         v = self.props.get(key)
@@ -228,7 +229,7 @@ def extract_pmi(jt: JtFile) -> JtPmi:
                 continue
             seen.add(key)
             pmi.entities.append(
-                JtPmiEntity(ident, kind, names.get(ident, ""), props, seg.offset)
+                JtPmiEntity(ident, kind, names.get(ident, ""), props, seg.offset, start)
             )
     pmi.entities.sort(key=lambda e: e.id)
     return pmi
