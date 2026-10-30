@@ -85,15 +85,15 @@ def build_graphic_pmi(path: str):
 
     jt = read_jt(path)
     graphic = extract_graphic(jt)
-    names = {e.run_start: f"jt-{e.id}" for e in extract_pmi(jt).entities}
+    names = {(e.segment_offset, e.run_start): f"jt-{e.id}" for e in extract_pmi(jt).entities}
     gp = GraphicPmi()
-    for run_start, ent in sorted(graphic.items()):
+    for key, ent in sorted(graphic.items()):
         lines = [pl.points for pl in ent.polylines if len(pl.points) >= 2]
         if not lines:
             continue
         p0 = len(gp.polylines)
         gp.polylines.extend(lines)
-        gp.groups.append((names.get(run_start, f"jt-gfx-{run_start}"), p0, len(gp.polylines), 0, 0))
+        gp.groups.append((names.get(key, f"jt-gfx-{key[0]}-{key[1]}"), p0, len(gp.polylines), 0, 0))
         gp.occurrence_count += 1
     return gp
 

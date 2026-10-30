@@ -75,6 +75,7 @@ class JtCharacteristic:
     material_condition: Optional[str] = None
     common_zone: bool = False
     unequal_value: Optional[float] = None
+    entity_id: int = 0             # id of the PMI entity (shared by the rows of a stacked frame)
     text_origin: Optional[tuple[float, float, float]] = None
     # (terminator point, raw NX reference) per leader, in model coordinates.
     leaders: list[tuple[Optional[tuple[float, float, float]], str]] = field(default_factory=list)
@@ -93,6 +94,7 @@ class JtDimension:
     lower_delta: Optional[float]
     type_code: Optional[int]
     kind: Optional[str] = None
+    diameter: bool = False          # a diameter symbol (``<O>``) is part of the dimension text
     text_origin: Optional[tuple[float, float, float]] = None
     leaders: list[tuple[Optional[tuple[float, float, float]], str]] = field(default_factory=list)
 
@@ -122,6 +124,9 @@ class JtSemanticPmi:
     dimensions: list[JtDimension] = field(default_factory=list)
     datums: list[JtDatum] = field(default_factory=list)
     notes: list[JtNote] = field(default_factory=list)
+
+
+_COMP_RE = re.compile(r"^ToleranceCompartment\[(\d+)\]")
 
 
 def _f(v: Optional[str]) -> Optional[float]:
@@ -159,15 +164,9 @@ def _datum_level(e: JtPmiEntity, comp: int, level: str) -> list[DatumRef]:
         mod = _i(e.props.get(base + ".modifier"))
         refs.append(DatumRef(e.props[base + ".label"], MODIFIERS.get(mod) if mod is not None else None))
         m += 1
-    # NX repeats a label as Reference[1] to carry the modifier of a datum;
-    # collapse consecutive duplicates, keeping any modifier found.
-    out: list[DatumRef] = []
-    for r in refs:
-        if out and out[-1].label == r.label:
-            out[-1].modifier = out[-1].modifier or r.modifier
-        else:
-            out.append(r)
-    return out
+    # Repeated labels are real: two datum features sharing one letter form a
+    # common datum ("C-C"), which the STEP export spells COMMON_DATUM_LIST.
+    return refs
 
 
 def _note_text(e: JtPmiEntity) -> str:
@@ -188,23 +187,32 @@ def to_semantic(pmi: JtPmi) -> JtSemanticPmi:
     for e in pmi.entities:
         if e.kind == KIND_FCF:
             code = _i(e.props.get("characteristic")) or 0
-            mod = _i(e.props.get("ToleranceCompartment[0].modifier"))
-            zs = _i(e.props.get("ToleranceCompartment[0].zoneShape"))
-            out.characteristics.append(JtCharacteristic(
-                jt_id=e.id,
-                type_name=CHARACTERISTIC_NAMES.get(code, f"Unknown({code})"),
-                code=code,
-                tolerance_value=_f(e.props.get("ToleranceCompartment[0].value")),
-                primary=_datum_level(e, 0, "Primary"),
-                secondary=_datum_level(e, 0, "Secondary"),
-                tertiary=_datum_level(e, 0, "Tertiary"),
-                zone_shape=ZONE_SHAPES.get(zs) if zs is not None else None,
-                material_condition=MODIFIERS.get(mod) if mod is not None else None,
-                common_zone=e.props.get("ToleranceCompartment[0].commonZone") == "1",
-                unequal_value=_f(e.props.get("ToleranceCompartment[0].unequalValue")),
-                text_origin=e.text_origin,
-                leaders=_leaders(e),
-            ))
+            # A frame with stacked rows has one tolerance compartment per row;
+            # each row is its own characteristic (as in the STEP export).
+            ncomp = 1 + max((int(m.group(1)) for k in e.props
+                             for m in [_COMP_RE.match(k)] if m), default=0)
+            for comp in range(ncomp):
+                pre = f"ToleranceCompartment[{comp}]"
+                if f"{pre}.value" not in e.props and comp > 0:
+                    continue
+                mod = _i(e.props.get(f"{pre}.modifier"))
+                zs = _i(e.props.get(f"{pre}.zoneShape"))
+                out.characteristics.append(JtCharacteristic(
+                    jt_id=e.id + comp * 100_000_000,
+                    entity_id=e.id,
+                    type_name=CHARACTERISTIC_NAMES.get(code, f"Unknown({code})"),
+                    code=code,
+                    tolerance_value=_f(e.props.get(f"{pre}.value")),
+                    primary=_datum_level(e, comp, "Primary"),
+                    secondary=_datum_level(e, comp, "Secondary"),
+                    tertiary=_datum_level(e, comp, "Tertiary"),
+                    zone_shape=ZONE_SHAPES.get(zs) if zs is not None else None,
+                    material_condition=MODIFIERS.get(mod) if mod is not None else None,
+                    common_zone=e.props.get(f"{pre}.commonZone") == "1",
+                    unequal_value=_f(e.props.get(f"{pre}.unequalValue")),
+                    text_origin=e.text_origin,
+                    leaders=_leaders(e),
+                ))
         elif e.kind == KIND_DIM:
             out.dimensions.append(JtDimension(
                 jt_id=e.id,
@@ -214,6 +222,8 @@ def to_semantic(pmi: JtPmi) -> JtSemanticPmi:
                 lower_delta=_f(e.props.get("lowerDelta")),
                 type_code=_i(e.props.get("Ely.DimType") or e.props.get("type")),
                 kind=DIMENSION_KINDS.get(_i(e.props.get("type"))),
+                diameter=any("<O>" in v for k, v in e.props.items()
+                             if k.endswith(".string") and (k.startswith("DimensionText") or k.startswith("ValueText"))),
                 text_origin=e.text_origin,
                 leaders=_leaders(e),
             ))

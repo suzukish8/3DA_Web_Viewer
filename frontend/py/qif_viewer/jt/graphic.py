@@ -167,10 +167,10 @@ def _props_end(b: bytes, p: int, count: int):
     return p
 
 
-def extract_graphic(jt: JtFile) -> dict[int, GraphicEntity]:
-    """``{run_start: GraphicEntity}`` for the PMI-manager segment(s), keyed by
-    the same property-run offsets ``jt.pmi`` records (``run_start``)."""
-    out: dict[int, GraphicEntity] = {}
+def extract_graphic(jt: JtFile) -> dict[tuple[int, int], GraphicEntity]:
+    """``{(segment offset, run_start): GraphicEntity}`` for the PMI-manager
+    segment(s), keyed like ``JtPmiEntity.segment_offset`` / ``run_start``."""
+    out: dict[tuple[int, int], GraphicEntity] = {}
     for seg in jt.segments_of(SEG_PMI):
         try:
             blob = jt.payload(seg)
@@ -199,7 +199,7 @@ def extract_graphic(jt: JtFile) -> dict[int, GraphicEntity]:
                 if end is None or props_start not in run_starts:
                     break
                 ent.run_start = props_start
-                out[props_start] = ent
+                out[(seg.offset, props_start)] = ent
                 done.add(props_start)
                 p = end
     return out

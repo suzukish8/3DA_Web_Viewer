@@ -368,23 +368,22 @@ def _jt_graphic_groups(path: str, doc, pmi: dict) -> list[dict]:
 
     jt = read_jt(path)
     graphic = extract_graphic(jt)
-    raw = {e.run_start: e for e in extract_pmi(jt).entities}
+    raw = {(e.segment_offset, e.run_start): e for e in extract_pmi(jt).entities}
     index = getattr(doc, "step_pmi_name_index", None) or {}
     tol_by_id = {t["id"]: t for t in pmi["geometric_tolerances"]}
     groups: list[dict] = []
-    for run_start, g in sorted(graphic.items()):
+    for key, g in sorted(graphic.items()):
         lines = [[[float(x) for x in p] for p in pl.points] for pl in g.polylines if len(pl.points) >= 2]
         if not lines:
             continue
-        e = raw.get(run_start)
-        name = f"jt-gfx-{run_start}"
+        e = raw.get(key)
+        name = f"jt-gfx-{key[0]}-{key[1]}"
         if e is not None:
             name = f"jt-{e.id}"
             for aid in index.get(name, []):
                 t = tol_by_id.get(aid[5:] if aid.startswith("char-") else "")
                 if t is not None:
-                    t["name"] = name
-                    break
+                    t["name"] = name          # every row of a stacked frame shares the group
             if e.kind == KIND_DATUM:
                 for d in pmi["datums"]:
                     if d["letter"] == e.props.get("label"):

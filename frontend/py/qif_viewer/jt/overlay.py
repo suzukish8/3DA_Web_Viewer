@@ -257,7 +257,9 @@ def overlay_jt_pmi(doc: QifDocument, mesh, cell_offsets, jt_path: str) -> Overla
             continue
         seq += 1
         levels = [("PRIMARY", c.primary), ("SECONDARY", c.secondary), ("TERTIARY", c.tertiary)]
-        entries = [(datum_id(r.label), prec) for prec, refs in levels for r in refs]
+        # Several references in one compartment are a common datum ("A-B",
+        # "C-C"): one entry whose label joins them.
+        entries = [(datum_id("-".join(r.label for r in refs)), prec) for prec, refs in levels if refs]
         drf_id = None
         if entries:
             drf_id = f"JDRF_{c.jt_id}"
@@ -274,7 +276,7 @@ def overlay_jt_pmi(doc: QifDocument, mesh, cell_offsets, jt_path: str) -> Overla
             id=nom_id, type_name=c.type_name, definition_id=def_id,
             feature_nominal_ids=[fn_id], designator=str(seq),
         )
-        name_index.setdefault(f"jt-{c.jt_id}", []).append(f"char-{nom_id}")
+        name_index.setdefault(f"jt-{c.entity_id or c.jt_id}", []).append(f"char-{nom_id}")
         stats.characteristics += 1
 
     # --- dimensions
@@ -295,7 +297,15 @@ def overlay_jt_pmi(doc: QifDocument, mesh, cell_offsets, jt_path: str) -> Overla
         if a is None:
             continue
         seq += 1
-        type_name = "Length" if (len(pts) >= 2 or angular) else "Width"
+        if angular:
+            type_name = "Length"
+        elif dm.diameter:
+            type_name = "Diameter"
+        elif dm.kind == "Radial" and dm.type_code == 6:
+            type_name = "Radius"         # NX DimType 6; other radial dimensions export as lengths
+        else:
+            n_ends = sum(1 for p, _r in dm.leaders if p is not None)
+            type_name = "Length" if (n_ends >= 2 or dm.kind == "Radial") else "Width"
         raw_extra: dict[str, str] = {}
         if dm.upper_delta is not None and dm.lower_delta is not None:
             raw_extra["Tolerance.MaxValue"] = _fmt(dm.upper_delta)

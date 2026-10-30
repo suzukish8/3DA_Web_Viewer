@@ -108,7 +108,9 @@ def _mbs(b: bytes, p: int):
         s = b[p + 4:p + 4 + 2 * n].decode("utf-16le")
     except UnicodeDecodeError:
         return None
-    if not s.isprintable():
+    # Control characters mean "not a string"; spaces such as U+00A0 (NX writes
+    # "SCREW<nbsp>PITCH<nbsp>DIAMETER") are fine although str.isprintable() rejects them.
+    if any(not (c.isprintable() or c.isspace()) or (ord(c) < 0x20 and c not in "\t\n") for c in s):
         return None
     return s, p + 4 + 2 * n
 
@@ -197,8 +199,8 @@ _MARK_CNT = "CAD_PMI_COUNT".encode("utf-16le")
 
 def extract_pmi(jt: JtFile) -> JtPmi:
     pmi = JtPmi(jt.path, jt.version)
-    seen: set[tuple[int, str]] = set()
-    for seg in jt.segments_of(SEG_PMI):
+    seen: set[tuple] = set()
+    for seg_index, seg in enumerate(jt.segments_of(SEG_PMI)):
         try:
             blob = jt.payload(seg)
         except Exception:  # noqa: BLE001 - corrupt / unsupported compression
@@ -209,6 +211,7 @@ def extract_pmi(jt: JtFile) -> JtPmi:
             continue
         names = _collect_names(blob)
         pmi.names.update(names)
+        seg_seen: set[tuple] = set()
         for start, items in _scan_runs(blob):
             if start < 8:
                 continue
@@ -219,17 +222,24 @@ def extract_pmi(jt: JtFile) -> JtPmi:
             if any(k.startswith("CAD_PMI_COUNT") for k in props):
                 pmi.summary.update(props)
                 continue
-            if ident <= 0:
-                continue
+            # ``ident`` is just the last 4 bytes of the entity's polyline
+            # data (float bits, any sign) -- not an object id, so it can
+            # neither identify nor filter an entity.
             kind = _kind_from(names.get(ident, ""), props)
             if kind == KIND_OTHER:
                 continue  # view settings, reference points, etc.
-            key = (ident, kind)
+            # The same entity can be repeated in several PMI segments, so
+            # identical content already seen in an EARLIER segment is a
+            # duplicate.  Within one segment identical content is legitimate:
+            # NX writes two frames with equal properties for equal callouts.
+            key = (kind, tuple(items))
             if key in seen:
                 continue
-            seen.add(key)
+            seg_seen.add(key)
+            uid = seg_index * 10_000_000 + start      # unique, stable per file
             pmi.entities.append(
-                JtPmiEntity(ident, kind, names.get(ident, ""), props, seg.offset, start)
+                JtPmiEntity(uid, kind, names.get(ident, ""), props, seg.offset, start)
             )
+        seen |= seg_seen
     pmi.entities.sort(key=lambda e: e.id)
     return pmi
