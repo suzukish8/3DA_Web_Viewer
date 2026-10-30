@@ -9,7 +9,7 @@ src = os.path.join(root, "qif_viewer")
 dst = os.path.join(here, "frontend", "py", "qif_viewer")
 
 SKIP = {"edge_lines.py", "vertex_points.py"}          # pyvista を使う(メッシュ表示には不要)
-PKGS = ["model", "parsing", "tessellate", "tessellate/surfaces", "annotations"]
+PKGS = ["model", "parsing", "tessellate", "tessellate/surfaces", "annotations", "jt"]
 
 if os.path.isdir(dst):
     shutil.rmtree(dst)

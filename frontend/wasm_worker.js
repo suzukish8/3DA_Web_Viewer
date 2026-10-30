@@ -98,7 +98,11 @@ def _ld(path):
     return _orig_ld(path)
 qif_loader.load_qif_document = _ld
 def _load_qif(path):
-    mesh, pmi = qif_loader.load_qif(path)
+    if path.lower().endswith('.jt'):
+        if _prog: _prog('Decoding JT geometry...', 0.2, 0.85)
+        mesh, pmi = qif_loader.load_jt(path)
+    else:
+        mesh, pmi = qif_loader.load_qif(path)
     if _prog: _prog('Packing result...', 0.9, 0.93)
     return json.dumps({'mesh': mesh, 'pmi': pmi})
 `;
@@ -144,12 +148,15 @@ function getQif() {
 }
 
 async function loadQif(arrayBuffer, filename) {
-  progress("Loading QIF engine...", 0.03, 0.12);
+  const isJt = /\.jt$/i.test(filename || "");
+  progress(isJt ? "Loading JT engine..." : "Loading QIF engine...", 0.03, 0.12);
   const py = await getQif();
-  py.FS.writeFile("/tmp/input.qif", new Uint8Array(arrayBuffer));
+  if (isJt) await py.loadPackage("lzma");          // JT のセグメントは LZMA 圧縮(標準ライブラリの lzma を Pyodide に追加する)
+  const inPath = isJt ? "/tmp/input.jt" : "/tmp/input.qif";
+  py.FS.writeFile(inPath, new Uint8Array(arrayBuffer));
   let out;
-  try { out = py.globals.get("_load_qif")("/tmp/input.qif"); }
-  catch (e) { throw new Error("QIFファイルとして読み込めませんでした: " + String(e.message || e).trim().split("\n").pop()); }
+  try { out = py.globals.get("_load_qif")(inPath); }
+  catch (e) { throw new Error((isJt ? "JTファイルとして読み込めませんでした: " : "QIFファイルとして読み込めませんでした: ") + String(e.message || e).trim().split("\n").pop()); }
   progress("Transferring result...", 0.93, null);
   return { filename, ...JSON.parse(out) };
 }

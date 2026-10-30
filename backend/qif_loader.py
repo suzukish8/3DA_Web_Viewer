@@ -29,7 +29,7 @@ TYPE_JA = {
 
 SURFACE_JA_QIF = {
     "PlaneSurface": "平面", "CylinderSurface": "円筒面", "ConeSurface": "円すい面",
-    "NurbsSurface": "自由曲面(NURBS)", "UnknownSurface": "不明",
+    "NurbsSurface": "自由曲面(NURBS)", "UnknownSurface": "不明", "OcctSurface": "面(JT)",
 }
 
 
@@ -73,16 +73,93 @@ def _qif_topology(doc) -> dict:
     return {"vertices": vertices, "edges": edges, "face_edges": face_edges}
 
 
-def load_qif(path: str) -> tuple[dict, dict]:
-    doc = load_qif_document(path)
-    mesh, cell_offsets = build_mesh(doc)
-    if mesh.n_points == 0:
-        raise ValueError("QIFから形状を生成できませんでした(B-Rep情報が見つかりません)")
+def _qif_attributes(path: str) -> list[dict]:
+    """QIF の中にある属性情報(ファイル・ヘッダ・ユーザー定義属性・部品の項目)を、表示用にまとめる。"""
+    import xml.etree.ElementTree as ET
 
-    faces = mesh.faces.reshape(-1, 4)[:, 1:]  # (n_tri, 3)
-    bounds = mesh.bounds
+    def ln(tag: str) -> str:
+        return tag.rsplit("}", 1)[-1]
+
+    try:
+        root = ET.parse(path).getroot()
+    except Exception:
+        return []
+    sections: list[dict] = []
+
+    def user_attrs(el) -> list[dict]:
+        out = []
+        for a in el:
+            if ln(a.tag) == "Attributes":
+                for it in a:
+                    if ln(it.tag).startswith("Attribute") and it.get("name") is not None and (it.get("value") or "") != "":
+                        out.append({"name": it.get("name"), "value": it.get("value")})
+        return out
+
+    def leaves(el, prefix: str, depth: int, out: list, limit: int = 120) -> None:
+        for ch in el:
+            t = ln(ch.tag)
+            if t in ("Attributes",) or t == "Id" or t.endswith("Ids") or t.endswith("IdSet") or len(out) >= limit:      # 内部の参照番号の並びは出さない
+                continue
+            txt = (ch.text or "").strip()
+            name = (prefix + "/" + t) if prefix else t
+            if len(ch) == 0:
+                if txt:
+                    out.append({"name": name, "value": txt})
+            elif depth > 0 and t not in ("GeometrySet", "TopologySet", "FeatureNominalSet", "FeatureItemSet", "CharacteristicNominalSet", "CharacteristicItemSet", "CharacteristicDefinitionSet"):
+                leaves(ch, name, depth - 1, out, limit)
+
+    items = []
+    if root.get("versionQIF"):
+        items.append({"name": "QIF バージョン", "value": root.get("versionQIF")})
+    for ch in root:
+        if ln(ch.tag) == "QPId" and (ch.text or "").strip():
+            items.append({"name": "QPId", "value": ch.text.strip()})
+    for ch in root:
+        if ln(ch.tag) == "Header":
+            leaves(ch, "Header", 4, items)
+    if items:
+        sections.append({"title": "ファイル情報", "items": items})
+    ua = user_attrs(root)
+    if ua:
+        sections.append({"title": "ユーザー定義属性", "items": ua})
+    for prod in root:
+        if ln(prod.tag) != "Product":
+            continue
+        for ch in prod:
+            if ln(ch.tag) in ("PartSet", "AssemblySet"):
+                for part in ch:
+                    its: list[dict] = []
+                    leaves(part, "", 3, its)
+                    its.extend(user_attrs(part))
+                    if its:
+                        nm = next((i["value"] for i in its if i["name"] in ("Name", "PartName")), ln(part.tag))
+                        sections.append({"title": "部品: " + nm, "items": its})
+    return sections
+
+
+def _qif_saved_views(path: str) -> list[dict]:
+    saved_views = []
+    try:
+        from qif_viewer.parsing.saved_views import read_saved_views
+        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+            raw = read_saved_views(fh.read())
+        for name, st in raw.items():
+            if isinstance(st, dict) and {"position", "focal_point", "view_up", "parallel_scale"} <= st.keys():
+                saved_views.append({"name": name, "source": "qif", "position": st["position"],
+                                    "focal_point": st["focal_point"], "up": st["view_up"],
+                                    "parallel_scale": st["parallel_scale"]})
+    except Exception:
+        pass
+
+    return saved_views
+
+
+def doc_to_response(doc, points, faces, cell_offsets, saved_views, attributes) -> tuple[dict, dict]:
+    """QifDocument(QIF / JT 由来)とテッセレーション結果を、ブラウザ用の mesh + pmi に変換する。
+    points: (n,3) 座標、faces: (n_tri,3) 三角形の頂点番号。"""
+    bounds = (points[:, 0].min(), points[:, 0].max(), points[:, 1].min(), points[:, 1].max(), points[:, 2].min(), points[:, 2].max())
     mesh_json = {
-        "positions": mesh.points.astype(float).ravel().tolist(),
+        "positions": points.astype(float).ravel().tolist(),
         "indices": faces.astype(int).ravel().tolist(),
         "bbox": {"min": [bounds[0], bounds[2], bounds[4]], "max": [bounds[1], bounds[3], bounds[5]]},
         "faceCount": int(faces.shape[0]),
@@ -227,19 +304,6 @@ def load_qif(path: str) -> tuple[dict, dict]:
             ranges.extend(ranges_by_face.get(fid, []))
         datum_items.append({"letter": d.label, "names": [], "face_triangle_ranges": ranges})
 
-    saved_views = []
-    try:
-        from qif_viewer.parsing.saved_views import read_saved_views
-        with open(path, "r", encoding="utf-8", errors="replace") as fh:
-            raw = read_saved_views(fh.read())
-        for name, st in raw.items():
-            if isinstance(st, dict) and {"position", "focal_point", "view_up", "parallel_scale"} <= st.keys():
-                saved_views.append({"name": name, "source": "qif", "position": st["position"],
-                                    "focal_point": st["focal_point"], "up": st["view_up"],
-                                    "parallel_scale": st["parallel_scale"]})
-    except Exception:
-        pass
-
     # 同じデータム形体にサイズ寸法と幾何公差の両方がある場合は、幾何公差の方だけに三角記号を書く
     geo_letters = {l for t in tolerances if t["symbol_kind"] != "dimension" for l in t["attached_datums"]}
     for t in tolerances:
@@ -252,6 +316,40 @@ def load_qif(path: str) -> tuple[dict, dict]:
         "datums": datum_items,
         "tessellated": [],
         "saved_views": saved_views,
+        "attributes": attributes,
         "unit_factor_to_mm": 1.0,
     }
     return mesh_json, pmi
+
+
+def load_qif(path: str) -> tuple[dict, dict]:
+    doc = load_qif_document(path)
+    mesh, cell_offsets = build_mesh(doc)
+    if mesh.n_points == 0:
+        raise ValueError("QIFから形状を生成できませんでした(B-Rep情報が見つかりません)")
+    faces = mesh.faces.reshape(-1, 4)[:, 1:]  # (n_tri, 3)
+    return doc_to_response(doc, mesh.points, faces, cell_offsets, _qif_saved_views(path), _qif_attributes(path))
+
+
+def _jt_attributes(path: str) -> list[dict]:
+    from qif_viewer.jt.reader import SEGMENT_NAMES, read_jt
+
+    jt = read_jt(path)
+    counts: dict[str, int] = {}
+    for s in jt.segments:
+        n = SEGMENT_NAMES.get(s.type, f"type {s.type}")
+        counts[n] = counts.get(n, 0) + 1
+    return [{"title": "ファイル情報", "items": [{"name": "JT バージョン", "value": jt.version}] + [
+        {"name": "セグメント: " + n, "value": str(c)} for n, c in sorted(counts.items())]}]
+
+
+def load_jt(path: str) -> tuple[dict, dict]:
+    """JT ファイルを読む。形状は JT 自身の三角形データ(Shape LOD)から、PMI は JT のメタデータから得る。"""
+    from qif_viewer.jt.loader import PointsFaces, apply_jt_pmi, build_jt_geometry
+    from qif_viewer.jt.report import jt_report_text
+
+    geom = build_jt_geometry(path)
+    apply_jt_pmi(geom, PointsFaces(geom.points, geom.triangles), path)
+    mesh, pmi = doc_to_response(geom.doc, geom.points, geom.triangles, geom.cell_offsets, [], _jt_attributes(path))
+    pmi["source_text"] = jt_report_text(path, geom.doc)
+    return mesh, pmi

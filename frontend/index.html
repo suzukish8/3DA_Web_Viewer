@@ -746,7 +746,7 @@
     <svg class="fs-exit" viewBox="0 0 16 16"><path d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4"/></svg>
   </button>
 </div>
-  <input id="fileInput" type="file" accept=".stp,.step,.stpx,.p21,.qif,.ant" multiple>
+  <input id="fileInput" type="file" accept=".stp,.step,.stpx,.p21,.qif,.jt,.ant" multiple>
   <main>
     <div id="panel">
       <button id="panelClose" title="Close" aria-label="Close">&times;</button>
@@ -6682,7 +6682,7 @@ function measInfo(it, forHover) {      // forHover: ホバー中は簡潔に(三
   if (it.kind === "vertex") {
     const v = md.verts[it.index];
     add("種類", "点(頂点)");
-    add("ID", v.id !== null && v.id !== undefined ? ((currentFileKind === "qif" ? "QIF " : "STEP #") + v.id) : "(IDなし)");
+    add("ID", v.id !== null && v.id !== undefined ? (fileIdPrefix() + v.id) : "(IDなし)");
     add("座標 X, Y, Z", measXYZ(v.p) + (unit !== 1 ? ` (mm: ${measXYZ(v.p.map(c => c * unit))})` : " mm"));
     if (v.id !== null && v.id !== undefined) {
       const es = topo.edges.filter(e => String(e.v1) === String(v.id) || String(e.v2) === String(v.id)).map(e => e.id);
@@ -6700,13 +6700,13 @@ function measInfo(it, forHover) {      // forHover: ホバー中は簡潔に(三
     add("種類", "線(稜線)");
     if (it.edge !== undefined) {
       const e = topo.edges[it.edge];
-      add("ID", (currentFileKind === "qif" ? "QIF " : "STEP #") + e.id);
-      add("曲線", ({ LINE: "直線", CIRCLE: "円/円弧", ELLIPSE: "楕円", BSPLINE: "自由曲線(B-spline)" }[e.type] || "その他") + (e.curve_id ? ` (${currentFileKind === "qif" ? "" : "#"}${e.curve_id})` : ""));
+      add("ID", fileIdPrefix() + e.id);
+      add("曲線", ({ LINE: "直線", CIRCLE: "円/円弧", ELLIPSE: "楕円", BSPLINE: "自由曲線(B-spline)" }[e.type] || "その他") + (e.curve_id ? ` (${currentFileKind === "step" ? "#" : ""}${e.curve_id})` : ""));
       if (e.radius) add("半径", fmtN(e.radius) + " mm" + ` (直径 ${fmtN(e.radius * 2)})`);
       if (e.center) add("中心", measXYZ(e.center));
       if (e.axis) add("軸の向き", measXYZ(e.axis));
-      if (e.p1) add("始点", (forHover ? "" : `${(currentFileKind === "qif" ? "" : "#")}${e.v1}  `) + measXYZ(e.p1));
-      if (e.p2) add("終点", (forHover ? "" : `${(currentFileKind === "qif" ? "" : "#")}${e.v2}  `) + measXYZ(e.p2));
+      if (e.p1) add("始点", (forHover ? "" : `${(currentFileKind === "step" ? "#" : "")}${e.v1}  `) + measXYZ(e.p1));
+      if (e.p2) add("終点", (forHover ? "" : `${(currentFileKind === "step" ? "#" : "")}${e.v2}  `) + measXYZ(e.p2));
       if (e.type === "LINE" && e.p1 && e.p2) add("長さ", fmtN(Math.hypot(e.p2[0] - e.p1[0], e.p2[1] - e.p1[1], e.p2[2] - e.p1[2])) + " mm");
       else add("長さ(概算)", fmtN(total * unit) + " mm");
       const fs = md.edgeFaces.get(String(e.id));
@@ -6721,7 +6721,7 @@ function measInfo(it, forHover) {      // forHover: ホバー中は簡潔に(三
   const faces = it.faces || [it.face];
   const fis = faces.map(f => currentMeshData.faceInfo && currentMeshData.faceInfo[f]);
   const fi = fis[0];
-  const pre = currentFileKind === "qif" ? "QIF " : "STEP #";
+  const pre = fileIdPrefix();
   add("種類", "面");
   add("ID", fis.every(x => x) ? fis.map(x => pre + x.id).join("/") : "(IDなし)");
   if (fi && fi.name) add("名前", fi.name);
@@ -6802,6 +6802,7 @@ function measTipRender() {
   measTipPlace();
 }
 var measHoverObj = null, measHoverKey = "", measMoveTimer = 0, currentFileKind = "step";
+function fileIdPrefix() { return currentFileKind === "qif" ? "QIF " : currentFileKind === "jt" ? "JT " : "STEP #"; }
 function measUpdateHover(px, py) {
   const it = measPick(px, py), k = measKey(it);
   if (k === measHoverKey) return;
@@ -8636,8 +8637,8 @@ function srcScrollTo(line) { srcScroll.scrollTop = Math.max(0, line * SRC_LH - (
 async function srcLoad() {
   if ((!srcVisible && !treeVisible) || !srcFile) return;
   const f = srcFile, token = ++srcLoadToken;
-  srcKind = /\.(qif|xml)$/i.test(f.name) ? "qif" : "step";
-  srcTitle.textContent = (srcKind === "qif" ? "QIF" : "STEP") + " Source";
+  srcKind = /\.(qif|xml|jt)$/i.test(f.name) ? "qif" : "step";
+  srcTitle.textContent = /\.jt$/i.test(f.name) ? "JT Decoded Data" : (srcKind === "qif" ? "QIF" : "STEP") + " Source";
   srcInfo.textContent = "Loading...";
   srcLines = null; srcIdx = null; srcHl = null; srcMatch = null; srcRender();
   try {
@@ -9075,7 +9076,7 @@ async function handleFile(file, antFile, srcPath) {
   viewAnchor = null; resize();                         // モデルの中心を、画面の中心へ置き直す
   secExit();                                           // 断面も、開いていたファイルのものなので終える
   measExit();                                          // 計測は、開いていたファイルのものなので終える
-  currentFileKind = /\.(qif|xml)$/i.test(file.name) ? "qif" : "step";
+  currentFileKind = /\.(qif|xml)$/i.test(file.name) ? "qif" : /\.jt$/i.test(file.name) ? "jt" : "step";
   antPath = srcPath || null;
   if (!antPath && await hasServer()) {            // パスの分からないファイル(ドラッグ&ドロップなど): これまでに開いたフォルダから、同じ名前・大きさのファイルを探す
     try { const r = await fetch(API_BASE + "/api/locate?name=" + encodeURIComponent(file.name) + "&size=" + file.size); if (r.ok) antPath = (await r.json()).path || null; } catch (_) {}
@@ -9093,7 +9094,7 @@ async function handleFile(file, antFile, srcPath) {
     if (await hasServer()) {
       data = await uploadWithProgress(form);
     } else {                                        // サーバーなし(GitHub Pages など): ブラウザ内で解析する
-      const isQif = /\.(qif|xml)$/i.test(file.name);
+      const isQif = /\.(qif|xml|jt)$/i.test(file.name);
       data = await window.WasmStepLoader[isQif ? "loadQif" : "load"](await file.arrayBuffer(), file.name, stageProgress(file.size));
       stopStage();
     }
@@ -9118,14 +9119,14 @@ async function handleFile(file, antFile, srcPath) {
     bmDirty = true;
     userViews = [];
     setFileViews(data.pmi.saved_views);
-    applyDefaultAnnotationStyle(/\.(qif|xml)$/i.test(file.name), data.pmi);
+    applyDefaultAnnotationStyle(/\.(qif|xml|jt)$/i.test(file.name), data.pmi);
     applyHiddenGraphics();
     const tolCount = (data.pmi.geometric_tolerances || []).length;
     const lineCount = (data.pmi.tessellated || []).reduce((n, g) => n + g.polylines.length, 0);
     const glyphTriCount = (data.pmi.tessellated || []).reduce((n, g) => n + (g.glyph ? g.glyph.indices.length / 3 : 0), 0);
     statusSummary = `${data.filename}: ${data.mesh.faceCount ?? "?"}三角形 / 幾何公差${tolCount}件 / PMI線分${lineCount}本 / 文字${glyphTriCount}三角形`;
     statusEl.textContent = statusSummary;
-    srcSetFile(file);                                      // Source パネルに、このファイルの文章を出す
+    srcSetFile(/\.jt$/i.test(file.name) ? new File([data.pmi.source_text || ""], file.name, { type: "text/plain" }) : file);   // Source パネルに、このファイルの文章を出す(JT はバイナリなので、読み取った内容の一覧)
     selectedAnnName = null; selectedPlainFace = false;
     await antAfterLoad(file, antFile);                   // .ant があれば、前回の状態を再現する
     setProgress(1); await nextFrame();

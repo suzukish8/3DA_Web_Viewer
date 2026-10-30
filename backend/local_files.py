@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 router = APIRouter()
 
 _STATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "recent_dirs.json")
-_READABLE = (".stp", ".step", ".stpx", ".p21", ".qif", ".xml", ".ant")
+_READABLE = (".stp", ".step", ".stpx", ".p21", ".qif", ".xml", ".jt", ".ant")
 
 
 def _local_only(request: Request) -> None:
@@ -59,7 +59,7 @@ root.attributes("-topmost", True)
 p = filedialog.askopenfilename(
     title="Open",
     initialdir=sys.argv[1] if len(sys.argv) > 1 else "",
-    filetypes=[("STEP / QIF", "*.stp *.step *.stpx *.p21 *.qif"), ("All files", "*.*")],
+    filetypes=[("STEP / QIF / JT", "*.stp *.step *.stpx *.p21 *.qif *.jt"), ("All files", "*.*")],
 )
 sys.stdout.write(p or "")
 """

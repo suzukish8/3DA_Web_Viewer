@@ -1,7 +1,7 @@
 """
 3DA Web Viewer - バックエンド (FastAPI)
 
-- POST /api/upload : STEPファイルを受け取り、
+- POST /api/upload : STEP / QIF / JT ファイルを受け取り、
     1) OCCT(OCP)で形状をテッセレーション(三角形メッシュ化)
     2) step_pmi.py で意味的PMI(幾何公差・データム)を抽出
   してJSONで返す。
@@ -149,6 +149,15 @@ def _process_upload(data: bytes, filename: str, suffix: str):
                 raise
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"QIFファイルとして読み込めませんでした: {e}")
+            return JSONResponse({"filename": filename, "mesh": mesh, "pmi": pmi})
+        if suffix.lower() == ".jt":
+            from qif_loader import load_jt
+            try:
+                mesh, pmi = load_jt(tmp_path)
+            except HTTPException:
+                raise
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"JTファイルとして読み込めませんでした: {e}")
             return JSONResponse({"filename": filename, "mesh": mesh, "pmi": pmi})
         reader = STEPControl_Reader()
         status = reader.ReadFile(tmp_path)
